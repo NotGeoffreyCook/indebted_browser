@@ -1,0 +1,378 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Escrow Park Courtyard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Archivo:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: level-design sheet on Void. Top-down map is the hero; segment detail rides beside it, pacing + Director data below. */
+:root{
+  color-scheme: dark;
+  --void:#0A0A0A; --panel:#141414; --rule:#262626; --line:#3A3A3A;
+  --white:#F0F0F0; --chalk:#B0B0B0; --dim:#7A7A7A;
+  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --f-body:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --brand-500:#F0F0F0; --brand-950:#0A0A0A;
+}
+*{box-sizing:border-box}
+body{background:var(--void);color:var(--white);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 56px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:40px}
+h1,h2,h3{font-family:var(--f-display);text-transform:uppercase;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:clamp(48px,9vw,104px);line-height:.86;font-weight:900}
+h2{font-size:28px;font-weight:900;line-height:1}
+h3{font-size:22px;font-weight:700;line-height:1}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--chalk)}
+p{margin:0;max-width:68ch;color:var(--chalk)}
+header{display:flex;flex-direction:column;gap:14px;border-bottom:1px solid var(--rule);padding-bottom:24px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);padding:4px 8px;color:var(--white)}
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.mapcard{display:flex;flex-direction:column;gap:12px;min-width:0}
+.toggles{display:flex;flex-wrap:wrap;gap:6px}
+.toggles label{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);padding:5px 9px;cursor:pointer;user-select:none;color:var(--chalk)}
+.toggles input{accent-color:#F0F0F0;margin:0}
+.toggles label:has(input:checked){color:var(--white);border-color:var(--chalk)}
+.toggles label:focus-within{outline:2px solid var(--white);outline-offset:2px}
+.mapbox{background:#000;border:1px solid var(--rule);overflow-x:auto}
+#map{display:block;width:100%;min-width:560px;height:auto}
+#map .seg{cursor:pointer}
+#map .seg:focus{outline:none}
+#map .seg:focus-visible .floor{stroke:#F0F0F0;stroke-width:.9}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-family:var(--f-mono);font-size:12px;color:var(--chalk)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend svg{width:16px;height:16px}
+aside.detail{background:var(--panel);border-left:4px solid var(--brand-500);padding:20px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.dhead{display:flex;flex-direction:column;gap:6px}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px;margin:0}
+.dl dt{font-family:var(--f-mono);font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;padding-top:2px}
+.dl dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{border:1px solid var(--line);padding:8px 10px;display:flex;flex-direction:column}
+.slot b{font-family:var(--f-display);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.slot small{font-family:var(--f-mono);font-size:11px;color:var(--chalk);text-transform:uppercase;letter-spacing:.08em}
+.beats{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.beats li{padding-left:14px;position:relative;color:var(--white);font-size:14px}
+.beats li::before{content:"";position:absolute;left:0;top:.6em;width:6px;height:6px;background:var(--brand-500)}
+.sec{display:flex;flex-direction:column;gap:16px}
+.timeline{display:flex;gap:2px;height:56px}
+.timeline button{all:unset;cursor:pointer;min-width:22px;display:flex;flex-direction:column;justify-content:space-between;padding:6px 8px;overflow:hidden;font-family:var(--f-mono);font-size:11px;line-height:1.2}
+.timeline button b{font-family:var(--f-display);font-size:18px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeline button[aria-pressed="true"]{box-shadow:inset 0 0 0 3px #000,inset 0 0 0 5px currentColor}
+.timeline button:focus-visible{outline:2px solid var(--white);outline-offset:2px}
+.ticks{position:relative;height:18px;font-family:var(--f-mono);font-size:11px;color:var(--dim)}
+.ticks span{position:absolute;transform:translateX(-50%)}
+.ticks span:first-child{transform:none}.ticks span:last-child{transform:translateX(-100%)}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--f-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:400}
+td.m{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.qs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px;counter-reset:q}
+.qs li{display:grid;grid-template-columns:28px 1fr;gap:8px;color:var(--white);font-size:14px}
+.qs li::before{counter-increment:q;content:counter(q);font-family:var(--f-display);font-size:22px;font-weight:900;line-height:1;color:var(--chalk)}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button.act{font-family:var(--f-mono);font-size:13px;background:var(--white);color:#000;border:0;padding:10px 14px;cursor:pointer}
+button.act:focus-visible{outline:2px solid var(--white);outline-offset:3px}
+#copyMsg{font-family:var(--f-mono);font-size:12px;color:var(--chalk)}
+details{border:1px solid var(--rule)}
+summary{cursor:pointer;padding:10px 12px;font-family:var(--f-mono);font-size:12px;color:var(--chalk)}
+pre{margin:0;padding:12px;max-height:420px;overflow:auto;font-family:var(--f-mono);font-size:12px;color:var(--white);border-top:1px solid var(--rule)}
+@media (prefers-reduced-motion:no-preference){aside.detail{transition:border-color .2s}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">InDebtEd · Level layout · LVL_Courtyard_01</div>
+  <h1>Escrow Park</h1>
+  <p>The amenity courtyard of the Escrow Park Residences. Five segments run clockwise around a central courtyard that stays locked all run and opens as the Target's arena. Each wing is one brand district; the lobby and courtyard sit outside the districts.</p>
+  <div class="chips">
+    <span class="chip">6 segments</span><span class="chip">~15 min target</span><span class="chip">4 pay-to-pass gates</span><span class="chip">4 checkpoints</span><span class="chip">Opening stance: Drain</span><span class="chip">Footprint 144 × 128 m</span>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="mapcard">
+    <div class="toggles" role="group" aria-label="Map layers">
+      <label><input type="checkbox" id="l-path" data-layer="path" checked>Critical path</label>
+      <label><input type="checkbox" id="l-mod" data-layer="mod" checked>ModSlots</label>
+      <label><input type="checkbox" id="l-gate" data-layer="gate" checked>Gates + checkpoints</label>
+      <label><input type="checkbox" id="l-eco" data-layer="eco" checked>Shops + loot</label>
+      <label><input type="checkbox" id="l-mkt" data-layer="mkt">Market sockets</label>
+      <label><input type="checkbox" id="l-col" data-layer="col">Debt collectors</label>
+      <label><input type="checkbox" id="l-sight" data-layer="sight" checked>Courtyard sightlines</label>
+      <label><input type="checkbox" id="l-boss" data-layer="boss" checked>Arena sockets</label>
+    </div>
+    <div class="mapbox"><svg id="map" viewBox="0 0 160 142" role="img" aria-label="Top-down map of the Escrow Park courtyard level"></svg></div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <aside class="detail" id="detail" aria-live="polite"></aside>
+</div>
+
+<section class="sec">
+  <h2>Run order and pacing</h2>
+  <p>Arrival times are the ExpectedTimeAtSegment targets the Director compares against for SegmentDelta. Select a segment to inspect it on the map.</p>
+  <div>
+    <div class="timeline" id="timeline"></div>
+    <div class="ticks" id="ticks"></div>
+  </div>
+</section>
+
+<div class="two">
+<section class="sec">
+  <h2>Director setup</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Variable</th><th>Value</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>ScriptedOpeningStance</td><td class="m">Kill 25 · Drain 45<br>Trick 20 · Taunt 10</td><td>The complex runs on fees. Drain leads; each wing then pulls its own affinity.</td></tr>
+      <tr><td>LevelBudget (start)</td><td class="m">500</td><td>Enough for the GRN opener without dipping into reserve.</td></tr>
+      <tr><td>BudgetReplenishRate</td><td class="m">3.0 / s</td><td>~2,700 over a 15 min run.</td></tr>
+      <tr><td>ReserveBudget floor</td><td class="m">30% / 20% / 10%</td><td>By EscalationTier 1 / 2 / 3.</td></tr>
+      <tr><td>Decision interval</td><td class="m">3.0 / 2.5 / 2.0 s</td><td>Shortens with tier.</td></tr>
+      <tr><td>Tier 3 fee multiplier</td><td class="m">1.5×</td><td>Gate fees rise when the level knows the player is winning.</td></tr>
+    </tbody>
+  </table></div>
+  <p>All values are starting points to tune once the enemy and trap BudgetCost table exists.</p>
+</section>
+
+<section class="sec">
+  <h2>Open questions</h2>
+  <ol class="qs">
+    <li>The macro loop puts combat inside "the store." This layout treats the complex's amenities as that store. Is this a store-type level, or the player's own building? The second would put combat at home.</li>
+    <li>The courtyard is visible from every wing all run. Should hires and fortifications appear there in real time as a second read on the Target Article, including pay-to-pass upgrades?</li>
+    <li>G1 has no fee. Should the first gate carry a token fee (~$10) to teach pay-to-pass before it matters?</li>
+    <li>Electrified pool and falling chandelier are new trap types. They need BudgetCost rows in the shared data table.</li>
+  </ol>
+</section>
+</div>
+
+<section class="sec">
+  <h2>Level data</h2>
+  <p>Segments, gates, ModSlots, checkpoints and arena sockets as JSON, shaped for a Level Data Asset. Coordinates are meters from the northwest corner, X east, Y south.</p>
+  <div class="btnrow"><button class="act" id="copyBtn" type="button">Copy level JSON</button><span id="copyMsg"></span></div>
+  <details id="jsonDetails"><summary>View JSON</summary><pre id="json"></pre></details>
+</section>
+</div>
+
+<script>
+const P={
+ RED:{950:"#0D0100",900:"#1A0300",800:"#3D0700",700:"#6B0D00",600:"#A81800",500:"#FF3B2F",400:"#FF6B62",200:"#FFC2BE",100:"#FFE8E7"},
+ GLD:{950:"#0D0900",900:"#1A1200",800:"#3D2C00",700:"#6B4C00",600:"#A87800",500:"#FFD24A",400:"#FFDC72",200:"#FFF1C2",100:"#FFFAE8",p700:"#5A1AAD"},
+ BLU:{950:"#00050D",900:"#000D1A",800:"#001E3D",700:"#00366B",600:"#0058A8",500:"#2F8FFF",400:"#62AAFF",200:"#C2DAFF",100:"#E8F3FF"},
+ GRN:{950:"#010D04",900:"#031A08",800:"#073D12",700:"#0F6B20",600:"#1FA835",500:"#4AFF6B",400:"#72FF8A",200:"#C2FFCC",100:"#E8FFEC"},
+ NEUTRAL:{950:"#0A0A0A",900:"#FFFFFF",800:"#EDEDED",700:"#D6D6D6",600:"#B5B5B5",500:"#111111",400:"#8C8C8C",200:"#111111",100:"#111111"}
+};
+const BRAND_NAME={RED:"Fire",GLD:"Radiance",BLU:"Zap",GRN:"Growth",NEUTRAL:"Outside districts"};
+
+const SEG=[
+ {id:"S0",name:"Leasing Office",d:"NEUTRAL",x:58,y:110,w:44,h:24,arrive:0,clear:45,approach:"Observing",gate:{id:"G1",fee:0,window:0},
+  pitch:"Safe start. Buy ammo, pick a heal provider, read the amenity fee notice. The north windows look out on the courtyard being set up for the Target's cookout.",
+  beats:["DirectorState stays Observing until G1 opens. No spawns.","Ammo kiosk and heal-provider kiosk. Last guaranteed shop before the Mail Room.","Model-unit decor breakables teach steal or smash with no pressure."],
+  f:[["r",72,118,16,4,"700"],["r",62,116,7,4,"600"],["r",91,116,7,4,"600"],["r",66,110,28,1,"400"],["r",58,132.6,18,1.4,"700"],["r",84,132.6,18,1.4,"700"]]},
+ {id:"S1",name:"Mail Room",d:"GRN",x:8,y:84,w:44,h:50,arrive:45,clear:180,approach:"Drain",gate:{id:"G2",fee:45,window:8},
+  pitch:"Parcel lockers stacked as overlapping cubes. Short lanes, lots of cover, and lots of packages to steal or smash. Drain opens here with cheap trap mixes on the conveyor.",
+  beats:["Parcel conveyor (T) runs the south lane. Drain uses it to push the player into the open mid-fight.","Three parcel breakables with high steal value. GRN goods are the fastest to decay in the hoard.","Package-vending shop at the north end, with a debt collector spawn beside it."],
+  f:[["r",12,88,13,13,"700"],["r",19,94,12,12,"600"],["r",34,88,12,10,"700"],["r",40,93,8,8,"600"],["r",12,106,9,9,"600"],["r",28,104,10,10,"700"],["r",33,108,9,9,"600"],["r",10,124,40,2,"700"],["r",10,124.6,40,.6,"500"]]},
+ {id:"S2",name:"Fitness Center",d:"RED",x:8,y:6,w:44,h:72,arrive:180,clear:360,approach:"Kill",gate:{id:"G3",fee:70,window:10},
+  pitch:"Flat ceilings, narrow aisles, and treadmill rows that move you whether you like it or not. Kill pressure at close range with few ways out.",
+  beats:["Treadmill belts (T) run against the critical path.","Single-file aisles make Tier 3 elite stacks lethal. The HP < 30% ease-off matters most here.","CP1 sits at the entrance, so Medical Bill respawns land at the start of the gym."],
+  f:[["r",20,10,1.2,44,"600"],["r",36,24,1.2,50,"600"],["r",22,44,10,10,"700"],["r",22,46,10,.6,"600"],["r",22,49,10,.6,"600"],["r",22,52,10,.6,"600"],["r",38,14,12,8,"700"],["r",38,16.5,12,.6,"600"],["r",38,19.5,12,.6,"600"],["r",10,26,8,3,"700"],["r",10,32,8,3,"700"],["r",38,58,12,16,"700"]]},
+ {id:"S3",name:"Pool Deck",d:"BLU",x:58,y:6,w:94,h:28,arrive:360,clear:540,approach:"Trick",gate:{id:"G4",fee:95,window:10},
+  pitch:"Long, open, and glassed in on both sides. The pool splits the deck and can be electrified. The lifeguard tower is a sniper perch, and the pool edge hides false paths.",
+  beats:["Electrified pool (T) fires on BLU Director spend. The water goes dead while BLU sits at Floor.","Lifeguard tower is a sniper slot, and the perch for BLU specialists if the Target hired them.","First clear sightline into the courtyard. The player sees the arena's hires before paying at G4."],
+  f:[["r",58,6,94,1,"400"],["r",78,12,52,14,"600"],["r",78,15.4,52,.35,"500"],["r",78,18.8,52,.35,"500"],["r",78,22.2,52,.35,"500"],["r",132,11,4,4,"500"],["r",64,28,6,4,"700"],["r",86,28,6,4,"700"],["r",114,28,6,4,"700"]]},
+ {id:"S4",name:"Clubhouse",d:"GLD",x:108,y:40,w:44,h:94,arrive:540,clear:720,approach:"Taunt",gate:{id:"G5",fee:120,window:12},
+  pitch:"45° walls, a diamond lounge under a chandelier, and expensive art everywhere. Taunt baits the player toward high-value breakables and counter-spawns on commit.",
+  beats:["Chandelier (T) drops on the diamond lounge. Taunt places art bait under it.","Four high-value art pieces at the corners. GLD Worth at Settlement sets their sale price.","CP2 sits just past G4, and the second heal kiosk is the last one before the boss."],
+  f:[["p","131.5,75.5 147.5,91.5 131.5,107.5 115.5,91.5","p700"],["p","130,74 146,90 130,106 114,90","700"],["p","130,82 138,90 130,98 122,90","600"],["c",130,90,2.4,"500"],["p","108,40 124,40 108,56","700"],["p","152,40 136,40 152,56","700"],["p","108,134 124,134 108,118","700"],["p","152,134 136,134 152,118","700"]]},
+ {id:"S5",name:"The Courtyard",d:"NEUTRAL",x:58,y:40,w:44,h:64,arrive:720,clear:900,approach:"Target",gate:null,boss:true,
+  pitch:"The Target's arena: the BOXY BROS Resident Appreciation Cookout. Visible from every wing all run, locked until G5. Fountain center, grill pavilion, balconies above for specialists.",
+  beats:["Boss starts at the grill pavilion. Hired squads enter from the wing doors at H1 and H2.","Fortification sockets F1 to F3 fill at the 2.0× budget band.","The Target Loan second-phase trigger sits at the fountain. CP3 restarts the fight at G5."],
+  f:[["r",62,52,36,40,"700"],["r",78,52,4,40,"900"],["r",62,70,36,4,"900"],["c",80,72,7,"900"],["c",80,72,3.2,"600"],["r",70,42,20,6,"600"]]}
+];
+
+/* markers: [type, seg, x, y, label] */
+const MK=[
+ ["shop","S0",66,122,"Ammo kiosk"],["heal","S0",94,122,"Heal-provider kiosk"],["brk","S0",62,128,"Model-unit decor"],["brk","S0",98,128,"Model-unit decor"],["ad","S0",80,113,"Screen: AMENITY FEE NOW IN EFFECT"],
+ ["E","S1",16,120,"Enemy spawn"],["E","S1",46,120,"Enemy spawn"],["E","S1",30,100,"Enemy spawn"],["E","S1",46,88,"Enemy spawn"],
+ ["T","S1",22,128,"Parcel conveyor"],["T","S1",42,113,"Locker-door slam"],["O","S1",30,116,"Parcel stack (obstacle)"],["O","S1",16,98,"Sorting cart (obstacle)"],
+ ["brk","S1",12,131,"Parcel"],["brk","S1",38,100,"Parcel"],["brk","S1",48,108,"Parcel"],["shop","S1",47,129,"Package vending"],["pick","S1",20,114,"Event pickup socket"],["col","S1",42,129,"Debt collector spawn"],["ad","S1",30,86,"Banner socket"],
+ ["E","S2",14,60,"Enemy spawn"],["E","S2",44,50,"Enemy spawn"],["E","S2",14,40,"Enemy spawn"],["E","S2",44,28,"Enemy spawn"],["E","S2",28,14,"Enemy spawn"],
+ ["T","S2",27,49,"Treadmill belt"],["T","S2",44,18,"Treadmill belt"],["O","S2",28,60,"Squat rack (obstacle)"],["O","S2",14,18,"Bench row (obstacle)"],
+ ["brk","S2",44,66,"Dumbbell rack"],["brk","S2",12,10,"Smoothie bar"],["pick","S2",28,32,"Event pickup socket"],["col","S2",14,70,"Debt collector spawn"],["ad","S2",30,8,"Screen socket"],
+ ["E","S3",64,12,"Enemy spawn"],["E","S3",100,30,"Enemy spawn"],["E","S3",140,28,"Enemy spawn"],["E","S3",146,12,"Enemy spawn"],["E","S3",134,13,"Sniper perch (lifeguard tower)"],
+ ["T","S3",104,19,"Electrified pool"],["T","S3",72,20,"Pool-edge false path"],["O","S3",89,30,"Cabana (obstacle)"],["O","S3",117,30,"Cabana (obstacle)"],
+ ["brk","S3",67,30,"Cabana bar"],["brk","S3",148,22,"Pool sculpture"],["pick","S3",120,9,"Event pickup socket"],["shop","S3",62,22,"Towel hut shop"],["col","S3",66,16,"Debt collector spawn"],["ad","S3",104,9,"Billboard socket"],
+ ["E","S4",118,56,"Enemy spawn"],["E","S4",144,58,"Enemy spawn"],["E","S4",116,122,"Enemy spawn"],["E","S4",144,122,"Enemy spawn"],
+ ["T","S4",130,94,"Falling chandelier"],["T","S4",142,110,"Wine-wall collapse"],["O","S4",117,100,"Grand piano (obstacle)"],["O","S4",143,80,"Fireplace (obstacle)"],
+ ["brk","S4",112,46,"Art"],["brk","S4",148,46,"Art"],["brk","S4",112,128,"Art"],["brk","S4",148,128,"Art"],["heal","S4",115,70,"Heal-provider kiosk 2"],["pick","S4",140,98,"Event pickup socket"],["col","S4",120,110,"Debt collector spawn"],["ad","S4",130,131,"Banner socket"]
+];
+const GATES=[
+ {id:"ENTRY",l:[74,135],r:[86,135],tx:80,ty:139.8,label:"STREET ENTRY"},
+ {id:"G1",l:[55,117],r:[55,127],tx:55,ty:115.6,label:"G1 · free"},
+ {id:"G2",l:[24,81],r:[36,81],tx:39,ty:81.8,label:"G2 · $45",a:"start"},
+ {id:"G3",l:[55,15],r:[55,25],tx:55,ty:13.6,label:"G3 · $70"},
+ {id:"G4",l:[125,37],r:[135,37],tx:138,ty:37.8,label:"G4 · $95",a:"start"},
+ {id:"G5",l:[105,67],r:[105,77],tx:105,ty:65.6,label:"G5 · $120"}
+];
+const CPS=[["CP0",80,129,"S0"],["CP1",30,74,"S2"],["CP2",130,46,"S4"],["CP3",98,78,"S5"]];
+const SOCK=[["BX",80,50,"Boss start"],["H1",62,96,"Hired squad entry"],["H2",98,96,"Hired squad entry"],["F1",68,62,"Fortification"],["F2",92,84,"Fortification"],["F3",80,100,"Fortification"],["S1",62,44,"Specialist balcony"],["S2",98,44,"Specialist balcony"],["TL",80,64,"Target Loan phase-2 trigger"],["C",70,102,"Debt collector spawn"]];
+const PATH=[[80,140],[80,124],[55,122],[22,122],[22,104],[30,92],[30,81],[30,62],[28,36],[40,22],[55,20],[68,30],[130,30],[130,37],[130,62],[118,72],[105,72],[90,72]];
+const SIGHT=[[[80,110],[80,92]],[[52,48],[64,54]],[[80,34],[80,52]],[[108,92],[96,86]]];
+
+const NS="http://www.w3.org/2000/svg";
+function s(tag,a,p){const e=document.createElementNS(NS,tag);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+const segById=Object.fromEntries(SEG.map(x=>[x.id,x]));
+const col=(d,k)=>P[d][k]||k;
+const map=document.getElementById("map");
+const layers={};
+let selected="S1";
+
+function draw(){
+  s("rect",{x:0,y:0,width:160,height:142,fill:"#000"},map);
+  s("rect",{x:0,y:136.5,width:160,height:5.5,fill:"#FFFFFF"},map);
+  const segLayer=s("g",{},map);
+  SEG.forEach(g=>{
+    const grp=s("g",{class:"seg","data-seg":g.id,tabindex:"0",role:"button","aria-label":g.id+" "+g.name},segLayer);
+    s("title",{},grp).textContent=g.id+" · "+g.name;
+    s("rect",{class:"floor",x:g.x,y:g.y,width:g.w,height:g.h,fill:col(g.d,"800"),stroke:"none"},grp);
+    g.f.forEach(f=>{
+      if(f[0]==="r")s("rect",{x:f[1],y:f[2],width:f[3],height:f[4],fill:col(g.d,f[5])},grp);
+      if(f[0]==="c")s("circle",{cx:f[1],cy:f[2],r:f[3],fill:col(g.d,f[4])},grp);
+      if(f[0]==="p")s("polygon",{points:f[1],fill:col(g.d,f[2])},grp);
+    });
+    const t=s("text",{x:g.x+1.4,y:g.y+g.h-1.4,fill:col(g.d,"200"),"font-size":g.boss?"3":"2.6","font-family":"Big Shoulders Display, Arial Narrow, sans-serif","font-weight":"900","letter-spacing":".08"},grp);
+    t.textContent=(g.id+" "+g.name).toUpperCase();
+    grp.addEventListener("click",()=>select(g.id));
+    grp.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(g.id)}});
+  });
+  s("text",{x:80,y:5,fill:"#7A7A7A","font-size":"2","font-family":"IBM Plex Mono, monospace","text-anchor":"middle"},map).textContent="N ↑   ·   1 unit = 1 m   ·   black = district transition";
+  ["path","sight","mod","eco","mkt","col","gate","boss"].forEach(k=>layers[k]=s("g",{"data-layer":k,"pointer-events":k==="path"||k==="sight"?"none":"auto"},map));
+
+  const pts=PATH.map(p=>p.join(",")).join(" ");
+  s("polyline",{points:pts,fill:"none",stroke:"#000","stroke-width":"1.3","stroke-linejoin":"round",opacity:".55"},layers.path);
+  s("polyline",{points:pts,fill:"none",stroke:"#F0F0F0","stroke-width":".55","stroke-dasharray":"1.4 1","stroke-linejoin":"round"},layers.path);
+  const end=PATH[PATH.length-1];
+  s("polygon",{points:`${end[0]-2.4},${end[1]-1.6} ${end[0]-2.4},${end[1]+1.6} ${end[0]-5},${end[1]}`,fill:"#F0F0F0",transform:`translate(${0},0)`},layers.path);
+
+  SIGHT.forEach(([a,b])=>{
+    s("line",{x1:a[0],y1:a[1],x2:b[0],y2:b[1],stroke:"#7A7A7A","stroke-width":".35","stroke-dasharray":".5 .8"},layers.sight);
+    s("circle",{cx:b[0],cy:b[1],r:".8",fill:"none",stroke:"#7A7A7A","stroke-width":".3"},layers.sight);
+  });
+
+  const TYPE={E:["mod","E","circle"],T:["mod","T","diamond"],O:["mod","O","square"],shop:["eco","$","ring"],heal:["eco","+","ring"],brk:["eco","L","ring"],pick:["mkt","!","ring"],ad:["mkt","A","ring"],col:["col","C","ring"]};
+  MK.forEach(([type,seg,x,y,label])=>{
+    const [layer,letter,shape]=TYPE[type];const d=segById[seg].d;
+    const g=s("g",{},layers[layer]);s("title",{},g).textContent=seg+" · "+label;
+    drawGlyph(g,shape,x,y,d);
+    s("text",{x:x,y:y+.72,"text-anchor":"middle","font-size":"2","font-weight":"600","font-family":"IBM Plex Mono, monospace",fill:shape==="ring"?col(d,"200"):col(d,"950")},g).textContent=letter;
+  });
+
+  GATES.forEach(G=>{
+    const g=s("g",{},layers.gate);s("title",{},g).textContent=G.id+(G.label?" · "+G.label:"");
+    s("line",{x1:G.l[0],y1:G.l[1],x2:G.r[0],y2:G.r[1],stroke:"#F0F0F0","stroke-width":"1","stroke-dasharray":"1 .6"},g);
+    s("text",{x:G.tx,y:G.ty,"text-anchor":G.a||"middle","font-size":"2","font-family":"IBM Plex Mono, monospace",fill:G.id==="ENTRY"?"#111":"#F0F0F0"},g).textContent=G.label;
+  });
+  CPS.forEach(([id,x,y,seg])=>badge(layers.gate,id,x,y,"Checkpoint "+id));
+  SOCK.forEach(([id,x,y,label])=>badge(layers.boss,id,x,y,"S5 · "+label));
+}
+function drawGlyph(g,shape,x,y,d){
+  const fill=col(d,"500");
+  if(shape==="circle")s("circle",{cx:x,cy:y,r:"1.7",fill},g);
+  if(shape==="diamond")s("rect",{x:x-1.4,y:y-1.4,width:"2.8",height:"2.8",fill,transform:`rotate(45 ${x} ${y})`},g);
+  if(shape==="square")s("rect",{x:x-1.5,y:y-1.5,width:"3",height:"3",fill},g);
+  if(shape==="ring")s("circle",{cx:x,cy:y,r:"1.6",fill:d==="NEUTRAL"?"#FFFFFF":col(d,"950"),stroke:col(d,"500"),"stroke-width":".35"},g);
+}
+function badge(p,id,x,y,label){
+  const g=s("g",{},p);s("title",{},g).textContent=label;
+  const w=1.5+id.length*1.25;
+  s("rect",{x:x-w/2,y:y-1.4,width:w,height:"2.8",fill:"#000",stroke:"#F0F0F0","stroke-width":".25"},g);
+  s("text",{x:x,y:y+.7,"text-anchor":"middle","font-size":"2","font-weight":"600","font-family":"IBM Plex Mono, monospace",fill:"#F0F0F0"},g).textContent=id;
+}
+
+function legend(){
+  const items=[["circle","E","Enemy spawn slot"],["diamond","T","Trap slot"],["square","O","Obstacle slot"],["ring","$","Shop"],["ring","+","Heal kiosk"],["ring","L","Breakable: steal or smash"],["ring","!","Event pickup socket"],["ring","A","Marketing socket"],["ring","C","Debt collector spawn"]];
+  const L=document.getElementById("legend");
+  items.forEach(([shape,letter,txt])=>{
+    const sp=document.createElement("span");
+    const sv=s("svg",{viewBox:"-2.2 -2.2 4.4 4.4","aria-hidden":"true"});
+    if(shape==="circle")s("circle",{cx:0,cy:0,r:1.9,fill:"#F0F0F0"},sv);
+    if(shape==="diamond")s("rect",{x:-1.4,y:-1.4,width:2.8,height:2.8,fill:"#F0F0F0",transform:"rotate(45)"},sv);
+    if(shape==="square")s("rect",{x:-1.6,y:-1.6,width:3.2,height:3.2,fill:"#F0F0F0"},sv);
+    if(shape==="ring")s("circle",{cx:0,cy:0,r:1.7,fill:"#0A0A0A",stroke:"#F0F0F0","stroke-width":".35"},sv);
+    s("text",{x:0,y:.75,"text-anchor":"middle","font-size":"2.1","font-weight":"600","font-family":"IBM Plex Mono, monospace",fill:shape==="ring"?"#F0F0F0":"#0A0A0A"},sv).textContent=letter;
+    sp.appendChild(sv);sp.appendChild(document.createTextNode(txt));L.appendChild(sp);
+  });
+  const sp=document.createElement("span");sp.textContent="Filled = Director ModSlot · Outlined = fixed socket · Hover any marker for its name";L.appendChild(sp);
+}
+
+const fmt=s=>Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+function counts(id){const c={E:0,T:0,O:0,brk:0};MK.forEach(m=>{if(m[1]===id&&m[0]in c)c[m[0]]++});return c}
+
+function select(id){
+  selected=id;const g=segById[id];const c=counts(id);
+  const accent=g.d==="NEUTRAL"?"#F0F0F0":P[g.d][500];
+  const D=document.getElementById("detail");D.style.setProperty("--brand-500",accent);
+  const gate=g.gate?(g.gate.fee?`${g.gate.id} · $${g.gate.fee} base · ${g.gate.window}s PayWindow`:`${g.gate.id} · no fee (level start)`):"None. Boss arena.";
+  D.innerHTML=`<div class="dhead"><div class="eyebrow">${g.id} · ${g.d==="NEUTRAL"?"Outside districts":g.d+" / "+BRAND_NAME[g.d]}</div><h3 style="font-size:40px">${g.name}</h3></div>
+  <p style="color:#F0F0F0">${g.pitch}</p>
+  <dl class="dl"><dt>Size</dt><dd>${g.w} × ${g.h} m</dd><dt>Arrive</dt><dd>${fmt(g.arrive)} (ExpectedTimeAtSegment)</dd><dt>Clear by</dt><dd>${fmt(g.clear)}</dd><dt>Affinity</dt><dd>${g.approach}</dd><dt>Exit gate</dt><dd>${gate}</dd></dl>
+  ${g.boss?`<div class="slots"><div class="slot"><b>2</b><small>Hire entries</small></div><div class="slot"><b>3</b><small>Fortifications</small></div><div class="slot"><b>2</b><small>Specialist perches</small></div></div>`:
+  `<div class="slots"><div class="slot"><b>${c.E}</b><small>Enemy slots</small></div><div class="slot"><b>${c.T}</b><small>Trap slots</small></div><div class="slot"><b>${c.O}</b><small>Obstacles</small></div></div>`}
+  <ul class="beats">${g.beats.map(b=>`<li>${b}</li>`).join("")}</ul>`;
+  document.querySelectorAll("#map .seg .floor").forEach(r=>{const on=r.parentNode.dataset.seg===id;r.setAttribute("stroke",on?"#F0F0F0":"none");r.setAttribute("stroke-width",on?".9":"0")});
+  document.querySelectorAll("#timeline button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.seg===id?"true":"false"));
+}
+
+function timeline(){
+  const T=document.getElementById("timeline");
+  SEG.forEach(g=>{
+    const b=document.createElement("button");b.type="button";b.dataset.seg=g.id;
+    const bg=g.d==="NEUTRAL"?(g.boss?"#F0F0F0":"#B5B5B5"):P[g.d][500];const fg=g.d==="NEUTRAL"?"#0A0A0A":P[g.d][950];
+    b.style.flex=(g.clear-g.arrive)+" 1 0";b.style.background=bg;b.style.color=fg;
+    b.innerHTML=`<b>${g.id==="S0"?"S0":g.id+" "+g.name}</b><span>${fmt(g.arrive)}${g.gate&&g.gate.fee?" · $"+g.gate.fee:""}</span>`;
+    b.setAttribute("aria-label",`${g.id} ${g.name}, arrive ${fmt(g.arrive)}`);
+    b.addEventListener("click",()=>select(g.id));T.appendChild(b);
+  });
+  const K=document.getElementById("ticks");
+  [0,3,6,9,12,15].forEach(m=>{const sp=document.createElement("span");sp.style.left=(m/15*100)+"%";sp.textContent=m+" min";K.appendChild(sp)});
+}
+
+function levelJSON(){
+  const typeName={E:"EnemySpawn",T:"Trap",O:"Obstacle"};
+  return {
+    LevelId:"LVL_Courtyard_01",DisplayName:"Escrow Park",
+    ScriptedOpeningStance:{Kill:25,Drain:45,Trick:20,Taunt:10},
+    LevelBudget:500,BudgetReplenishRate:3.0,ReserveBudgetFloorByTier:[0.30,0.20,0.10],DecisionIntervalByTier:[3.0,2.5,2.0],Tier3FeeMultiplier:1.5,
+    SegmentQueue:SEG.map(g=>({
+      SegmentId:g.id,Name:g.name,District:g.d,BoundsM:{X:g.x,Y:g.y,W:g.w,H:g.h},
+      ExpectedTimeAtSegment:g.arrive,ApproachHint:g.approach,
+      ExitGate:g.gate?{GateId:g.gate.id,BaseFee:g.gate.fee,PayWindow:g.gate.window}:null,
+      Checkpoint:(CPS.find(c=>c[3]===g.id)||[null])[0],
+      ModSlots:MK.filter(m=>m[1]===g.id&&typeName[m[0]]).map((m,i)=>({SlotId:`${g.id}_${m[0]}${i+1}`,SlotType:typeName[m[0]],LocationM:[m[2],m[3]],Note:m[4]})),
+      Breakables:MK.filter(m=>m[1]===g.id&&m[0]==="brk").map(m=>({Name:m[4],LocationM:[m[2],m[3]]})),
+      Sockets:MK.filter(m=>m[1]===g.id&&["shop","heal","pick","ad","col"].includes(m[0])).map(m=>({Type:{shop:"Shop",heal:"HealKiosk",pick:"EventPickup",ad:"Marketing",col:"DebtCollectorSpawn"}[m[0]],LocationM:[m[2],m[3]],Note:m[4]}))
+    })),
+    BossArena:{SegmentId:"S5",Sockets:SOCK.map(s=>({Id:s[0],Type:s[3],LocationM:[s[1],s[2]]}))}
+  };
+}
+
+draw();legend();timeline();select(selected);
+const jsonText=JSON.stringify(levelJSON(),null,2);
+document.getElementById("json").textContent=jsonText;
+document.querySelectorAll(".toggles input").forEach(i=>{
+  const apply=()=>layers[i.dataset.layer].setAttribute("display",i.checked?"inline":"none");
+  apply();i.addEventListener("change",apply);
+});
+document.getElementById("copyBtn").addEventListener("click",()=>{
+  const msg=document.getElementById("copyMsg");
+  const fallback=()=>{const d=document.getElementById("jsonDetails");d.open=true;const r=document.createRange();r.selectNodeContents(document.getElementById("json"));const sel=getSelection();sel.removeAllRanges();sel.addRange(r);msg.textContent="Selected. Press Ctrl+C / Cmd+C to copy."};
+  try{navigator.clipboard.writeText(jsonText).then(()=>{msg.textContent="Copied level JSON."},fallback)}catch(e){fallback()}
+});
+</script>
+
+</body></html>

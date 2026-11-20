@@ -1,0 +1,386 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>InDebtEd Systems Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout: a day-shaped matrix. Columns follow the macro loop left to right, rows split Market / Player / Debt / Opposition. Dark "Void" ground by design; brand color only in single-brand chips. */
+:root{
+  color-scheme: dark;
+  --void:#09090B; --panel:#111115; --raise:#18181E; --line:#24242C; --line2:#383843;
+  --fg:#F0F0F0; --chalk:#B0B0B0; --mute:#6F6F7C;
+  --value:#C9CDD6; --nudge:#FF9F43; --money:#FF6FD1; --info:#8A93A6; --loop:#F0F0F0;
+  --gld-9:#1A1200; --gld-5:#FFD24A; --gld-1:#FFFAE8;
+  --red-9:#1A0300; --red-5:#FF3B2F; --red-1:#FFE8E7;
+  --blu-9:#000D1A; --blu-5:#2F8FFF; --blu-1:#E8F3FF;
+  --grn-9:#031A08; --grn-5:#4AFF6B; --grn-1:#E8FFEC;
+  --display:"Saira Condensed","Arial Narrow",Impact,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html,body{background:var(--void);color:var(--fg)}
+body{font-family:var(--body);font-size:14px;line-height:1.5}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 36px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:flex-end;justify-content:space-between}
+.head-text{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,5vw,48px);line-height:.95;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.lede{margin:0;color:var(--chalk)}
+.brands{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;flex-direction:column;gap:1px;padding:6px 12px 6px 10px;border-left:4px solid;font-family:var(--mono);font-size:11px;line-height:1.25;font-variant-numeric:tabular-nums}
+.chip b{font-family:var(--display);font-size:17px;letter-spacing:.04em;font-weight:700}
+.chip.gld{background:var(--gld-9);border-color:var(--gld-5);color:var(--gld-1)}
+.chip.red{background:var(--red-9);border-color:var(--red-5);color:var(--red-1)}
+.chip.blu{background:var(--blu-9);border-color:var(--blu-5);color:var(--blu-1)}
+.chip.grn{background:var(--grn-9);border-color:var(--grn-5);color:var(--grn-1)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
+.legend{display:flex;flex-wrap:wrap;gap:6px}
+.kbtn,.zbtn{font:500 12px var(--mono);color:var(--fg);background:var(--panel);border:1px solid var(--line2);padding:6px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.kbtn[aria-pressed="false"]{color:var(--mute);border-style:dashed}
+.kbtn[aria-pressed="false"] .sw{opacity:.25}
+.sw{width:22px;height:0;border-top:2px solid}
+.sw.value{border-color:var(--value)} .sw.nudge{border-color:var(--nudge)} .sw.money{border-color:var(--money)}
+.sw.info{border-color:var(--info);border-top-style:dashed} .sw.loop{border-color:var(--loop);border-top-style:dotted;border-top-width:3px}
+.zoom{display:flex;gap:6px}
+.zbtn[aria-pressed="true"]{border-color:var(--fg)}
+button:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (min-width:1180px){.layout{grid-template-columns:minmax(0,1fr) 340px}}
+.stage{overflow:auto;border:1px solid var(--line);background:var(--panel);max-height:calc(100vh - 32px);min-width:0}
+.sizer{position:relative}
+.canvas{position:absolute;left:0;top:0;width:1700px;height:1100px;transform-origin:0 0}
+.band{position:absolute;left:0;width:1700px;border-top:1px solid var(--line)}
+.band.alt{background:#0D0D11}
+.band-label{position:absolute;left:8px;top:14px;writing-mode:vertical-rl;font:600 10px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.colhead{position:absolute;top:12px;display:flex;flex-direction:column;gap:0}
+.colhead b{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;letter-spacing:.04em;line-height:1.05}
+.colhead span{font:500 10px var(--mono);letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
+.colrule{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed var(--line)}
+
+svg.edges{position:absolute;inset:0;width:1700px;height:1100px;z-index:1;overflow:visible}
+svg.edges path.e{fill:none;stroke-width:1.6;opacity:.42;transition:opacity .15s}
+.e.value{stroke:var(--value)} .e.nudge{stroke:var(--nudge)} .e.money{stroke:var(--money)}
+.e.info{stroke:var(--info);stroke-dasharray:5 4} .e.loop{stroke:var(--loop);stroke-dasharray:2 5;stroke-width:2.4!important;stroke-linecap:round}
+.e.open{stroke-dasharray:3 4}
+.mk-value{fill:var(--value)} .mk-nudge{fill:var(--nudge)} .mk-money{fill:var(--money)} .mk-info{fill:var(--info)} .mk-loop{fill:var(--loop)}
+.focus svg.edges path.e{opacity:.06}
+.focus svg.edges path.e.on{opacity:1;stroke-width:2.2}
+
+.node{position:absolute;z-index:2;width:210px;box-sizing:border-box;text-align:left;background:var(--raise);border:1px solid var(--line2);color:var(--fg);padding:9px 11px 10px;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:4px;transition:opacity .15s,border-color .15s}
+.node:hover{border-color:var(--chalk)}
+.node .row{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.node .t{font-family:var(--display);font-weight:700;font-size:17px;letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.node .s{font-family:var(--mono);font-size:11px;color:var(--chalk);line-height:1.35}
+.tag{font:600 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:2px 5px;border:1px solid;white-space:nowrap}
+.tag.proto{color:var(--fg);border-color:var(--fg)}
+.tag.open{color:var(--nudge);border-color:var(--nudge);border-style:dashed}
+.focus .node{opacity:.3}
+.focus .node.near{opacity:1}
+.node.sel{opacity:1!important;border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+
+.elabel{position:absolute;z-index:3;transform:translate(-50%,-50%);font:500 10.5px var(--mono);background:var(--void);border:1px solid currentColor;padding:1px 6px;white-space:nowrap;display:none;pointer-events:none}
+.elabel.value{color:var(--value)} .elabel.nudge{color:var(--nudge)} .elabel.money{color:var(--money)} .elabel.info{color:var(--info)} .elabel.loop{color:var(--loop)}
+.elabel.on{display:block}
+.hide-value .value,.hide-nudge .nudge,.hide-money .money,.hide-info .info,.hide-loop .loop{display:none!important}
+
+aside{background:var(--panel);border:1px solid var(--line);padding:18px 18px 20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (min-width:1180px){aside{position:sticky;top:16px}}
+aside h2{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;margin:0;text-transform:uppercase;letter-spacing:.02em;text-wrap:balance}
+aside p{margin:0;color:var(--chalk);max-width:65ch}
+aside h3{font:600 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute);margin:0}
+.sec{display:flex;flex-direction:column;gap:6px}
+.links{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.links button{width:100%;text-align:left;background:var(--raise);border:1px solid var(--line);color:var(--fg);font:inherit;padding:6px 9px;cursor:pointer;display:grid;grid-template-columns:22px minmax(0,1fr);gap:2px 8px;align-items:center}
+.links button:hover{border-color:var(--chalk)}
+.links .nm{font-weight:600}
+.links .lb{grid-column:2;font:11px var(--mono);color:var(--chalk)}
+.empty{font:12px var(--mono);color:var(--mute)}
+.hint{font:11px var(--mono);color:var(--mute)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="head-text">
+      <span class="eyebrow">InDebtEd · design reference v2 + AI Director v0.1</span>
+      <h1>Systems Map</h1>
+      <p class="lede">One day, one run. Columns follow the day from Wake-Up to the walk home; rows separate the market, the player, debt and the opposition. Select any system to trace what feeds it and what it feeds.</p>
+    </div>
+    <div class="brands" aria-label="Baseline Worth by brand">
+      <div class="chip gld"><b>GLD</b>Radiance · $0.62/rd</div>
+      <div class="chip red"><b>RED</b>Fire · $0.58/rd</div>
+      <div class="chip blu"><b>BLU</b>Zap · $0.45/rd</div>
+      <div class="chip grn"><b>GRN</b>Growth · $0.40/rd</div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <div class="legend" id="legend"></div>
+    <div class="zoom">
+      <button class="zbtn" id="zFit" aria-pressed="false">Fit width</button>
+      <button class="zbtn" id="z100" aria-pressed="true">100%</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="stage" id="stage">
+      <div class="sizer" id="sizer">
+        <div class="canvas" id="canvas">
+          <svg class="edges" id="svg" viewBox="0 0 1700 1100" aria-hidden="true">
+            <defs id="defs"></defs>
+            <g id="paths"></g>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <aside id="panel" aria-live="polite"></aside>
+  </div>
+</div>
+
+<script>
+const W=1700,H=1100;
+const C={c1:50,c2:320,c3a:600,c3b:870,c4:1160,c5:1430};
+const COLNAME={c1:"Wake-up",c2:"Morning",c3a:"In the store",c3b:"In the store",c4:"Boss",c5:"Walk home"};
+const BANDS=[["Market",60,240],["Player",300,260],["Debt",560,240],["Opposition",800,300]];
+const COLS=[["c1","Wake-up","Step 1",50],["c2","Morning","Steps 2–5",320],["c3","In the store","Steps 6–8",600],["c4","Boss","Step 9",1160],["c5","Walk home","Steps 10–11",1430]];
+const KINDS=[["value","Sets a value"],["nudge","Moves Worth"],["money","Cash / budget"],["info","Intel"],["loop","Carries to tomorrow"]];
+
+const NODES=[
+ {id:"daySeed",c:"c1",y:85,t:"Day Seed",s:"One integer, one sub-stream per system",d:"Generated at Wake-Up and shown as the edition number on the morning paper. Separate random streams for Web, Target, Shopping, News and Market, so tuning one system never shifts another. Same seed + different Savings = same world, different Target Budget."},
+ {id:"marketSeed",c:"c1",y:190,t:"Market Seed",s:"Every brand starts at Baseline Worth",d:"GLD 0.62, RED 0.58, BLU 0.45, GRN 0.40, each with its baseline volatility, momentum, recovery rate and liquidity."},
+ {id:"playerPos",c:"c1",y:330,t:"Player Position",s:"Savings, credit line, card levels",d:"Snapshot taken at Wake-Up. Cash is excluded and Savings can't be spent, so it can't be gamed. A stronger career attracts a better-funded Target."},
+ {id:"web",c:"c1",y:445,t:"Relationship Web",s:"6 brand stances, fixed all day",d:"Each pair is Neutral, Positive, Negative or Tentative. Rolled with brand personality weights, then a triangle-balance pass converts unbalanced edges to Tentative. Two of BLU's three pairs stay hidden. Drives combat stance, projectile tags, market coupling, heal pricing, Target hiring and headlines."},
+ {id:"target",c:"c1",y:830,t:"Target Budget",s:"Baseline + Position × WealthScale + Pool + Loan",d:"Picks the day's boss (first: BOXY BROS) and its primary brand, then sizes its budget. BossUpgradePool is the only term that grows during the day. A Target Loan also feeds the player's bonus on a win."},
+ {id:"targetShop",c:"c1",y:945,t:"Target Shopping",s:"Budget bands, hires filtered by web",d:"1.5× buys a hired squad, 2× fortifications, 3× specialists; over budget takes a Target Loan. Positive brands hire at a discount, Negative brands refuse, Tentative deals roll at Wake-Up."},
+ {id:"paper",c:"c2",y:85,t:"Morning Paper",s:"Relationship headlines + Target Article",d:"Rendered on the apartment computer. The planning step: the player reads the web (minus hidden BLU pairs) and what the Target bought."},
+ {id:"stocks",c:"c2",y:190,t:"Stock Trading",s:"Loop step 5",st:"open",d:"Still undecided: do shares sell for cash or pay into Savings, can the player trade mid-run, and do holdings count toward Player Position? Paying into Savings would break the bonus-only rule."},
+ {id:"loadout",c:"c2",y:330,t:"Loadout",s:"Ammo brand, tags, gun parts",d:"Built against the Target's hires: rival-brand ammo for bonus damage, allied tags for support. Every purchase nudges that brand's Worth by spend ÷ 100."},
+ {id:"provider",c:"c2",y:445,t:"Heal Provider",s:"Chosen brand prices healing",d:"Heal cost per HP equals the provider's Worth. Stance against the ammo brand changes it: Positive −15%, Negative +15%. The provider also prices the Medical Bill, so this choice sets what death costs."},
+ {id:"credit",c:"c2",y:590,t:"Credit Card",s:"Credit line + HUD unlocks",d:"Shop-only purchasing power. Card power and HUD scale with % used: 25% crosshairs, 50% bonus tracker, 75% overhead map, 90% damage numbers. Challenges grow the line."},
+ {id:"worth",c:"c3a",y:85,t:"Worth Engine",s:"Sine + momentum + recovery, 20s tick",st:"proto",d:"Each tick: Worth += VOL×0.02·sin(2π·0.1·t) + MOM×0.01, then drifts toward baseline by REC×0.01 of the gap (BLU rolls REC each tick). Clamped 0.01–1.00. Kill, purchase and combo nudges fire instantly on top."},
+ {id:"thresholds",c:"c3b",y:85,t:"Market Events",s:"Bull · Bear · Floor · Recovery",d:"Crossing a threshold applies the full effect state instantly and overrides other nudges. Sympathy nudges hit paired brands: Positive partners share the move, Negative rivals invert it. Floor drains liquidity and pulls that ammo from shops."},
+ {id:"ticker",c:"c3b",y:190,t:"News Ticker",s:"Foreshadow + triggered headlines",d:"Foreshadow lines run about 3 ticks before a projected crossing and can be cancelled by a momentum shift. Triggered lines fire on the crossing. Also feeds in-level billboards and screens."},
+ {id:"combat",c:"c3a",y:330,t:"Combat",s:"Damage = Worth × Max × stance",d:"Price per round = Worth × $1. Only ammo brand vs enemy primary brand checks stance: Negative +25%, Positive −20%, Tentative 0.8–1.3× per hit. Engagement cost stays around $8–12; cheap ammo just means longer exposure."},
+ {id:"combo",c:"c3b",y:330,t:"Combo",s:"Bronze 1.0× → InDebtEd!!! 3.0×",st:"proto",d:"Kills reset the timer; expiry breaks the combo. Tier up nudges the active brand +0.03, a break −0.05. The multiplier scales the performance bonus."},
+ {id:"cash",c:"c3b",y:445,t:"Cash",s:"Earned from kills, lost at run end",d:"Pays for ammo, parts, heals, Medical Bills and loan repayment. Holding it is wasteful, but a borrower needs enough on hand at Settlement."},
+ {id:"heal",c:"c3a",y:445,t:"Shield Bill",s:"HP recovered × provider Worth",d:"The shield regens Halo-style; the bill lands at 100% HP. If cash can't cover it, cash goes negative."},
+ {id:"sudden",c:"c3a",y:590,t:"Sudden Death",s:"Cash < 0 → next hit is 0 HP",d:"Debt grows by the bill every 20s tick, even while hiding. Lifts when cash is back to zero or a loan is accepted."},
+ {id:"zero",c:"c3a",y:700,t:"Zero HP",s:"A financial decision",d:"Two loan offers appear. Accept to revive in place, or decline and pay the Medical Bill to respawn at the nearest checkpoint."},
+ {id:"loans",c:"c3b",y:590,t:"Loan Offers",s:"The two highest-Worth brands lend",d:"Amount = LadderBase × LenderWorth × 1.6, frozen at acceptance. APR 10–40% by tier. Each brand has a four-step debuff ladder that lasts until repayment. Brands at Floor don't lend."},
+ {id:"collectors",c:"c3b",y:700,t:"Debt Collectors",s:"Free mob in the lender's brand",d:"Cost the Director no budget. Spawn cap scales with the outstanding balance. Hits garnish cash toward the loan. Rival lenders' crews can fight each other."},
+ {id:"medical",c:"c4",y:700,t:"Medical Bill",s:"Provider Worth × MaxHP × 2.0",d:"Paid to decline a loan and respawn at a checkpoint (a boss fight restarts). If cash can't cover it, the run ends."},
+ {id:"director",c:"c3a",y:830,t:"AI Director",s:"Kill · Drain · Trick · Taunt",d:"Every 2–3s: refresh the snapshot, check escalation tier, reweight approaches, spend budget on spawns, queue mods on unvisited segments. It never places actors itself; requests go to EnemyManager and BP_LevelSegment."},
+ {id:"snapshot",c:"c3a",y:945,t:"PlayerSnapshot",s:"HP, money, kills, SegmentDelta, burn rate",d:"Refreshed on a timer, never on Tick. SegmentDelta (is the player ahead of design pace) and ResourceBurnRate (is Drain working) carry the most signal."},
+ {id:"levelBudget",c:"c3b",y:945,t:"LevelBudget",s:"Replenishes; borrows when empty",d:"Each spawn costs its BudgetCost. The reserve floor drops as tier rises. At zero the Director borrows into LoanTotal, which raises the player's end bonus."},
+ {id:"pay",c:"c3b",y:830,t:"Pay to Pass",s:"Segment PayWindow fee",d:"Pay to open a segment early. Fees rise at Tier 3. The fee goes to BossUpgradePool and grants the Director a free upgrade matched to its approach. Skipping just waits out the window."},
+ {id:"bossPool",c:"c4",y:945,t:"BossUpgradePool",s:"Only mid-day change to the Target",d:"Accumulates pay-to-pass fees and converts to boss upgrades, so paying makes the boss stronger than the morning paper said."},
+ {id:"boss",c:"c4",y:830,t:"Boss Fight",s:"Target hires + upgrades",d:"Morning-paper intel gets tested. Collectors can join if a loan is outstanding. Death restarts the fight under the same loan and Medical Bill rules."},
+ {id:"savings",c:"c5",y:330,t:"Savings",s:"Career score, never spendable",d:"Grows only through the performance bonus and is drained by medical costs. Sets tomorrow's Player Position."},
+ {id:"bonus",c:"c5",y:445,t:"Performance Bonus",s:"Σ earnings × combo multiplier",d:"Scaled up by the Director's LoanTotal and a Target Loan on a win. The only path to Savings growth."},
+ {id:"settlement",c:"c5",y:590,t:"Settlement",s:"Loan repaid from cash first",d:"Amount × (1 + APR) is deducted automatically. Landing exactly on $0 counts as covered and clears debuffs. Any shortfall ends the run."},
+ {id:"runEnd",c:"c5",y:700,t:"Run Ends",s:"Cash lost, medical cost charged",d:"Reached through an unpaid Medical Bill or a Settlement shortfall. Savings persist, reduced."}
+];
+
+// [from, to, kind, label, opts]
+const EDGES=[
+ ["daySeed","marketSeed","value","seeds market"],
+ ["daySeed","web","value","rolls stances",{via:"left"}],
+ ["daySeed","target","value","picks Target",{via:"left"}],
+ ["playerPos","target","value","× WealthScale"],
+ ["target","targetShop","value","spends budget"],
+ ["web","targetShop","value","filters hires",{via:"left"}],
+ ["targetShop","paper","info","Target Article",{s:["right","left"]}],
+ ["web","paper","info","relationship headlines",{s:["right","left"]}],
+ ["marketSeed","worth","value","Baseline Worth"],
+ ["paper","loadout","info","plan vs hires"],
+ ["credit","loadout","money","credit line"],
+ ["loadout","combat","value","ammo brand"],
+ ["loadout","worth","nudge","purchase nudge"],
+ ["worth","loadout","value","price, liquidity"],
+ ["stocks","worth","nudge","nudge? (open)",{open:true}],
+ ["provider","heal","value","provider brand"],
+ ["provider","medical","value","prices bill"],
+ ["web","combat","value","stance: dmg, tags, heals"],
+ ["web","thresholds","value","coupling rules",{s:["right","left"]}],
+ ["worth","combat","value","price & damage"],
+ ["worth","heal","value","provider Worth"],
+ ["worth","thresholds","value","crosses 75 / 25 / floor"],
+ ["thresholds","worth","nudge","effect state"],
+ ["thresholds","ticker","info","headlines"],
+ ["combat","combo","value","kills"],
+ ["combat","cash","money","kill payout"],
+ ["combat","worth","nudge","kill nudge"],
+ ["combo","worth","nudge","tier up / break"],
+ ["cash","heal","money","pays bill"],
+ ["heal","sudden","value","can't cover"],
+ ["sudden","zero","value","next hit"],
+ ["zero","loans","value","accept"],
+ ["zero","medical","value","decline"],
+ ["worth","loans","value","top-2 Worth lend",{s:["right","left"]}],
+ ["loans","cash","money","loan cash"],
+ ["loans","collectors","value","spawn cap"],
+ ["collectors","cash","money","garnish"],
+ ["loans","settlement","money","Amount × (1+APR)"],
+ ["director","combat","value","spawns enemies, traps",{via:"left"}],
+ ["combat","snapshot","info","HP, kills, burn rate",{via:"left"}],
+ ["snapshot","director","info","every 2–3s"],
+ ["levelBudget","director","money","spend"],
+ ["director","collectors","value","places (free)"],
+ ["director","pay","value","fee ↑ at Tier 3"],
+ ["cash","pay","money","fee"],
+ ["pay","bossPool","money","fee"],
+ ["bossPool","boss","value","upgrades"],
+ ["targetShop","boss","value","hires, traps, elites"],
+ ["boss","settlement","value","win → walk home"],
+ ["cash","settlement","money","repays"],
+ ["settlement","bonus","value","covered"],
+ ["settlement","runEnd","value","shortfall"],
+ ["combo","bonus","value","multiplier"],
+ ["cash","bonus","money","earnings"],
+ ["levelBudget","bonus","money","LoanTotal"],
+ ["bonus","savings","money","paid in"],
+ ["runEnd","savings","money","medical cost"],
+ ["medical","runEnd","value","can't pay"],
+ ["savings","playerPos","loop","tomorrow's Position"]
+].map(([f,t,k,l,o],i)=>({i,f,t,k,l,o:o||{}}));
+
+const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const canvas=document.getElementById("canvas"), paths=document.getElementById("paths"), defs=document.getElementById("defs");
+const NS="http://www.w3.org/2000/svg";
+
+// bands, columns
+BANDS.forEach(([name,y,h],i)=>{
+  const b=document.createElement("div");b.className="band"+(i%2?" alt":"");b.style.top=y+"px";b.style.height=h+"px";
+  b.innerHTML=`<span class="band-label">${name}</span>`;canvas.appendChild(b);
+});
+COLS.forEach(([k,name,steps,x])=>{
+  const h=document.createElement("div");h.className="colhead";h.style.left=x+"px";
+  h.innerHTML=`<b>${name}</b><span>${steps}</span>`;canvas.appendChild(h);
+  if(k!=="c1"){const r=document.createElement("div");r.className="colrule";r.style.left=(x-30)+"px";canvas.appendChild(r);}
+});
+// markers
+KINDS.forEach(([k])=>{
+  const m=document.createElementNS(NS,"marker");
+  m.setAttribute("id","m-"+k);m.setAttribute("viewBox","0 0 10 10");m.setAttribute("refX","9");m.setAttribute("refY","5");
+  m.setAttribute("markerWidth","6");m.setAttribute("markerHeight","6");m.setAttribute("orient","auto");
+  const p=document.createElementNS(NS,"path");p.setAttribute("d","M0,0 L10,5 L0,10 z");p.setAttribute("class","mk-"+k);
+  m.appendChild(p);defs.appendChild(m);
+});
+// legend
+const legend=document.getElementById("legend");
+KINDS.forEach(([k,lbl])=>{
+  const b=document.createElement("button");b.className="kbtn";b.setAttribute("aria-pressed","true");
+  b.innerHTML=`<span class="sw ${k}"></span>${lbl}`;
+  b.addEventListener("click",()=>{const on=b.getAttribute("aria-pressed")==="true";b.setAttribute("aria-pressed",String(!on));canvas.classList.toggle("hide-"+k,on);});
+  legend.appendChild(b);
+});
+// nodes
+NODES.forEach(n=>{
+  const b=document.createElement("button");b.className="node";b.id="n-"+n.id;
+  b.style.left=C[n.c]+"px";b.style.top=n.y+"px";
+  const tag=n.st==="proto"?'<span class="tag proto">Prototype</span>':n.st==="open"?'<span class="tag open">Open Q</span>':"";
+  b.innerHTML=`<span class="row"><span class="t">${n.t}</span>${tag}</span><span class="s">${n.s}</span>`;
+  b.addEventListener("click",()=>{pinned=n.id;apply();});
+  b.addEventListener("mouseenter",()=>{hover=n.id;apply();});
+  b.addEventListener("mouseleave",()=>{hover=null;apply();});
+  canvas.appendChild(b);n.el=b;
+});
+
+const NORM={top:[0,-1],bottom:[0,1],left:[-1,0],right:[1,0]};
+function pt(b,side,f){
+  if(side==="top")return[b.x+b.w*f,b.y];
+  if(side==="bottom")return[b.x+b.w*f,b.y+b.h];
+  if(side==="left")return[b.x,b.y+b.h*f];
+  return[b.x+b.w,b.y+b.h*f];
+}
+function draw(){
+  paths.innerHTML="";canvas.querySelectorAll(".elabel").forEach(x=>x.remove());
+  const box={};NODES.forEach(n=>box[n.id]={x:C[n.c],y:n.y,w:n.el.offsetWidth,h:n.el.offsetHeight,c:n.c});
+  const cen=b=>[b.x+b.w/2,b.y+b.h/2];
+  const groups={};const add=(k,v)=>(groups[k]=groups[k]||[]).push(v);
+  EDGES.forEach(e=>{
+    if(e.k==="loop")return;
+    const a=box[e.f],b=box[e.t];const [ax,ay]=cen(a),[bx,by]=cen(b);const dx=bx-ax,dy=by-ay;
+    let s=e.o.s;
+    if(!s){
+      if(a.x===b.x){
+        if(Math.abs(dy)<=150)s=dy>0?["bottom","top"]:["top","bottom"];
+        else{const v=e.o.via||"right";s=[v,v];}
+      }else if(Math.abs(dx)>=Math.abs(dy)*0.5)s=dx>0?["right","left"]:["left","right"];
+      else s=dy>0?["bottom","top"]:["top","bottom"];
+    }
+    e.sa=s[0];e.sb=s[1];
+    add(e.f+"|"+e.sa,{e,end:0,o:cen(b)});add(e.t+"|"+e.sb,{e,end:1,o:cen(a)});
+  });
+  Object.entries(groups).forEach(([key,list])=>{
+    const [id,side]=key.split("|");const horiz=side==="top"||side==="bottom";
+    list.sort((p,q)=>horiz?p.o[0]-q.o[0]:p.o[1]-q.o[1]);
+    list.forEach((it,i)=>{const f=list.length===1?.5:.2+.6*i/(list.length-1);it.e[it.end?"pb":"pa"]=pt(box[id],side,f);});
+  });
+  EDGES.forEach(e=>{
+    let d,lx,ly;
+    if(e.k==="loop"){
+      const s=box[e.f],t=box[e.t];const sy=s.y+s.h/2,ty=t.y+t.h/2;
+      d=`M${s.x+s.w},${sy} H1688 V1086 H36 V${ty} H${t.x}`;lx=860;ly=1086;
+    }else{
+      const [x0,y0]=e.pa,[x3,y3]=e.pb;const n0=NORM[e.sa],n3=NORM[e.sb];
+      const dist=Math.hypot(x3-x0,y3-y0);const k=e.sa===e.sb?34:Math.max(28,Math.min(180,dist*.42));
+      const x1=x0+n0[0]*k,y1=y0+n0[1]*k,x2=x3+n3[0]*k,y2=y3+n3[1]*k;
+      d=`M${x0},${y0} C${x1},${y1} ${x2},${y2} ${x3},${y3}`;
+      lx=(x0+3*x1+3*x2+x3)/8;ly=(y0+3*y1+3*y2+y3)/8;
+    }
+    const p=document.createElementNS(NS,"path");p.setAttribute("d",d);
+    p.setAttribute("class","e "+e.k+(e.o.open?" open":""));p.setAttribute("marker-end",`url(#m-${e.k})`);
+    paths.appendChild(p);e.path=p;
+    const L=document.createElement("div");L.className="elabel "+e.k;L.textContent=e.l;L.style.left=lx+"px";L.style.top=ly+"px";
+    canvas.appendChild(L);e.lab=L;
+  });
+  apply();
+}
+
+let pinned="worth",hover=null;
+const panel=document.getElementById("panel");
+function bandOf(y){return BANDS.filter(b=>y>=b[1]).pop()[0];}
+function linkList(list,dir){
+  if(!list.length)return'<p class="empty">Nothing in this direction.</p>';
+  return'<ul class="links">'+list.map(e=>{const o=byId[dir==="in"?e.f:e.t];
+    return`<li><button data-go="${o.id}"><span class="sw ${e.k}"></span><span class="nm">${o.t}</span><span class="lb">${e.l}</span></button></li>`}).join("")+"</ul>";
+}
+function apply(){
+  const id=hover||pinned;const ins=EDGES.filter(e=>e.t===id),outs=EDGES.filter(e=>e.f===id);
+  const near=new Set([id]);ins.forEach(e=>near.add(e.f));outs.forEach(e=>near.add(e.t));
+  canvas.classList.add("focus");
+  NODES.forEach(n=>{n.el.classList.toggle("near",near.has(n.id));n.el.classList.toggle("sel",n.id===id);});
+  EDGES.forEach(e=>{if(!e.path)return;const on=e.f===id||e.t===id;e.path.classList.toggle("on",on);e.lab.classList.toggle("on",on);});
+  const n=byId[id];
+  const tag=n.st==="proto"?' <span class="tag proto">Prototype</span>':n.st==="open"?' <span class="tag open">Open question</span>':"";
+  panel.innerHTML=`<span class="eyebrow">${COLNAME[n.c]} · ${bandOf(n.y)}</span>
+    <h2>${n.t}</h2>${tag?`<div>${tag}</div>`:""}
+    <p>${n.d}</p>
+    <div class="sec"><h3>Fed by</h3>${linkList(ins,"in")}</div>
+    <div class="sec"><h3>Feeds</h3>${linkList(outs,"out")}</div>
+    <span class="hint">Hover to preview, click to pin. Toggle line types above.</span>`;
+  panel.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{pinned=b.dataset.go;hover=null;apply();byId[pinned].el.scrollIntoView({block:"nearest",inline:"nearest",behavior:"smooth"});}));
+}
+
+// zoom
+const stage=document.getElementById("stage"),sizer=document.getElementById("sizer");
+const zFit=document.getElementById("zFit"),z100=document.getElementById("z100");
+let fit=false;
+function setScale(){
+  const s=fit?Math.min(1,(stage.clientWidth-2)/W):1;
+  canvas.style.transform=`scale(${s})`;sizer.style.width=W*s+"px";sizer.style.height=H*s+"px";
+  zFit.setAttribute("aria-pressed",String(fit));z100.setAttribute("aria-pressed",String(!fit));
+}
+zFit.addEventListener("click",()=>{fit=true;setScale();});
+z100.addEventListener("click",()=>{fit=false;setScale();});
+window.addEventListener("resize",setScale);
+
+setScale();draw();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(draw);
+</script>
+
+</body></html>

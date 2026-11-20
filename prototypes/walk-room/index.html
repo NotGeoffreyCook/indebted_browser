@@ -1,0 +1,1924 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>InDebtEd Walk Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: full-bleed 3D view, with a poster-like start panel and a thin HUD on top. Single dark look. */
+:root {
+  color-scheme: dark;
+  --ink: #0b0a0c;
+  --paper: #fff4ec;
+  --muted: #cfc4bd;
+  --line: #3a3638;
+  --brand: #f74f45;
+  --on-brand: #270f0d;
+  --display: "Archivo Black", Impact, "Arial Black", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--ink); color: var(--paper); font-family: var(--mono); }
+#view { position: fixed; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+#cross {
+  position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px;
+  background: var(--paper); outline: 1px solid var(--ink); pointer-events: none;
+}
+#hud {
+  position: fixed; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; gap: 8px 16px;
+  align-items: center; justify-content: space-between; pointer-events: none;
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font-size: 13px; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 0 var(--ink);
+}
+#brands { display: flex; gap: 6px; pointer-events: auto; }
+.brand {
+  font: 600 13px var(--mono); color: var(--paper); background: var(--ink);
+  border: 2px solid var(--ink); padding: 6px 10px; cursor: pointer; text-shadow: none;
+}
+.brand[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+.brand:focus-visible, #start:focus-visible { outline: 3px solid var(--paper); outline-offset: 2px; }
+#overlay {
+  position: fixed; inset: 0; display: grid; place-items: center; background: rgba(11, 10, 12, .35);
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+#panel {
+  width: min(460px, 100%); background: var(--ink); border: 4px solid var(--brand); padding: 24px;
+  display: grid; gap: 16px; max-height: 100%; overflow: auto;
+}
+h1 { margin: 0; font: 400 clamp(32px, 8vw, 46px)/1 var(--display); color: var(--brand); text-wrap: balance; }
+#keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 14px; }
+#keys dt { font-weight: 600; }
+#keys dd { margin: 0; color: var(--muted); }
+#start {
+  font: 400 20px var(--display); color: var(--on-brand); background: var(--brand);
+  border: 0; padding: 14px 16px; cursor: pointer;
+}
+#note { margin: 0; font-size: 13px; color: var(--muted); }
+#money {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  width: 236px; background: rgba(11, 10, 12, .92); border: 2px solid var(--brand); padding: 8px 10px; display: grid; gap: 5px;
+  font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none;
+}
+#money b { font: 400 16px var(--display); color: var(--brand); }
+.mrow { display: flex; justify-content: space-between; gap: 8px; }
+#mcards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; font-size: 10px; line-height: 1.2; }
+.mc { border: 1px solid var(--c); color: var(--c); padding: 2px 3px; }
+.mc.on { background: var(--c); color: var(--ink); font-weight: 600; }
+.mc.off { opacity: .3; }
+#mbar { position: relative; height: 10px; background: var(--line); }
+#mfill { position: absolute; inset: 0 auto 0 0; background: var(--brand); width: 0; }
+#mbar i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--ink); }
+#mstatus { font-weight: 600; color: var(--brand); }
+#rail {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  width: 190px; display: grid; gap: 4px; pointer-events: none; font-size: 12px; font-variant-numeric: tabular-nums;
+}
+#bonus { background: rgba(11, 10, 12, .92); padding: 5px 8px; text-align: right; }
+#receipt { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+#receipt li { background: #fbf8f1; color: #222; padding: 2px 7px; font-size: 11px; text-align: right; animation: rfade .25s linear 1s forwards; }
+@keyframes rfade { to { opacity: 0; } }
+#toast {
+  position: fixed; top: 24%; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--paper);
+  padding: 6px 12px; font-weight: 600; font-size: 13px; pointer-events: none; text-align: center; max-width: calc(100% - 32px);
+}
+#dmg span { position: fixed; left: 0; top: 0; font: 400 18px var(--display); color: var(--paper); text-shadow: 0 2px 0 var(--ink); pointer-events: none; }
+#map { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(64px + env(safe-area-inset-bottom, 0px)); width: 180px; height: 130px; border: 2px solid #a1c7f4; pointer-events: none; }
+#menu-reset { font: 400 15px var(--display); color: var(--on-brand); background: var(--brand); border: 0; padding: 11px 12px; cursor: pointer; }
+#menu-reset:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+#mtest { display: grid; gap: 6px; }
+#mtest h3 { margin: 0; font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+#mtest .opts { grid-template-columns: repeat(4, 1fr); --c: var(--paper); }
+@media (max-width: 760px) { #rail { width: 140px; } #money { width: 180px; } #map { width: 126px; height: 91px; } }
+#gunline { flex: 1 1 260px; text-align: center; min-width: 0; }
+#touch { display: none; gap: 6px; pointer-events: auto; }
+@media (pointer: coarse) { #touch { display: flex; } }
+#menu {
+  position: fixed; top: 0; bottom: 0; left: 0; width: min(500px, 100%); background: var(--ink);
+  border-right: 4px solid var(--brand); overflow-y: auto; display: grid; gap: 16px; align-content: start;
+  padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: 16px;
+}
+#menu-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#menu h2 { margin: 0; font: 400 26px/1 var(--display); color: var(--brand); }
+#menu-close { font: 600 13px var(--mono); color: var(--on-brand); background: var(--brand); border: 0; padding: 8px 10px; cursor: pointer; }
+#parts { display: grid; gap: 14px; }
+.part { display: grid; gap: 6px; min-width: 0; }
+.part h3 { margin: 0; font: 600 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.opts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.opt {
+  font: 600 12px/1.2 var(--mono); color: var(--paper); background: transparent; border: 2px solid var(--line);
+  padding: 6px 4px; cursor: pointer; display: grid; gap: 2px; min-width: 0; overflow-wrap: anywhere;
+}
+.opt small { font: 400 10px var(--mono); color: var(--c); }
+.opt[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: var(--ink); }
+.opt[aria-pressed="true"] small { color: var(--ink); }
+.opt:focus-visible, #menu select:focus-visible, #menu-close:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+.pdesc { margin: 0; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+#menu select { font: 400 12px var(--mono); color: var(--paper); background: var(--ink); border: 1px solid var(--line); padding: 5px 2px; width: 100%; min-width: 0; }
+#stats { margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; border-top: 2px solid var(--line); padding-top: 12px; font-variant-numeric: tabular-nums; }
+#stats dt { font-size: 10px; color: var(--muted); }
+#stats dd { margin: 0; font-size: 15px; font-weight: 600; }
+#stats dd.over { color: var(--brand); }
+#stats .warn, #stats .taglist { grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.45; }
+#stats .warn { color: var(--brand); }
+#stats .taglist { list-style: none; padding: 0; display: grid; gap: 4px; color: var(--muted); }
+@media (max-width: 760px) {
+  #menu { top: 38%; width: 100%; border-right: 0; border-top: 4px solid var(--brand); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #stats { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+<canvas id="view" aria-label="First-person view of a boxy room"></canvas>
+<div id="cross" aria-hidden="true"></div>
+<div id="money" aria-live="off">
+  <div class="mrow"><b id="mcard">GLD</b><span id="mpower">Power 25%</span></div>
+  <div id="mcards"></div>
+  <div id="mbar"><div id="mfill"></div><i style="left:25%"></i><i style="left:50%"></i><i style="left:75%"></i></div>
+  <div class="mrow"><span>Card</span><span id="mbal">$0.00 / $250</span></div>
+  <div class="mrow"><span>BANK</span><span id="mbank">$1,000.00</span></div>
+  <div class="mrow"><span>Savings</span><span id="msav">$500.00</span></div>
+  <div id="mability"></div>
+  <div id="mstatus"></div>
+</div>
+<div id="rail">
+  <div id="bonus">Performance bonus $0.00</div>
+  <ul id="receipt" aria-hidden="true"></ul>
+</div>
+<div id="toast" hidden role="status"></div>
+<div id="dmg" aria-hidden="true"></div>
+<canvas id="map" width="180" height="130" hidden aria-label="Top-down map"></canvas>
+<div id="hud">
+  <div id="brands" role="group" aria-label="Room color">
+    <button class="brand" id="b-RED" data-b="RED">1 RED</button>
+    <button class="brand" id="b-BLU" data-b="BLU">2 BLU</button>
+    <button class="brand" id="b-GLD" data-b="GLD">3 GLD</button>
+    <button class="brand" id="b-GRN" data-b="GRN">4 GRN</button>
+  </div>
+  <div id="gunline">Holstered · Right click to equip</div>
+  <div id="touch">
+    <button class="brand" id="t-equip">Equip</button>
+    <button class="brand" id="t-fire">Fire</button>
+    <button class="brand" id="t-menu">Gun</button>
+    <button class="brand" id="t-card">Card</button>
+    <button class="brand" id="t-ability">Ability</button>
+    <button class="brand" id="t-repay">Repay</button>
+  </div>
+  <div id="pos">X 0.0 m · Z 0.0 m · 0.0 m/s</div>
+</div>
+<div id="overlay">
+  <div id="panel">
+    <h1>Walk the room</h1>
+    <dl id="keys">
+      <dt>WASD</dt><dd>Move</dd>
+      <dt>Mouse</dt><dd>Look</dd>
+      <dt>Shift</dt><dd>GLD sprint toggle or RED dash</dd>
+      <dt>Space</dt><dd>Jump. GRN adds power</dd>
+      <dt>Q</dt><dd>BLU display toggle</dd>
+      <dt>R</dt><dd>Open or exit the WALLET to repay</dd>
+      <dt>Right click</dt><dd>Equip or holster the gun</dd>
+      <dt>Left click</dt><dd>Fire, when equipped</dd>
+      <dt>Tab</dt><dd>Customize the gun and card</dd>
+      <dt>Scroll</dt><dd>Swap equipped card</dd>
+      <dt>1–4</dt><dd>Change the room color</dd>
+      <dt>M</dt><dd>Mute sound</dd>
+      <dt>Esc</dt><dd>Release the mouse</dd>
+    </dl>
+    <button id="start">Enter the room</button>
+    <p id="note">Floor grid squares are 1 m. On a touch screen, drag the left side to move and the right side to look.</p>
+  </div>
+</div>
+<aside id="menu" hidden aria-label="Weapon customization">
+  <div id="menu-head"><h2>Customize</h2><button type="button" id="menu-close">Tab to close</button></div>
+  <div id="parts"></div>
+  <dl id="stats"></dl>
+  <section id="mtest"><h3>Test money</h3><div class="opts">
+    <button type="button" class="opt" id="tm-half" data-m="half">Card $125</button>
+    <button type="button" class="opt" id="tm-max" data-m="max">Card $250</button>
+    <button type="button" class="opt" id="tm-bank" data-m="bank">Empty BANK</button>
+    <button type="button" class="opt" id="tm-reset" data-m="reset">Reset money</button>
+  </div></section>
+  <button type="button" id="menu-reset">Reset everything to default</button>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var overlay = document.getElementById('overlay');
+  var panelNote = document.getElementById('note');
+  var startBtn = document.getElementById('start');
+
+  function fail(msg) {
+    panelNote.textContent = msg;
+    startBtn.hidden = true;
+  }
+  if (!window.THREE) { fail('The 3D library did not load. Check your connection and reload the page.'); return; }
+
+  var canvas = document.getElementById('view');
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  } catch (e) {
+    fail('This browser could not start WebGL, so the room cannot be drawn. Turn on hardware acceleration and reload.');
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(85, 1, 0.05, 100);
+  camera.rotation.order = 'YXZ';
+
+  // Brand shades sampled from the logo and tone boards. Every surface stays in one color family.
+  var PALETTES = {
+    RED: { wall: 0xc2352c, floor: 0x741408, ceil: 0x270f0d, block: 0xf74f45, trim: 0xeba7a4, ui: '#f74f45', on: '#270f0d' },
+    BLU: { wall: 0x2a6bb5, floor: 0x193657, ceil: 0x081829, block: 0x5b9adc, trim: 0xa1c7f4, ui: '#5b9adc', on: '#081829' },
+    GLD: { wall: 0xb39a62, floor: 0x7a5f4a, ceil: 0x2d2228, block: 0xe6d09e, trim: 0xfff9e0, ui: '#f2d689', on: '#201923' },
+    GRN: { wall: 0x3f9150, floor: 0x1d5527, ceil: 0x18251b, block: 0x59b568, trim: 0x94ffa6, ui: '#94ffa6', on: '#18251b' }
+  };
+
+  // A tiled grid that tints with the material color, so scale reads on every surface.
+  function gridTexture() {
+    var s = 256, c = document.createElement('canvas');
+    c.width = c.height = s;
+    var g = c.getContext('2d');
+    g.fillStyle = '#fff'; g.fillRect(0, 0, s, s);
+    g.fillStyle = '#c4c4c4'; g.fillRect(0, 0, s, 4); g.fillRect(0, 0, 4, s);
+    var t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    return t;
+  }
+  var grid = gridTexture();
+  var mats = {};
+  ['wall', 'floor', 'ceil', 'block', 'trim'].forEach(function (k) {
+    mats[k] = new THREE.MeshStandardMaterial({ map: k === 'trim' ? null : grid, roughness: 0.85, metalness: 0 });
+  });
+
+  var solids = [];
+
+  // Box centered at x,z, spanning y0 to y0+h, with UVs in world meters so the grid never stretches.
+  function box(mat, x, y0, z, w, h, d, solid) {
+    var geo = new THREE.BoxGeometry(w, h, d);
+    var p = geo.attributes.position, n = geo.attributes.normal, uv = geo.attributes.uv;
+    for (var i = 0; i < p.count; i++) {
+      var wx = p.getX(i) + x, wy = p.getY(i) + y0 + h / 2, wz = p.getZ(i) + z;
+      if (Math.abs(n.getY(i)) > 0.5) uv.setXY(i, wx, wz);
+      else if (Math.abs(n.getX(i)) > 0.5) uv.setXY(i, wz, wy);
+      else uv.setXY(i, wx, wy);
+    }
+    var m = new THREE.Mesh(geo, mats[mat]);
+    m.position.set(x, y0 + h / 2, z);
+    m.castShadow = m.receiveShadow = true;
+    scene.add(m);
+    if (solid !== false) {
+      solids.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, minY: y0, maxY: y0 + h });
+    }
+    return m;
+  }
+
+  var W = 20, D = 14, H = 5.5, T = 1;
+  box('floor', 0, -T, 0, W + 2 * T, T, D + 2 * T);
+  var ceil = box('ceil', 0, H, 0, W + 2 * T, T, D + 2 * T);
+  ceil.castShadow = false;
+  box('wall', 0, 0, -D / 2 - T / 2, W + 2 * T, H, T);
+  box('wall', 0, 0, D / 2 + T / 2, W + 2 * T, H, T);
+  box('wall', -W / 2 - T / 2, 0, 0, T, H, D);
+  box('wall', W / 2 + T / 2, 0, 0, T, H, D);
+
+  // Stepped blocks to walk around and jump on.
+  box('block', -6, 0, -3.5, 2, 0.6, 2);
+  box('block', -6, 0, -1.5, 2, 1.2, 2);
+  box('block', -6, 0, 0.5, 2, 1.8, 2);
+  box('block', 5.5, 0, 3, 3, 1, 3);
+  box('block', 5.5, 0, -3.5, 1.2, H, 1.2);
+  box('block', 0.5, 0, -4.8, 1.2, H, 1.2);
+  box('block', 1, 0, 2.5, 1.5, 0.9, 1.5);
+  // Hanging slab and a light trim line, overhead, out of the way.
+  box('block', -1, 3.7, -0.5, 5, 0.5, 3, false);
+  [-D / 2 + 0.05, D / 2 - 0.05].forEach(function (z) { box('trim', 0, 5, z, W, 0.12, 0.1, false).castShadow = false; });
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x555555, 0.75));
+  var sun = new THREE.DirectionalLight(0xffffff, 0.85);
+  sun.position.set(6, H - 0.2, 5);
+  sun.target.position.set(-3, 0, -2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  var sc = sun.shadow.camera;
+  sc.left = -15; sc.right = 15; sc.top = 15; sc.bottom = -15; sc.near = 0.1; sc.far = 30;
+  sun.shadow.bias = -0.0005;
+  scene.add(sun, sun.target);
+
+  var root = document.documentElement;
+  function setBrand(name) {
+    var p = PALETTES[name];
+    ['wall', 'floor', 'ceil', 'block', 'trim'].forEach(function (k) { mats[k].color.setHex(p[k]); });
+    scene.background = new THREE.Color(p.ceil);
+    root.style.setProperty('--brand', p.ui);
+    root.style.setProperty('--on-brand', p.on);
+    document.querySelectorAll('.brand').forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.b === name));
+    });
+    try { localStorage.setItem('walkroom-brand', name); } catch (e) {}
+  }
+  var initial = 'RED';
+  try { var s = localStorage.getItem('walkroom-brand'); if (PALETTES[s]) initial = s; } catch (e) {}
+  setBrand(initial);
+  document.querySelectorAll('.brand').forEach(function (b) {
+    b.addEventListener('click', function () { setBrand(b.dataset.b); b.blur(); });
+  });
+
+  // Player: a vertical capsule simplified to a box. Feet position, in meters.
+  var EYE = 1.7, HEIGHT = 1.8, R = 0.3, STEP = 0.25;
+  var WALK = 4.5, GRAVITY = 20, JUMP = 7;
+  var ACCEL = 40, AIR_ACCEL = 12;
+  var player = { x: -1, y: 0, z: 4.5, vx: 0, vy: 0, vz: 0, yaw: 0.25, pitch: 0, grounded: true };
+  var keys = {};
+  var active = false, locked = false;
+  var touch = { move: null, look: null, mx: 0, mz: 0 };
+
+  function overlapsXZ(b, x, z) {
+    return !b.dead && x + R > b.minX && x - R < b.maxX && z + R > b.minZ && z - R < b.maxZ;
+  }
+  function blocked(x, y, z) {
+    for (var i = 0; i < solids.length; i++) {
+      var b = solids[i];
+      if (overlapsXZ(b, x, z) && y + STEP < b.maxY && y + HEIGHT > b.minY) return b;
+    }
+    return null;
+  }
+  function moveAxis(axis, delta) {
+    if (!delta) return;
+    var nx = axis === 'x' ? player.x + delta : player.x;
+    var nz = axis === 'z' ? player.z + delta : player.z;
+    if (blocked(nx, player.y, nz)) {
+      if (axis === 'x') player.vx = 0; else player.vz = 0;
+      return;
+    }
+    player.x = nx; player.z = nz;
+  }
+
+  function update(dt) {
+    var f = 0, r = 0;
+    if (active && !menuOpen) {
+      f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + touch.mz;
+      r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + touch.mx;
+    }
+    var len = Math.hypot(f, r);
+    if (len > 1) { f /= len; r /= len; }
+    var speed = moveBoostSpeed();
+    var sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+    var tx = (-sin * f + cos * r) * speed;
+    var tz = (-cos * f - sin * r) * speed;
+    var a = (player.grounded ? ACCEL : AIR_ACCEL) * dt;
+    var dvx = tx - player.vx, dvz = tz - player.vz, dv = Math.hypot(dvx, dvz);
+    if (dv > a && dv > 0) { dvx *= a / dv; dvz *= a / dv; }
+    player.vx += dvx; player.vz += dvz;
+
+    updateDash(dt);
+    var bx0 = player.x, bz0 = player.z;
+    moveAxis('x', player.vx * dt);
+    moveAxis('z', player.vz * dt);
+    if (active && (f || r)) onSprintDistance(Math.hypot(player.x - bx0, player.z - bz0));
+
+    if (active && !menuOpen && (keys.Space || jumpQueued) && player.grounded) {
+      jumpQueued = false; player.vy = jumpVelocity(); player.grounded = false; }
+    player.vy -= GRAVITY * dt;
+    var ny = player.y + player.vy * dt;
+    var ground = 0, ceiling = H;
+    solids.forEach(function (b) {
+      if (!overlapsXZ(b, player.x, player.z)) return;
+      if (b.maxY <= player.y + STEP && b.maxY > ground) ground = b.maxY;
+    });
+    if (ny + HEIGHT > ceiling) { ny = ceiling - HEIGHT; player.vy = Math.min(player.vy, 0); }
+    if (ny <= ground) { ny = ground; player.vy = 0; player.grounded = true; }
+    else { player.grounded = ny - ground < 0.02; }
+    player.y = ny;
+
+    camera.position.set(player.x, player.y + EYE, player.z);
+    camera.rotation.set(player.pitch, player.yaw, 0);
+  }
+
+  var posEl = document.getElementById('pos');
+  var lastHud = 0;
+  function hud(now) {
+    if (now - lastHud < 100) return;
+    lastHud = now;
+    posEl.textContent = 'X ' + player.x.toFixed(1) + ' m · Z ' + player.z.toFixed(1) + ' m · ' +
+      Math.hypot(player.vx, player.vz).toFixed(1) + ' m/s';
+  }
+
+  function look(dx, dy) {
+    player.yaw -= dx * 0.0022;
+    player.pitch = Math.max(-1.5, Math.min(1.5, player.pitch - dy * 0.0022));
+  }
+
+  function resize() {
+    var w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  function requestLock() {
+    try {
+      var p = canvas.requestPointerLock && canvas.requestPointerLock();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+  function enter() {
+    audioInit();
+    active = true;
+    overlay.hidden = true;
+    requestLock();
+  }
+  startBtn.addEventListener('click', enter);
+  canvas.addEventListener('click', function () { if (active && !locked && !menuOpen) enter(); });
+
+  document.addEventListener('pointerlockchange', function () {
+    var was = locked;
+    locked = document.pointerLockElement === canvas;
+    if (was && !locked && !menuOpen) {
+      active = false;
+      trigger = false;
+      keys = {};
+      startBtn.textContent = 'Back to the room';
+      overlay.hidden = false;
+    }
+  });
+
+  // Mouse look works with pointer lock, and falls back to click-and-drag where the lock is refused.
+  var dragging = false;
+  document.addEventListener('mousedown', function (e) {
+    if (!active || menuOpen) return;
+    if (!locked && e.target !== canvas) return;
+    if (wallet.on) {
+      if (e.button === 0) { dragging = true; walletA(); } else if (e.button === 2) walletB();
+      return;
+    }
+    if (e.button === 0) {
+      dragging = true;
+      if (equipped) { trigger = true; triggerEdge = true; }
+    } else if (e.button === 2) {
+      toggleEquip();
+    }
+  });
+  window.addEventListener('mouseup', function (e) {
+    if (e.button === 0) { dragging = false; trigger = false; walletAUp(); }
+  });
+  document.addEventListener('contextmenu', function (e) { if (active) e.preventDefault(); });
+  document.addEventListener('mousemove', function (e) {
+    if (menuOpen) return;
+    if (locked || (active && dragging)) look(e.movementX || 0, e.movementY || 0);
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.code === 'Tab') {
+      if (active) { e.preventDefault(); if (!e.repeat) { if (menuOpen) closeMenu(); else openMenu(); } }
+      return;
+    }
+    if (menuOpen) {
+      if (e.code === 'Escape') closeMenu();
+      return;
+    }
+    if (e.code === 'Space' && e.target === startBtn && !overlay.hidden) return;
+    keys[e.code] = true;
+    if (active && !e.repeat) {
+      if (e.code === 'KeyM') { muted = !muted; toast(muted ? 'SOUND OFF' : 'SOUND ON'); }
+      else if (e.code === 'KeyR') { if (wallet.on) closeWallet(); else openWallet(); }
+      else if (e.code === 'Space') jumpQueued = true;
+      else abilityKey(e.code);
+    }
+    if (/^Digit[1-4]$/.test(e.code)) setBrand(['RED', 'BLU', 'GLD', 'GRN'][+e.code.slice(5) - 1]);
+    if (active && /^(Space|Arrow)/.test(e.code)) e.preventDefault();
+  });
+  window.addEventListener('keyup', function (e) { keys[e.code] = false; });
+  window.addEventListener('blur', function () { keys = {}; trigger = false; });
+
+  // Touch: left half is a movement stick, right half is look.
+  canvas.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    Array.prototype.forEach.call(e.changedTouches, function (t) {
+      if (t.clientX < window.innerWidth / 2 && !touch.move) touch.move = { id: t.identifier, x: t.clientX, y: t.clientY };
+      else if (!touch.look) touch.look = { id: t.identifier, x: t.clientX, y: t.clientY };
+    });
+  }, { passive: false });
+  canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    Array.prototype.forEach.call(e.changedTouches, function (t) {
+      if (touch.move && t.identifier === touch.move.id) {
+        touch.mx = Math.max(-1, Math.min(1, (t.clientX - touch.move.x) / 50));
+        touch.mz = Math.max(-1, Math.min(1, (touch.move.y - t.clientY) / 50));
+      } else if (touch.look && t.identifier === touch.look.id) {
+        look((t.clientX - touch.look.x) * 2, (t.clientY - touch.look.y) * 2);
+        touch.look.x = t.clientX; touch.look.y = t.clientY;
+      }
+    });
+  }, { passive: false });
+  function endTouch(e) {
+    Array.prototype.forEach.call(e.changedTouches, function (t) {
+      if (touch.move && t.identifier === touch.move.id) { touch.move = null; touch.mx = touch.mz = 0; }
+      if (touch.look && t.identifier === touch.look.id) touch.look = null;
+    });
+  }
+  canvas.addEventListener('touchend', endTouch);
+  canvas.addEventListener('touchcancel', endTouch);
+
+  // ---------- GUNS: parts data from the June tag-system spec ----------
+  var WORTH = { GLD: 0.62, RED: 0.58, BLU: 0.45, GRN: 0.40 }; // Baseline Worth. No live market in this room yet.
+  var BRANDS = ['GLD', 'RED', 'BLU', 'GRN'];
+  var BC = {
+    GLD: { main: 0xb39a62, dark: 0x57333c, light: 0xf2d689, css: '#f2d689' },
+    RED: { main: 0xc2352c, dark: 0x62110b, light: 0xf74f45, css: '#f74f45' },
+    BLU: { main: 0x2a6bb5, dark: 0x193657, light: 0xa1c7f4, css: '#5b9adc' },
+    GRN: { main: 0x3f9150, dark: 0x1d5527, light: 0x94ffa6, css: '#94ffa6' }
+  };
+  var PARTS = {
+    frame: {
+      GLD: { name: 'Pistol', desc: 'One shot per click. Perfectly accurate.' },
+      GRN: { name: 'Full-Auto', desc: 'Hold to fire continuously, with some spread.' },
+      BLU: { name: 'Charge', desc: 'Hold, then release. A full 1 s charge multiplies all tag charges by 5.' },
+      RED: { name: 'Pump Double', desc: 'Two projectiles per click, with a pump between shots.' }
+    },
+    chamber: {
+      GLD: { name: 'Cycle', slots: 3, desc: 'Uses one of three tags per shot: A, B, C, repeat.' },
+      GRN: { name: 'Burst', slots: 1, desc: '+1 charge on its tag per 10 rounds fired.' },
+      BLU: { name: 'Deep', slots: 0, desc: 'No tag slot. +2 durability on every projectile.' },
+      RED: { name: 'Triple', slots: 3, desc: 'Applies all three tags to every shot.' }
+    },
+    barrel: {
+      GLD: { name: 'Fast', slots: 1, speed: 90, pellets: 1, desc: 'Fast projectile.' },
+      GRN: { name: 'Slow', slots: 1, speed: 20, pellets: 1, desc: 'Slow projectile you can watch fly.' },
+      BLU: { name: 'Beam', slots: 0, speed: 400, pellets: 1, desc: 'Very fast projectile with a beam drawn over its path.' },
+      RED: { name: 'Scatter', slots: 1, speed: 55, pellets: 6, desc: 'Six pellets. Each one carries all the tags.' }
+    },
+    ammo: {
+      GLD: { name: 'Radiation', slots: 3, desc: 'Poison damage over time.' },
+      GRN: { name: 'Investment', slots: 3, desc: 'Raises the money affected enemies drop.' },
+      BLU: { name: 'Stun', slots: 3, desc: 'Less direct damage. Slows enemies.' },
+      RED: { name: 'Fire', slots: 3, desc: 'Burn damage that escalates with stacks.' }
+    }
+  };
+  // Tag brands are rolled on each page load to drive synergy discovery. Volatile and Redacted are BLU only.
+  function roll() { return BRANDS[Math.floor(Math.random() * 4)]; }
+  var TAGS = {
+    Penetrate: { brand: roll(), desc: 'Passes through the surface and keeps flying. 1 durability per pierce.' },
+    Explosive: { brand: roll(), desc: 'Detonates on impact. Remaining durability grows the blast.' },
+    Flechette: { brand: roll(), desc: 'Leaves a lingering fragment at the hit point.' },
+    Beam: { brand: roll(), desc: 'Chains to the nearest target within 20 m.' },
+    Scattershot: { brand: roll(), desc: 'Splits into pellets on impact. Pellets inherit the remaining tags.' },
+    Compressor: { brand: roll(), desc: 'Pulses inward from the hit point.' },
+    Volatile: { brand: 'BLU', desc: 'Rolls a random tag when the round spawns.' },
+    Redacted: { brand: 'BLU', desc: '▮▮▮▮▮▮▮ ▮▮▮▮ ▮▮▮▮▮▮▮▮.' }
+  };
+  var RANDOM_TAGS = ['Penetrate', 'Explosive', 'Flechette', 'Beam', 'Scattershot', 'Compressor'];
+
+  PARTS.card = {
+    GLD: { name: 'Sprint', desc: 'Shift toggles sprint. Each step charges $6.20. Speed scales with credit used.' },
+    RED: { name: 'Dash', desc: 'Shift dashes for $5.80. Distance and damage scale with credit used.' },
+    GRN: { name: 'Jump', desc: 'Space jumps higher for $4.00. Height scales with credit used. Normal jump during cooldown.' },
+    BLU: { name: 'Display', desc: 'Q toggles the display, $4.50 every 5 s. 25% crosshairs and damage numbers, 50% healthbars, 75% outlines, 100% map.' }
+  };
+  var gun = {
+    card: 'GLD', cards: { GLD: true, RED: true, BLU: true, GRN: true }, frame: 'GLD', chamber: 'RED', barrel: 'GLD', ammo: 'RED',
+    tags: { ammo: ['Penetrate', '', ''], chamber: ['Explosive', 'Flechette', ''], barrel: [''] }
+  };
+  var GUN_DEFAULT = JSON.stringify(gun);
+  try {
+    var saved = JSON.parse(localStorage.getItem('walkroom-gun'));
+    if (saved && saved.tags && PARTS.frame[saved.frame] && PARTS.chamber[saved.chamber] && PARTS.barrel[saved.barrel] && PARTS.ammo[saved.ammo]) { if (!PARTS.card[saved.card]) saved.card = 'GLD'; if (!saved.cards) saved.cards = { GLD: true, RED: true, BLU: true, GRN: true }; gun = saved; }
+  } catch (e) {}
+
+  var equipped = false, menuOpen = false, trigger = false, triggerEdge = false;
+  var cooldown = 0, bowCharge = 0, cycleIdx = 0, burstRounds = 0, jumpQueued = false;
+
+  function capacity() {
+    var w = WORTH[gun.ammo];
+    return (w < 0.3 ? 1 : w < 0.7 ? 5 : 10) + (gun.chamber === 'BLU' ? 2 : 0);
+  }
+  function loadedTags() { // Tags for the next shot, in order: ammo, chamber, barrel.
+    var list = gun.tags.ammo.filter(Boolean);
+    var c = gun.tags.chamber;
+    if (gun.chamber === 'GLD') { if (c[cycleIdx % 3]) list.push(c[cycleIdx % 3]); }
+    else if (gun.chamber === 'GRN') { if (c[0]) for (var i = 0, n = 1 + Math.floor(burstRounds / 10); i < n; i++) list.push(c[0]); }
+    else if (gun.chamber === 'RED') list = list.concat(c.filter(Boolean));
+    if (PARTS.barrel[gun.barrel].slots && gun.tags.barrel[0]) list.push(gun.tags.barrel[0]);
+    return list;
+  }
+  // Worth x $10 per round, plus 1% of that per tag, at the spec's ammo-to-tag ratio.
+  function priceOf(list) {
+    return list.reduce(function (s, t) { return s + WORTH[TAGS[t].brand] * 0.1; }, WORTH[gun.ammo] * 10);
+  }
+
+  // ---------- Gun model: drawn in its own pass so it never clips into walls ----------
+  var gunScene = new THREE.Scene();
+  gunScene.add(camera);
+  camera.add(new THREE.HemisphereLight(0xffffff, 0x444444, 0.9));
+  var gunSun = new THREE.DirectionalLight(0xffffff, 0.8);
+  gunSun.position.set(1, 2, 1);
+  camera.add(gunSun);
+  var gunRoot = new THREE.Group();
+  camera.add(gunRoot);
+  var partsGroup = new THREE.Group();
+  gunRoot.add(partsGroup);
+  var muzzle = new THREE.Object3D();
+  var anim = {};
+  var unitBox = new THREE.BoxGeometry(1, 1, 1);
+  var partMats = {};
+  BRANDS.forEach(function (b) {
+    partMats[b] = {
+      main: new THREE.MeshStandardMaterial({ color: BC[b].main, roughness: 0.6 }),
+      dark: new THREE.MeshStandardMaterial({ color: BC[b].dark, roughness: 0.75 }),
+      light: new THREE.MeshStandardMaterial({ color: BC[b].light, roughness: 0.4 }),
+      glow: new THREE.MeshBasicMaterial({ color: BC[b].light }),
+      flash: new THREE.MeshBasicMaterial({ color: BC[b].light, transparent: true, opacity: 0.9, side: THREE.DoubleSide, depthWrite: false })
+    };
+  });
+  var cardLight = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  var cardBody = new THREE.MeshStandardMaterial({ color: 0xe8e4dc, roughness: 0.3 });
+  var cardFlash = 0;
+
+  function bx(parent, mat, w, h, d, x, y, z) {
+    var m = new THREE.Mesh(unitBox, mat);
+    m.scale.set(w, h, d);
+    m.position.set(x, y, z);
+    parent.add(m);
+    return m;
+  }
+  function buildGun() {
+    while (partsGroup.children.length) partsGroup.remove(partsGroup.children[0]);
+    anim = {};
+    var f = partMats[gun.frame], c = partMats[gun.chamber], b = partMats[gun.barrel], a = partMats[gun.ammo];
+    // Frame
+    bx(partsGroup, f.main, 0.036, 0.055, 0.16, 0, 0, 0.06);
+    bx(partsGroup, f.dark, 0.03, 0.125, 0.04, 0, -0.085, 0.115).rotation.x = 0.3;
+    bx(partsGroup, f.dark, 0.012, 0.008, 0.06, 0, -0.058, 0.055);
+    if (gun.frame === 'GLD') {
+      anim.hammer = new THREE.Group();
+      anim.hammer.position.set(0, 0.02, 0.14);
+      bx(anim.hammer, f.light, 0.012, 0.05, 0.014, 0, 0.02, 0);
+      partsGroup.add(anim.hammer);
+    } else if (gun.frame === 'RED') {
+      bx(partsGroup, f.dark, 0.026, 0.045, 0.11, 0, -0.012, 0.19);
+      anim.pump = bx(partsGroup, f.light, 0.042, 0.03, 0.09, 0, -0.045, -0.2);
+    } else if (gun.frame === 'GRN') {
+      bx(partsGroup, f.main, 0.04, 0.05, 0.12, 0, 0, 0.18);
+      for (var i = 0; i < 5; i++) bx(partsGroup, f.dark, 0.05, 0.062, 0.008, 0, 0, 0.135 + i * 0.022);
+      bx(partsGroup, f.dark, 0.022, 0.09, 0.024, 0, -0.06, 0.225);
+      anim.bolt = bx(partsGroup, f.light, 0.012, 0.012, 0.05, 0.022, 0.014, 0.08);
+    } else {
+      anim.limbU = bx(partsGroup, f.light, 0.012, 0.15, 0.024, 0, 0.1, -0.005);
+      anim.limbD = bx(partsGroup, f.light, 0.012, 0.15, 0.024, 0, -0.1, -0.005);
+      anim.limbU.rotation.x = -0.45; anim.limbD.rotation.x = 0.45;
+      anim.string = bx(partsGroup, f.glow, 0.003, 0.003, 0.2, 0, 0, 0.06);
+    }
+    // Credit card seated in the frame, with its transaction light
+    anim.card = bx(partsGroup, cardBody, 0.002, 0.026, 0.05, -0.02, 0.01, 0.05);
+    bx(partsGroup, cardLight, 0.006, 0.008, 0.012, -0.02, 0.031, 0.015);
+    // Chamber
+    if (gun.chamber === 'GLD') {
+      anim.drum = new THREE.Mesh(new THREE.CylinderGeometry(0.036, 0.036, 0.085, 6), c.main);
+      anim.drum.rotation.order = 'ZXY';
+      anim.drum.rotation.x = Math.PI / 2;
+      anim.drum.position.set(0, 0.002, -0.065);
+      partsGroup.add(anim.drum);
+    } else if (gun.chamber === 'GRN') {
+      bx(partsGroup, c.main, 0.042, 0.052, 0.09, 0, 0, -0.065);
+      anim.strip = bx(partsGroup, c.light, 0.09, 0.006, 0.05, 0.03, 0.03, -0.065);
+    } else if (gun.chamber === 'BLU') {
+      bx(partsGroup, c.dark, 0.044, 0.1, 0.09, 0, 0.012, -0.065);
+      anim.bars = [0, 1, 2].map(function (k) { return bx(partsGroup, c.glow, 0.046, 0.008, 0.07, 0, -0.018 + k * 0.03, -0.065); });
+    } else {
+      anim.tubes = new THREE.Group();
+      anim.tubes.position.set(0, 0.002, -0.065);
+      for (var t = 0; t < 3; t++) {
+        var ang = t * 2.094;
+        bx(anim.tubes, t ? c.main : c.light, 0.026, 0.026, 0.09, Math.cos(ang) * 0.02, Math.sin(ang) * 0.02, 0);
+      }
+      partsGroup.add(anim.tubes);
+    }
+    // Barrel
+    var end;
+    if (gun.barrel === 'GLD') {
+      end = -0.42;
+      bx(partsGroup, b.main, 0.016, 0.016, 0.31, 0, 0.004, -0.265);
+      [-0.16, -0.27, -0.38].forEach(function (z) { bx(partsGroup, b.light, 0.024, 0.024, 0.012, 0, 0.004, z); });
+    } else if (gun.barrel === 'GRN') {
+      end = -0.27;
+      bx(partsGroup, b.main, 0.046, 0.046, 0.16, 0, 0.002, -0.19);
+      bx(partsGroup, b.dark, 0.056, 0.056, 0.03, 0, 0.002, -0.26);
+    } else if (gun.barrel === 'BLU') {
+      end = -0.36;
+      bx(partsGroup, b.dark, 0.018, 0.018, 0.1, 0, 0.002, -0.16);
+      bx(partsGroup, b.main, 0.008, 0.012, 0.24, 0.016, 0.002, -0.24);
+      bx(partsGroup, b.main, 0.008, 0.012, 0.24, -0.016, 0.002, -0.24);
+      anim.coil = [-0.2, -0.26, -0.32].map(function (z) { return bx(partsGroup, b.glow, 0.02, 0.02, 0.012, 0, 0.002, z); });
+    } else {
+      end = -0.33;
+      bx(partsGroup, b.main, 0.024, 0.024, 0.2, 0, 0.002, -0.21);
+      bx(partsGroup, b.dark, 0.06, 0.03, 0.03, 0, 0.002, -0.315);
+    }
+    muzzle.position.set(0, 0.002, end);
+    partsGroup.add(muzzle);
+    // Ammo housing, with one light per loaded ammo tag
+    bx(partsGroup, a.main, 0.03, 0.075, 0.05, 0, -0.065, 0.03);
+    gun.tags.ammo.forEach(function (t, i) {
+      var mat = t ? partMats[TAGS[t].brand].glow : partMats[gun.ammo].dark;
+      bx(partsGroup, mat, 0.032, 0.01, 0.02, 0, -0.04 - i * 0.018, 0.03);
+    });
+    // Brand-specific muzzle flash, shown only on the firing frame
+    anim.flash = new THREE.Group();
+    anim.flash.position.copy(muzzle.position);
+    var fl = partMats[gun.barrel].flash;
+    if (gun.barrel === 'GLD') {
+      anim.flash.add(new THREE.Mesh(new THREE.RingGeometry(0.03, 0.05, 6), fl));
+      for (var s = 0; s < 4; s++) bx(anim.flash, fl, 0.006, 0.17, 0.004, 0, 0, 0).rotation.z = s * Math.PI / 4;
+    } else if (gun.barrel === 'RED') {
+      var cone = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.2, 5), fl);
+      cone.rotation.x = -Math.PI / 2; cone.position.z = -0.1;
+      anim.flash.add(cone);
+    } else if (gun.barrel === 'GRN') {
+      for (var l = 0; l < 3; l++) {
+        var leaf = bx(anim.flash, fl, 0.03, 0.1, 0.004, 0, 0, -0.02);
+        leaf.rotation.z = l * 2.094 + 0.5;
+        leaf.position.set(Math.sin(leaf.rotation.z) * -0.05, Math.cos(leaf.rotation.z) * 0.05, -0.02);
+      }
+    } else {
+      anim.arcs = [0, 1, 2, 3].map(function () { return bx(anim.flash, fl, 0.004, 0.004, 0.18, 0, 0, -0.08); });
+    }
+    anim.flash.visible = false;
+    partsGroup.add(anim.flash);
+  }
+  buildGun();
+
+  // Receipts print off the left of the chamber, toward the player, and flutter away.
+  var rc = document.createElement('canvas');
+  rc.width = 64; rc.height = 128;
+  var rctx = rc.getContext('2d');
+  var rtex = new THREE.CanvasTexture(rc);
+  var receiptGeo = new THREE.PlaneGeometry(0.036, 0.09);
+  receiptGeo.translate(0, -0.045, 0);
+  var receipts = [];
+  for (var ri = 0; ri < 8; ri++) {
+    var rm = new THREE.Mesh(receiptGeo, new THREE.MeshBasicMaterial({ map: rtex, side: THREE.DoubleSide, transparent: true, depthWrite: false }));
+    rm.visible = false;
+    gunRoot.add(rm);
+    receipts.push({ mesh: rm, age: 9, spin: 0 });
+  }
+  var rIdx = 0;
+  function printReceipt(price) {
+    rctx.fillStyle = '#fbf8f1'; rctx.fillRect(0, 0, 64, 128);
+    rctx.fillStyle = '#222'; rctx.font = 'bold 12px monospace';
+    rctx.fillText(gun.ammo + ' RND', 6, 18);
+    rctx.fillText('$' + price.toFixed(2), 6, 36);
+    rctx.fillRect(6, 44, 52, 1);
+    rctx.font = '9px monospace';
+    rctx.fillText('NO REFUNDS', 4, 60);
+    rctx.fillRect(6, 72, 52, 26);
+    rtex.needsUpdate = true;
+    var r = receipts[rIdx++ % receipts.length];
+    r.age = 0; r.spin = 2 + Math.random() * 4; r.mesh.visible = true;
+    r.mesh.material.opacity = 1;
+  }
+
+  // ---------- Projectiles: every shot has spawn, travel and hit phases ----------
+  var projectiles = [], fxs = [], decals = [], spawnDmgMult = 1, spawnFrameDmg = null;
+  var MAX_PROJECTILES = 90, MAX_DEPTH = 3;
+  var projGeo = new THREE.BoxGeometry(1, 1, 1);
+  var sphereGeo = new THREE.IcosahedronGeometry(1, 1);
+  var ringGeo = new THREE.RingGeometry(0.86, 1, 24);
+  var decalGeo = new THREE.CircleGeometry(0.07, 8);
+  var decalMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  var worldMats = {};
+  BRANDS.forEach(function (b) { worldMats[b] = new THREE.MeshBasicMaterial({ color: BC[b].light }); });
+  var eyeDir = new THREE.Vector3(), muzzleW = new THREE.Vector3();
+
+  function raycast(from, dir, maxD, ignore) {
+    var best = null;
+    for (var i = 0; i < solids.length; i++) {
+      var s = solids[i];
+      if (s.dead || (ignore && ignore.indexOf(s) >= 0)) continue;
+      var tmin = -Infinity, tmax = Infinity, axis = -1;
+      var mins = [s.minX, s.minY, s.minZ], maxs = [s.maxX, s.maxY, s.maxZ], o = [from.x, from.y, from.z], d = [dir.x, dir.y, dir.z];
+      var miss = false;
+      for (var a = 0; a < 3; a++) {
+        if (Math.abs(d[a]) < 1e-9) { if (o[a] < mins[a] || o[a] > maxs[a]) { miss = true; break; } continue; }
+        var t1 = (mins[a] - o[a]) / d[a], t2 = (maxs[a] - o[a]) / d[a];
+        if (t1 > t2) { var tt = t1; t1 = t2; t2 = tt; }
+        if (t1 > tmin) { tmin = t1; axis = a; }
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) { miss = true; break; }
+      }
+      if (miss || tmin < 0 || tmin > maxD || axis < 0) continue;
+      if (!best || tmin < best.t) {
+        var n = new THREE.Vector3();
+        n.setComponent(axis, d[axis] > 0 ? -1 : 1);
+        best = { t: tmin, normal: n, solid: s };
+      }
+    }
+    return best;
+  }
+
+  function addFx(mesh, life, tick) {
+    scene.add(mesh);
+    fxs.push({ mesh: mesh, age: 0, life: life, tick: tick });
+  }
+  function fxMat(brand, op) {
+    return new THREE.MeshBasicMaterial({ color: BC[brand].light, transparent: true, opacity: op, side: THREE.DoubleSide, depthWrite: false });
+  }
+  function fxBurst(pos, brand, radius) {
+    var m = new THREE.Mesh(sphereGeo, fxMat(brand, 0.75));
+    m.position.copy(pos);
+    addFx(m, 0.35, function (k) { m.scale.setScalar(radius * (0.2 + 0.8 * Math.sqrt(k))); m.material.opacity = 0.75 * (1 - k); });
+  }
+  function fxSpark(pos, brand) {
+    var m = new THREE.Mesh(sphereGeo, fxMat(brand, 1));
+    m.position.copy(pos);
+    addFx(m, 0.12, function (k) { m.scale.setScalar(0.03 + 0.1 * k); m.material.opacity = 1 - k; });
+  }
+  function fxRing(pos, normal, brand, from, to, life) {
+    var m = new THREE.Mesh(ringGeo, fxMat(brand, 0.9));
+    m.position.copy(pos).addScaledVector(normal, 0.03);
+    m.lookAt(pos.clone().add(normal));
+    addFx(m, life, function (k) { m.scale.setScalar(from + (to - from) * k); m.material.opacity = 0.9 * (1 - k * 0.7); });
+  }
+  function fxLine(a, b, brand, width, life, jitter) {
+    var m = new THREE.Mesh(projGeo, fxMat(brand, 1));
+    var len = a.distanceTo(b), mid = a.clone().add(b).multiplyScalar(0.5);
+    m.position.copy(mid);
+    m.lookAt(b);
+    m.scale.set(width, width, len);
+    addFx(m, life, function (k) {
+      m.material.opacity = 1 - k;
+      if (jitter) { m.position.copy(mid); m.position.x += (Math.random() - 0.5) * jitter; m.position.y += (Math.random() - 0.5) * jitter; }
+    });
+  }
+  function addDecal(pos, normal) {
+    var d = new THREE.Mesh(decalGeo, decalMat);
+    d.position.copy(pos).addScaledVector(normal, 0.01);
+    d.lookAt(pos.clone().add(normal));
+    scene.add(d);
+    decals.push(d);
+    if (decals.length > 80) scene.remove(decals.shift());
+  }
+
+  function spawnProjectile(pos, dir, speed, tags, dur, brand, depth, visOffset, ignore) {
+    if (projectiles.length >= MAX_PROJECTILES) return;
+    var m = new THREE.Mesh(projGeo, worldMats[brand]);
+    m.scale.set(0.022, 0.022, 0.25);
+    scene.add(m);
+    projectiles.push({
+      pos: pos.clone(), dir: dir.clone(), speed: speed, tags: tags, dur: dur, brand: brand, depth: depth,
+      mesh: m, age: 0, offset: visOffset || new THREE.Vector3(), ignore: ignore || [], dmgMult: spawnDmgMult, frameDmg: spawnFrameDmg
+    });
+  }
+
+  // Resolve the tag list in order at the hit point. Returns true when the projectile keeps flying.
+  // Pistol and Charge set their own damage against a 100 HP target. Other frames use Worth x 40. Worth is fixed in this room for now.
+  function frameDamage(full, level) {
+    if (gun.frame === 'GLD') return 34; // 3 shots to kill.
+    if (gun.frame === 'BLU') return full ? 100 : 15 + 50 * level; // Full charge kills in 1.
+    return null;
+  }
+  function dmgOf(p) { return (p.frameDmg === null ? WORTH[p.brand] * 40 : p.frameDmg) * p.dmgMult * (money.defaulted ? 2 : 1); }
+  function resolveImpact(p, hit, point) {
+    fxSpark(point, p.brand);
+    if (hit.solid.dummy) hitDummy(hit.solid.dummy, dmgOf(p), point);
+    while (p.tags.length && p.dur > 0) {
+      var t = p.tags.shift();
+      p.dur--;
+      if (t === 'Penetrate') {
+        p.ignore.push(hit.solid);
+        fxRing(point, hit.normal, p.brand, 0.05, 0.2, 0.2);
+        addDecal(point, hit.normal);
+        return true;
+      } else if (t === 'Explosive') {
+        fxBurst(point, p.brand, 1 + 0.5 * p.dur);
+        aoe(point, 1 + 0.5 * p.dur, dmgOf(p));
+      } else if (t === 'Flechette') {
+        var frag = new THREE.Mesh(projGeo, fxMat(p.brand, 1));
+        frag.position.copy(point).addScaledVector(hit.normal, 0.08);
+        frag.lookAt(point);
+        frag.scale.set(0.02, 0.02, 0.16);
+        var fDmg = dmgOf(p) * 0.1, fPt = point.clone();
+        addFx(frag, 3, function (k) {
+          this.mesh.material.opacity = 0.35 + 0.65 * Math.abs(Math.sin(k * 25));
+          if (k - (this.last || 0) > 0.2) { this.last = k; aoe(fPt, 1.5, fDmg, true); }
+        });
+      } else if (t === 'Beam') {
+        var near = null, nd = 20;
+        dummies.forEach(function (d) {
+          if (d.dead || d === hit.solid.dummy) return;
+          var dd = Math.hypot(d.x - point.x, d.z - point.z);
+          if (dd < nd) { nd = dd; near = d; }
+        });
+        if (near) {
+          var bEnd = new THREE.Vector3(near.x, 1.2, near.z);
+          fxLine(point, bEnd, p.brand, 0.02, 0.18, 0.03);
+          hitDummy(near, dmgOf(p), bEnd);
+        } else {
+          var endp = point.clone().addScaledVector(hit.normal, 0.5);
+          fxLine(point, endp, p.brand, 0.015, 0.15, 0.03);
+        }
+      } else if (t === 'Scattershot') {
+        if (p.depth < MAX_DEPTH) {
+          var refl = p.dir.clone().reflect(hit.normal);
+          spawnDmgMult = p.dmgMult; spawnFrameDmg = p.frameDmg;
+          for (var i = 0; i < 5; i++) {
+            var d = refl.clone();
+            d.x += (Math.random() - 0.5) * 0.9; d.y += (Math.random() - 0.5) * 0.9; d.z += (Math.random() - 0.5) * 0.9;
+            d.normalize();
+            if (d.dot(hit.normal) < 0.05) d.addScaledVector(hit.normal, 0.5).normalize();
+            spawnProjectile(point.clone().addScaledVector(hit.normal, 0.02), d, Math.min(p.speed, 40), p.tags.slice(), p.dur, p.brand, p.depth + 1);
+          }
+          spawnDmgMult = 1; spawnFrameDmg = null;
+        }
+        break; // The remaining tags travel with the pellets.
+      } else if (t === 'Compressor') {
+        fxRing(point, hit.normal, p.brand, 1.6 + 0.1 * p.dur, 0.05, 0.3);
+      }
+    }
+    addDecal(point, hit.normal);
+    return false;
+  }
+
+  function updateProjectiles(dt) {
+    for (var i = projectiles.length - 1; i >= 0; i--) {
+      var p = projectiles[i];
+      p.age += dt;
+      var step = p.speed * dt, flying = p.age < 4, guard = 0;
+      while (flying && step > 0 && guard++ < 8) {
+        var hit = raycast(p.pos, p.dir, step, p.ignore);
+        if (!hit) { p.pos.addScaledVector(p.dir, step); break; }
+        p.pos.addScaledVector(p.dir, hit.t);
+        step -= hit.t;
+        flying = resolveImpact(p, hit, p.pos.clone());
+      }
+      if (!flying) { scene.remove(p.mesh); projectiles.splice(i, 1); continue; }
+      var k = Math.max(0, 1 - p.age / 0.12);
+      p.mesh.position.copy(p.pos).addScaledVector(p.offset, k);
+      if (p.brand === 'BLU') { p.mesh.position.x += (Math.random() - 0.5) * 0.05; p.mesh.position.y += (Math.random() - 0.5) * 0.05; }
+      muzzleW.copy(p.mesh.position).add(p.dir);
+      p.mesh.lookAt(muzzleW);
+    }
+    for (var j = fxs.length - 1; j >= 0; j--) {
+      var f = fxs[j];
+      f.age += dt;
+      if (f.age >= f.life) { scene.remove(f.mesh); f.mesh.material.dispose(); fxs.splice(j, 1); continue; }
+      f.tick.call(f, f.age / f.life);
+    }
+  }
+
+  var recoil = 0, equipT = 0, flashT = 0, pumpT = 0, cycleSpin = 0;
+  var FRAME_CFG = {
+    GLD: { rate: 0.18, spread: 0, count: 1 },
+    GRN: { rate: 0.085, spread: 0.022, count: 1 },
+    BLU: { rate: 0.3, spread: 0, count: 1 },
+    RED: { rate: 0.75, spread: 0.018, count: 2 }
+  };
+
+  function fire(chargeMult) {
+    var cfg = FRAME_CFG[gun.frame], barrel = PARTS.barrel[gun.barrel];
+    var base = loadedTags();
+    var price = priceOf(base) * cfg.count;
+    charge(price, gun.ammo + ' ROUND');
+    var cap = capacity() * chargeMult;
+    camera.getWorldDirection(eyeDir);
+    muzzle.getWorldPosition(muzzleW);
+    var offset = muzzleW.clone().sub(camera.position);
+    for (var i = 0; i < cfg.count; i++) {
+      for (var j = 0; j < barrel.pellets; j++) {
+        // Volatile and Redacted resolve at spawn, per projectile.
+        var tags = [];
+        base.forEach(function (t) {
+          var real = (t === 'Volatile' || t === 'Redacted') ? RANDOM_TAGS[Math.floor(Math.random() * 6)] : t;
+          for (var c = 0; c < chargeMult; c++) tags.push(real);
+        });
+        tags = tags.slice(0, cap);
+        var spread = cfg.spread + (barrel.pellets > 1 ? 0.07 : 0);
+        var d = eyeDir.clone();
+        d.x += (Math.random() - 0.5) * spread * 2; d.y += (Math.random() - 0.5) * spread * 2; d.z += (Math.random() - 0.5) * spread * 2;
+        d.normalize();
+        if (gun.barrel === 'BLU') {
+          var h = raycast(camera.position, d, 60);
+          var end = camera.position.clone().addScaledVector(d, h ? h.t : 60);
+          fxLine(muzzleW, end, gun.ammo, 0.02, 0.14, 0.015);
+        }
+        spawnDmgMult = 1 / barrel.pellets;
+        spawnFrameDmg = frameDamage(chargeMult > 1, bowCharge);
+        spawnProjectile(camera.position, d, barrel.speed, tags, cap, gun.ammo, 0, offset);
+        spawnDmgMult = 1; spawnFrameDmg = null;
+      }
+    }
+    if (gun.chamber === 'GLD') cycleIdx++;
+    if (gun.chamber === 'GRN') burstRounds++;
+    recoil = Math.min(1, recoil + (gun.frame === 'RED' ? 1 : gun.frame === 'GRN' ? 0.35 : 0.7));
+    player.pitch = Math.min(1.5, player.pitch + (gun.frame === 'RED' ? 0.02 : 0.004));
+    flashT = 0.05; pumpT = 1; cycleSpin += 1;
+    cooldown = cfg.rate;
+    printReceipt(price);
+    sfxFire();
+  }
+
+  function updateTrigger(dt) {
+    cooldown -= dt;
+    var ready = equipped && equipT > 0.7 && active && !menuOpen && !wallet.on;
+    if (!ready) { bowCharge = 0; triggerEdge = false; return; }
+    if (gun.frame === 'BLU') {
+      if (trigger && cooldown <= 0) bowCharge = Math.min(1, bowCharge + dt);
+      else if (!trigger && bowCharge > 0) { fire(bowCharge >= 1 ? 5 : 1); bowCharge = 0; }
+    } else if (gun.frame === 'GRN') {
+      if (trigger && cooldown <= 0) fire(1);
+    } else if (triggerEdge && cooldown <= 0) {
+      fire(1);
+    }
+    triggerEdge = false;
+  }
+
+  var P_HIP = { x: 0.17, y: -0.15, z: -0.4, rx: 0, ry: 0 };
+  function updateGunModel(dt) {
+    var narrow = window.innerWidth < 760;
+    equipT += ((equipped && !wallet.on ? 1 : 0) - equipT) * Math.min(1, dt * 12);
+    recoil += (0 - recoil) * Math.min(1, dt * 10);
+    var hip = P_HIP, x = hip.x, y = hip.y + (1 - equipT) * -0.45, z = hip.z, rx = (1 - equipT) * -1.1, ry = 0;
+    if (menuOpen) {
+      x = narrow ? 0 : (250 / (window.innerWidth / 2)) * 0.64 * camera.aspect; y = narrow ? 0.17 : 0.02; z = narrow ? -0.75 : -0.7; rx = 0.05; ry = -1.45;
+    }
+    var ease = Math.min(1, dt * 10);
+    gunRoot.position.x += (x - gunRoot.position.x) * ease;
+    gunRoot.position.y += (y - gunRoot.position.y) * ease;
+    gunRoot.position.z += (z + recoil * 0.05 - gunRoot.position.z) * ease * 2;
+    gunRoot.rotation.x += (rx + recoil * 0.12 - gunRoot.rotation.x) * ease;
+    gunRoot.rotation.y += (ry - gunRoot.rotation.y) * ease;
+    gunRoot.visible = menuOpen || equipT > 0.02;
+
+    flashT -= dt;
+    if (anim.flash) {
+      anim.flash.visible = flashT > 0;
+      if (anim.arcs && flashT > 0) anim.arcs.forEach(function (a) {
+        a.rotation.x = (Math.random() - 0.5) * 1.6; a.rotation.y = (Math.random() - 0.5) * 1.6;
+      });
+    }
+    // Every part cycles when the weapon fires.
+    pumpT = Math.max(0, pumpT - dt * 3);
+    var kick = Math.sin(pumpT * Math.PI);
+    if (anim.hammer) anim.hammer.rotation.x = -0.8 * pumpT;
+    if (anim.pump) anim.pump.position.z = -0.2 + kick * 0.07;
+    if (anim.bolt) anim.bolt.position.z = 0.08 + kick * 0.03;
+    if (anim.limbU) {
+      var pull = bowCharge * 0.3;
+      anim.limbU.rotation.x = -0.45 - pull; anim.limbD.rotation.x = 0.45 + pull;
+      anim.string.scale.z = 0.2 + bowCharge * 0.03;
+      anim.string.position.z = 0.06 + bowCharge * 0.03;
+    }
+    if (anim.drum) anim.drum.rotation.z += ((cycleSpin * Math.PI / 3) - anim.drum.rotation.z) * Math.min(1, dt * 22);
+    if (anim.tubes) anim.tubes.rotation.z += ((cycleSpin * 2.094) - anim.tubes.rotation.z) * Math.min(1, dt * 22);
+    if (anim.strip) anim.strip.position.x = 0.03 - kick * 0.02;
+    if (anim.bars) anim.bars.forEach(function (b, i) { b.scale.x = 0.046 + (Math.sin(performance.now() / 150 + i) + 1) * 0.002 + bowCharge * 0.01; });
+    if (anim.coil) anim.coil.forEach(function (c) { c.scale.setScalar(0.02 + kick * 0.01); c.scale.z = 0.012; });
+
+    cardFlash -= dt;
+    cardLight.color.setHex(cardFlash > 0 ? (flashGreen ? 0x4dff6a : 0xff3b30) : 0x1a1a1a);
+    cardBody.color.setHex(BC[gun.card].light);
+    if (anim.card) anim.card.visible = !wallet.on;
+
+    receipts.forEach(function (r) {
+      if (!r.mesh.visible) return;
+      r.age += dt;
+      var a = r.age;
+      r.mesh.scale.y = Math.min(1, a / 0.1);
+      r.mesh.position.set(-0.03 - a * 0.1, 0.055 + a * 0.05 - a * a * 0.45, -0.065 + a * 0.28);
+      r.mesh.rotation.set(0.4 + a * r.spin, 1.2 + a * r.spin * 0.5, a * r.spin * 0.3);
+      r.mesh.material.opacity = Math.min(1, (0.8 - a) * 4);
+      if (a > 0.8) r.mesh.visible = false;
+    });
+    crossEl.hidden = menuOpen || !hudOn(0.25); // Crosshairs come only from the BLU display at 25% credit.
+    crossEl.style.transform = 'scale(' + (1 + bowCharge * 3) + ')';
+    crossEl.style.background = bowCharge >= 1 ? 'var(--brand)' : '';
+  }
+
+  // ---------- Customization panel ----------
+  var crossEl = document.getElementById('cross');
+  var menuEl = document.getElementById('menu');
+  var partsEl = document.getElementById('parts');
+  var statsEl = document.getElementById('stats');
+  var hudEl = document.getElementById('hud');
+  var gunEl = document.getElementById('gunline');
+  var LABEL = { card: 'Credit cards · Click to equip · Scroll in game to swap', frame: 'Frame', chamber: 'Chamber', barrel: 'Barrel', ammo: 'Ammo' };
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function renderMenu() {
+    var html = '';
+    ['card', 'frame', 'chamber', 'barrel', 'ammo'].forEach(function (type) {
+      var cur = PARTS[type][gun[type]];
+      html += '<section class="part"><h3>' + LABEL[type] + '</h3><div class="opts">';
+      BRANDS.forEach(function (b) {
+        html += '<button type="button" id="pick-' + type + '-' + b + '" class="opt" data-type="' + type + '" data-b="' + b + '" style="--c:' + BC[b].css + '" aria-pressed="' + (type === 'card' ? !!gun.cards[b] : gun[type] === b) + '">' +
+          '<small>' + b + (type === 'card' && gun.card === b ? ' · ACTIVE' : '') + '</small>' + esc(PARTS[type][b].name) + '</button>';
+      });
+      html += '</div><p class="pdesc">' + esc(cur.desc) + '</p>';
+      if (cur.slots) {
+        var slotType = cur.slots;
+        html += '<div class="slots">';
+        for (var i = 0; i < slotType; i++) {
+          var v = (gun.tags[type] || [])[i] || '';
+          html += '<select id="slot-' + type + '-' + i + '" data-type="' + type + '" data-i="' + i + '" aria-label="' + LABEL[type] + ' tag ' + (i + 1) + '"><option value="">Empty</option>';
+          Object.keys(TAGS).forEach(function (t) {
+            html += '<option value="' + t + '"' + (v === t ? ' selected' : '') + '>' + t + ' · ' + TAGS[t].brand + '</option>';
+          });
+          html += '</select>';
+        }
+        html += '</div>';
+      }
+      html += '</section>';
+    });
+    partsEl.innerHTML = html;
+    renderStats();
+  }
+  function renderStats() {
+    var all = gun.tags.ammo.filter(Boolean);
+    var ch = PARTS.chamber[gun.chamber];
+    var perShot = gun.chamber === 'RED' ? gun.tags.chamber.filter(Boolean).length : gun.chamber === 'BLU' ? 0 : (gun.tags.chamber.slice(0, ch.slots).some(Boolean) ? 1 : 0);
+    var barrelTag = PARTS.barrel[gun.barrel].slots && gun.tags.barrel[0] ? 1 : 0;
+    var count = all.length + perShot + barrelTag, cap = capacity();
+    var cfg = FRAME_CFG[gun.frame], barrel = PARTS.barrel[gun.barrel];
+    var names = {};
+    all.concat(gun.tags.chamber.slice(0, ch.slots).filter(Boolean), barrelTag ? [gun.tags.barrel[0]] : []).forEach(function (t) { names[t] = 1; });
+    var list = Object.keys(names).map(function (t) { return '<li><b style="color:' + BC[TAGS[t].brand].css + '">' + t + '</b> ' + esc(TAGS[t].desc) + '</li>'; }).join('');
+    statsEl.innerHTML =
+      '<div><dt>Per pull</dt><dd>$' + (priceOf(loadedTags()) * cfg.count).toFixed(2) + '</dd></div>' +
+      '<div><dt>Projectiles</dt><dd>' + cfg.count * barrel.pellets + '</dd></div>' +
+      '<div><dt>Speed</dt><dd>' + barrel.speed + ' m/s</dd></div>' +
+      '<div><dt>Tags / durability</dt><dd' + (count > cap ? ' class="over"' : '') + '>' + count + ' / ' + cap + '</dd></div>' +
+      (count > cap ? '<p class="warn">Durability only carries ' + cap + ' tags. Later tags will drop off.</p>' : '') +
+      (list ? '<ul class="taglist">' + list + '</ul>' : '');
+  }
+  partsEl.addEventListener('click', function (e) {
+    var b = e.target.closest('.opt');
+    if (!b) return;
+    if (b.dataset.type === 'card') {
+      var cb = b.dataset.b;
+      if (gun.cards[cb] && Object.keys(gun.cards).filter(function (k) { return gun.cards[k]; }).length === 1) { toast('Keep at least one card equipped'); return; }
+      gun.cards[cb] = !gun.cards[cb];
+      if (!gun.cards[gun.card]) swapCard(1);
+      saveGun(); renderMenu();
+      var ag = document.getElementById(b.id);
+      if (ag) ag.focus();
+      return;
+    }
+    gun[b.dataset.type] = b.dataset.b;
+    cycleIdx = 0; burstRounds = 0;
+    saveGun(); buildGun(); renderMenu();
+    var again = document.getElementById(b.id);
+    if (again) again.focus();
+  });
+  partsEl.addEventListener('change', function (e) {
+    var s = e.target;
+    if (s.tagName !== 'SELECT') return;
+    gun.tags[s.dataset.type][+s.dataset.i] = s.value;
+    saveGun(); buildGun(); renderStats();
+  });
+  function saveGun() { try { localStorage.setItem('walkroom-gun', JSON.stringify(gun)); } catch (e) {} }
+
+  function openMenu() {
+    menuOpen = true; keys = {}; trigger = false; triggerEdge = false; burstRounds = 0;
+    renderMenu();
+    if (wallet.on) closeWallet();
+    menuEl.hidden = false; hudEl.hidden = true;
+    if (document.exitPointerLock && locked) document.exitPointerLock();
+  }
+  function closeMenu() {
+    menuOpen = false;
+    menuEl.hidden = true; hudEl.hidden = false;
+    requestLock();
+  }
+  document.getElementById('menu-close').addEventListener('click', closeMenu);
+  document.getElementById('menu-reset').addEventListener('click', function () {
+    gun = JSON.parse(GUN_DEFAULT);
+    BRANDS.forEach(function (b) { money.cards[b] = 0; });
+    money.bank = TEST_BANK; money.savings = TEST_SAVINGS; money.defaulted = false; money.defaultKills = 0;
+    bonus = 0; aprAcc = 0; stepAcc = 0; bluAcc = 0; cds.RED = 0; cds.GRN = 0; dashT = 0;
+    sprintOn = false; bluOn = false; equipped = false; muted = false;
+    bowCharge = 0; cooldown = 0; cycleIdx = 0; burstRounds = 0;
+    dummies.forEach(function (d) { d.dead = false; d.solid.dead = false; d.hp = d.max; d.group.visible = true; });
+    projectiles.forEach(function (p) { scene.remove(p.mesh); }); projectiles.length = 0;
+    decals.forEach(function (d) { scene.remove(d); }); decals.length = 0;
+    player.x = -1; player.y = 0; player.z = 4.5; player.vx = 0; player.vy = 0; player.vz = 0; player.yaw = 0.25; player.pitch = 0;
+    setBrand('RED');
+    saveGun(); buildGun(); renderMenu();
+    toast('Everything reset to default');
+  });
+  document.getElementById('mtest').addEventListener('click', function (e) {
+    var m = e.target.dataset.m;
+    if (m === 'half') money.cards[gun.card] = 125;
+    if (m === 'max') money.cards[gun.card] = LIMIT;
+    if (m === 'bank') money.bank = 0;
+    if (m === 'reset') { BRANDS.forEach(function (b) { money.cards[b] = 0; }); money.bank = TEST_BANK; money.savings = TEST_SAVINGS; money.defaulted = false; money.defaultKills = 0; aprAcc = 0; bonus = 0; }
+  });
+
+  var gunLast = 0;
+  function gunHud(now) {
+    if (now - gunLast < 100) return;
+    gunLast = now;
+    gunEl.textContent = wallet.on ? 'WALLET · Left and right click play · R exits'
+      : equipped ? PARTS.frame[gun.frame].name + ' · $' + (priceOf(loadedTags()) * FRAME_CFG[gun.frame].count).toFixed(2) + ' per pull · R to repay'
+      : 'Holstered · Right click to equip · R to repay';
+    var b = gun.card, u = used(), fmt = function (n) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    root.style.setProperty('--card', BC[b].css);
+    document.getElementById('mcard').textContent = b + ' CARD';
+    document.getElementById('mcard').style.color = BC[b].css;
+    document.getElementById('mfill').style.background = BC[b].css;
+    document.getElementById('money').style.borderColor = BC[b].css;
+    document.getElementById('mpower').textContent = b === 'BLU' ? (Math.round(u * 100) + '% used') : 'Power ' + Math.round(power() * 100) + '%';
+    document.getElementById('mfill').style.width = Math.min(100, u * 100) + '%';
+    document.getElementById('mbal').textContent = fmt(balance()) + ' / $' + LIMIT;
+    document.getElementById('mbank').textContent = fmt(money.bank);
+    document.getElementById('msav').textContent = fmt(money.savings);
+    document.getElementById('bonus').textContent = 'Performance bonus ' + fmt(bonus);
+    document.getElementById('mcards').innerHTML = BRANDS.map(function (k) {
+      return '<span class="mc' + (k === b ? ' on' : '') + (gun.cards[k] ? '' : ' off') + '" style="--c:' + BC[k].css + '">' + k + '<br>$' + Math.round(money.cards[k]) + '</span>';
+    }).join('');
+    var ab = wallet.on ? 'Card in WALLET' :
+      b === 'GLD' ? 'Sprint ' + (sprintOn ? 'ON' : 'OFF') + ' · Shift' :
+      b === 'RED' ? 'Dash ' + (cds.RED > 0 ? cds.RED.toFixed(1) + ' s' : 'ready') + ' · Shift' :
+      b === 'GRN' ? 'Jump boost ' + (cds.GRN > 0 ? cds.GRN.toFixed(1) + ' s' : 'ready') + ' · Space' :
+      'Display ' + (bluOn ? 'ON' : 'OFF') + ' · Q';
+    document.getElementById('mability').textContent = ab;
+    document.getElementById('mstatus').textContent = money.defaulted ? 'DEFAULT · ' + money.defaultKills + ' / ' + DEFAULT_KILLS + ' kills'
+      : (money.bank <= 0 ? 'OVERDRAFT · +50% fee' : balance() >= LIMIT ? 'AT LIMIT · Billing BANK' : '');
+  }
+  function toggleEquip() {
+    if (!active || menuOpen) return;
+    equipped = !equipped;
+    bowCharge = 0; trigger = false;
+    if (!equipped) burstRounds = 0;
+  }
+
+  // ---------- SOUND: synthesized with Web Audio, no audio files ----------
+  var ac = null, master = null, noiseBuf = null, muted = false, hum = null, humGain = null, lastHitS = 0, lastFailS = 0, bowReady = false;
+  function audioInit() {
+    try {
+      if (!ac) {
+        var C = window.AudioContext || window.webkitAudioContext;
+        if (!C) return;
+        ac = new C();
+        var comp = ac.createDynamicsCompressor();
+        master = ac.createGain(); master.gain.value = 0.6;
+        master.connect(comp); comp.connect(ac.destination);
+        noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+        var ch = noiseBuf.getChannelData(0);
+        for (var i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
+        hum = ac.createOscillator(); hum.type = 'sawtooth';
+        humGain = ac.createGain(); humGain.gain.value = 0;
+        hum.connect(humGain); humGain.connect(master); hum.start();
+      }
+      if (ac.state === 'suspended') ac.resume();
+    } catch (e) { ac = null; }
+  }
+  function tone(type, f0, f1, dur, vol, delay) {
+    if (!ac || muted) return;
+    var t = ac.currentTime + (delay || 0), o = ac.createOscillator(), g = ac.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function noise(dur, vol, freq, kind, delay) {
+    if (!ac || muted) return;
+    var t = ac.currentTime + (delay || 0), s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = noiseBuf; s.loop = true;
+    f.type = kind || 'lowpass'; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(master);
+    s.start(t, Math.random() * 0.8); s.stop(t + dur + 0.02);
+  }
+  function brandNote(b, f, v, delay) { // GLD bell, RED brass, BLU synth chirp, GRN marimba.
+    if (b === 'GLD') { tone('sine', f, f, 0.5, v, delay); tone('sine', f * 2.76, f * 2.76, 0.25, v * 0.35, delay); }
+    else if (b === 'RED') { tone('sawtooth', f * 0.75, f * 0.75, 0.12, v * 0.8, delay); tone('square', f * 1.5, f * 1.5, 0.08, v * 0.25, delay); }
+    else if (b === 'BLU') { tone('square', f * 1.5, f * 2.6, 0.07, v * 0.5, delay); }
+    else { tone('sine', f, f, 0.16, v, delay); tone('triangle', f * 4, f * 4, 0.04, v * 0.35, delay); }
+  }
+  function sfxFire() {
+    var fr = gun.frame;
+    if (fr === 'GLD') { noise(0.11, 0.6, 3200); tone('square', 420, 110, 0.08, 0.3); tone('sine', 1400, 1400, 0.16, 0.05, 0.015); }
+    else if (fr === 'RED') {
+      noise(0.26, 0.95, 1300); tone('sawtooth', 150, 42, 0.26, 0.6);
+      noise(0.05, 0.3, 2400, 'bandpass', 0.3); noise(0.06, 0.35, 1500, 'bandpass', 0.42);
+    }
+    else if (fr === 'GRN') { noise(0.05, 0.4, 2300); tone('square', 230, 85, 0.05, 0.28); }
+    else { noise(0.1, 0.28, 3800, 'highpass'); tone('sawtooth', 1500, 100, 0.26, 0.38); tone('square', 900, 2400, 0.1, 0.1); }
+    if (gun.barrel === 'BLU') tone('sawtooth', 2600, 300, 0.13, 0.13);
+    else if (gun.barrel === 'RED') noise(0.09, 0.3, 700);
+    else if (gun.barrel === 'GRN') tone('sine', 120, 60, 0.12, 0.28);
+    else noise(0.03, 0.14, 6000, 'highpass');
+    brandNote(gun.ammo, 880, 0.035);
+  }
+  function sfxHit(brand, killed) {
+    if (!ac || ac.currentTime - lastHitS < 0.025) return;
+    lastHitS = ac.currentTime;
+    noise(0.05, 0.3, 1000, 'bandpass');
+    brandNote(brand, 660, 0.14);
+    if (killed) {
+      noise(0.32, 0.55, 750); tone('sawtooth', 240, 45, 0.32, 0.3);
+      brandNote(brand, 440, 0.16, 0.07); brandNote(brand, 330, 0.16, 0.16);
+    }
+  }
+  function sfxFailed() { // Declined card terminal: two flat low buzzes.
+    if (!ac || ac.currentTime - lastFailS < 0.28) return;
+    lastFailS = ac.currentTime;
+    [0, 0.13].forEach(function (d) {
+      tone('square', 196, 196, 0.1, 0.24, d);
+      tone('square', 208, 208, 0.1, 0.2, d);
+    });
+  }
+  function blip(f0, f1, dur, vol, delay) { tone('square', f0, f1, dur, (vol || 0.1), delay); } // Handheld square-wave voice.
+  function sfxPay() { brandNote(wallet.brand, 660, 0.07); blip(988, 988, 0.06, 0.1); blip(1319, 1319, 0.14, 0.1, 0.06); }
+  function sfxFee() { blip(240, 80, 0.26, 0.15); noise(0.1, 0.1, 700); }
+  function sfxPaidOff() { [523, 659, 784, 1047].forEach(function (f, i) { blip(f, f, 0.14, 0.11, i * 0.09); }); }
+  function sfxJam() { noise(0.04, 0.3, 1800, 'bandpass'); tone('square', 110, 70, 0.07, 0.2, 0.03); }
+  function updateBowSound() {
+    if (!hum) return;
+    var on = bowCharge > 0 && !muted;
+    hum.frequency.setTargetAtTime(90 + 620 * bowCharge, ac.currentTime, 0.02);
+    humGain.gain.setTargetAtTime(on ? 0.035 + bowCharge * 0.04 : 0, ac.currentTime, 0.02);
+    if (bowCharge >= 1 && !bowReady) { bowReady = true; tone('sine', 1760, 1760, 0.18, 0.12); }
+    if (bowCharge < 1) bowReady = false;
+  }
+
+  // ---------- CREDIT CARDS: InDebtEd Credit Card Spec ----------
+  var LIMIT = 250, APR_RATE = 0.05, APR_EVERY = 30, OVERDRAFT = 1.5, DEFAULT_KILLS = 5;
+  var BASE_CD = { RED: 2, GRN: 1.5 }, CD_MIN = 0.5, CD_MAX = 6; // Placeholders. Fixed Worth means these stay at base for now.
+  var STEP_DIST = 2.5, BLU_EVERY = 5, TEST_BANK = 1000, TEST_SAVINGS = 500;
+  var money = { cards: { GLD: 0, RED: 0, BLU: 0, GRN: 0 }, bank: TEST_BANK, savings: TEST_SAVINGS, defaulted: false, defaultKills: 0 };
+  var sprintOn = false, bluOn = false, stepAcc = 0, bluAcc = 0, aprAcc = 0, cds = { RED: 0, GRN: 0 }, bonus = 0, BONUS_HIT = 1, lastSwap = 0;
+  var dashT = 0, dashVX = 0, dashVZ = 0, dashHit = [];
+  var flashGreen = true;
+
+  function balance() { return money.cards[gun.card]; }
+  function used() { return balance() / LIMIT; }
+  function power() { var s = Math.floor(used() / 0.25 + 1e-9) * 0.5; return s > 0 ? s : 0.25; } // 25% is the underpowered floor placeholder.
+  function abilityCharge(b) { return WORTH[b] * 10; }
+  function cardReady() { return !wallet.on; }
+
+  function addReceipt(label, amt) {
+    var li = document.createElement('li');
+    li.textContent = label + ' ' + (amt < 0 ? '-$' + (-amt).toFixed(2) : '$' + amt.toFixed(2));
+    receiptEl.appendChild(li);
+    while (receiptEl.children.length > 20) receiptEl.removeChild(receiptEl.firstChild);
+    setTimeout(function () { if (li.parentNode) li.parentNode.removeChild(li); }, 1250);
+  }
+  function billBank(amt) { // Returns false when nothing could pay, which is Default.
+    var fromBank = Math.min(money.bank, amt);
+    money.bank -= fromBank;
+    var rest = amt - fromBank;
+    if (rest <= 1e-6) return true;
+    var withFee = rest * OVERDRAFT;
+    if (money.savings >= withFee) { money.savings -= withFee; return true; }
+    money.savings = 0;
+    if (!money.defaulted) { money.defaulted = true; money.defaultKills = 0; toast('DEFAULT // Double damage dealt and taken'); }
+    return false;
+  }
+  function charge(amt, label) { // Card under its limit, then BANK, then Savings with overdraft, then Default.
+    var room = Math.max(0, LIMIT - balance());
+    var onCard = Math.min(room, amt);
+    money.cards[gun.card] += onCard;
+    var rest = amt - onCard;
+    var paid = rest <= 1e-6 ? true : billBank(rest);
+    flashGreen = rest <= 1e-6;
+    if (!flashGreen) sfxFailed();
+    cardFlash = 0.14;
+    addReceipt(label, amt);
+    return paid;
+  }
+
+  function moneyTick(dt) {
+    cds.RED = Math.max(0, cds.RED - dt); cds.GRN = Math.max(0, cds.GRN - dt);
+    aprAcc += dt;
+    if (aprAcc >= APR_EVERY) {
+      aprAcc -= APR_EVERY;
+      var total = 0;
+      BRANDS.forEach(function (b) { total += money.cards[b]; });
+      if (total > 0) { billBank(total * APR_RATE); addReceipt('INTEREST', total * APR_RATE); }
+    }
+    if (gun.card === 'BLU' && bluOn && cardReady()) {
+      bluAcc += dt;
+      if (bluAcc >= BLU_EVERY) { bluAcc -= BLU_EVERY; charge(abilityCharge('BLU'), 'BLU DISPLAY'); }
+    }
+  }
+  function cooldownFor(b) {
+    return Math.max(CD_MIN, Math.min(CD_MAX, BASE_CD[b] * (WORTH[b] / WORTH[b])));
+  }
+  function moveBoostSpeed() { // GLD sprint: 100% power is 7.5 m/s.
+    return gun.card === 'GLD' && sprintOn && cardReady() ? WALK + 3 * power() : WALK;
+  }
+  function onSprintDistance(dist) {
+    if (!(gun.card === 'GLD' && sprintOn && cardReady())) return;
+    stepAcc += dist;
+    while (stepAcc >= STEP_DIST) { stepAcc -= STEP_DIST; charge(abilityCharge('GLD'), 'GLD STEP'); }
+  }
+  function tryDash(fwd, right) {
+    if (gun.card !== 'RED' || !cardReady() || cds.RED > 0 || dashT > 0) return;
+    var f = fwd, r = right;
+    if (!f && !r) f = 1;
+    var len = Math.hypot(f, r); f /= len; r /= len;
+    var sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
+    var dist = 6 * power(), T = 0.18;
+    dashVX = (-sin * f + cos * r) * dist / T;
+    dashVZ = (-cos * f - sin * r) * dist / T;
+    dashT = T; dashHit = [];
+    cds.RED = cooldownFor('RED');
+    charge(abilityCharge('RED'), 'RED DASH');
+  }
+  function updateDash(dt) {
+    if (dashT <= 0) return;
+    dashT -= dt;
+    player.vx = dashVX; player.vz = dashVZ;
+    dummies.forEach(function (d) {
+      if (d.dead || dashHit.indexOf(d) >= 0) return;
+      if (Math.hypot(d.x - player.x, d.z - player.z) < 1.2) {
+        dashHit.push(d);
+        hitDummy(d, 40 * power() * (money.defaulted ? 2 : 1), new THREE.Vector3(d.x, 1.2, d.z));
+      }
+    });
+    if (dashT <= 0) { player.vx *= 0.2; player.vz *= 0.2; }
+  }
+  function jumpVelocity() { // GRN: 100% power is about 2x the normal jump height.
+    if (gun.card === 'GRN' && cardReady() && cds.GRN <= 0) {
+      cds.GRN = cooldownFor('GRN');
+      charge(abilityCharge('GRN'), 'GRN JUMP');
+      return JUMP * (1 + 0.4 * power());
+    }
+    return JUMP;
+  }
+  function swapCard(step) {
+    var i = BRANDS.indexOf(gun.card);
+    for (var n = 0; n < 4; n++) {
+      i = (i + step + 4) % 4;
+      if (gun.cards[BRANDS[i]]) { gun.card = BRANDS[i]; dashT = 0; return true; }
+    }
+    return false;
+  }
+  window.addEventListener('wheel', function (e) {
+    if (!active || menuOpen) return;
+    e.preventDefault();
+    var now = performance.now();
+    if (!e.deltaY || now - lastSwap < 120) return;
+    if (wallet.on) { toast('Card is in the WALLET'); return; }
+    lastSwap = now;
+    var before = gun.card;
+    swapCard(e.deltaY > 0 ? 1 : -1);
+    if (gun.card !== before) { toast(gun.card + ' CARD · ' + PARTS.card[gun.card].name); saveGun(); }
+  }, { passive: false });
+  function hudOn(level) { return gun.card === 'BLU' && bluOn && cardReady() && used() >= level - 1e-9; }
+  function abilityKey(code) {
+    if (code === 'KeyQ' && gun.card === 'BLU' && cardReady()) {
+      bluOn = !bluOn; bluAcc = 0;
+      toast(bluOn ? 'BLU DISPLAY ON' : 'BLU DISPLAY OFF');
+    }
+    if ((code === 'ShiftLeft' || code === 'ShiftRight') && cardReady()) {
+      if (gun.card === 'GLD') { sprintOn = !sprintOn; stepAcc = 0; toast(sprintOn ? 'SPRINT ON' : 'SPRINT OFF'); }
+      if (gun.card === 'RED') {
+        tryDash((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0));
+      }
+    }
+  }
+
+  // ---------- Target dummies ----------
+  var dummies = [], dmgLayer = document.getElementById('dmg'), dmgNums = [];
+  var edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.72, 1.82, 0.52));
+  var barBg = new THREE.MeshBasicMaterial({ color: 0x0b0a0c, depthTest: false, transparent: true });
+  var barFg = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, transparent: true });
+  var planeGeo = new THREE.PlaneGeometry(1, 1);
+  [['GLD', -3, -5], ['RED', 3, -5.6], ['BLU', 8, 0], ['GRN', -8, 4.5]].forEach(function (s) {
+    var g = new THREE.Group();
+    g.position.set(s[1], 0, s[2]);
+    var mats = worldDummyMats(s[0]);
+    var body = new THREE.Mesh(unitBox, mats.body); body.scale.set(0.7, 1.3, 0.5); body.position.y = 0.65; body.castShadow = true;
+    var head = new THREE.Mesh(unitBox, mats.head); head.scale.set(0.4, 0.4, 0.4); head.position.y = 1.55; head.castShadow = true;
+    g.add(body, head);
+    var bar = new THREE.Group(); bar.position.y = 2.05;
+    var bg = new THREE.Mesh(planeGeo, barBg); bg.scale.set(0.84, 0.12, 1); bg.renderOrder = 6;
+    var fg = new THREE.Mesh(planeGeo, barFg); fg.scale.set(0.8, 0.08, 1); fg.renderOrder = 7;
+    bar.add(bg, fg); g.add(bar);
+    var outline = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: BC[s[0]].light, depthTest: false, transparent: true }));
+    outline.position.y = 0.91; outline.renderOrder = 5;
+    g.add(outline);
+    scene.add(g);
+    var solid = { minX: s[1] - 0.35, maxX: s[1] + 0.35, minZ: s[2] - 0.25, maxZ: s[2] + 0.25, minY: 0, maxY: 1.8 };
+    var d = { brand: s[0], x: s[1], z: s[2], hp: 100, max: 100, group: g, bar: bar, fg: fg, outline: outline, solid: solid, dead: false, respawn: 0, mats: mats, hitT: 0 };
+    solid.dummy = d;
+    solids.push(solid);
+    dummies.push(d);
+  });
+  function worldDummyMats(b) {
+    return {
+      body: new THREE.MeshStandardMaterial({ color: BC[b].main, roughness: 0.7 }),
+      head: new THREE.MeshStandardMaterial({ color: BC[b].light, roughness: 0.6 })
+    };
+  }
+  function hitDummy(d, amount, point, noBonus) {
+    if (d.dead) return;
+    d.hp -= amount; d.hitT = 0.08;
+    if (!noBonus) bonus += BONUS_HIT;
+    if (hudOn(0.25)) addDmgNumber(amount, point);
+    sfxHit(d.brand, d.hp <= 0);
+    if (d.hp <= 0) {
+      d.dead = true; d.solid.dead = true; d.respawn = 4; d.group.visible = false;
+      if (money.defaulted && ++money.defaultKills >= DEFAULT_KILLS) { money.defaulted = false; toast('DEFAULT CLEARED'); }
+    }
+  }
+  function addDmgNumber(amount, point) {
+    var el = document.createElement('span');
+    el.textContent = Math.round(amount);
+    dmgLayer.appendChild(el);
+    dmgNums.push({ el: el, pos: point.clone(), age: 0 });
+  }
+  function aoe(point, radius, amount, noBonus) {
+    dummies.forEach(function (d) {
+      if (d.dead) return;
+      if (Math.hypot(d.x - point.x, d.z - point.z, 0.9 - point.y) <= radius + 0.4) hitDummy(d, amount, new THREE.Vector3(d.x, 1.4, d.z), noBonus);
+    });
+  }
+  var projV = new THREE.Vector3();
+  function updateDummies(dt) {
+    dummies.forEach(function (d) {
+      if (d.dead) {
+        d.respawn -= dt;
+        if (d.respawn <= 0 && Math.hypot(player.x - d.x, player.z - d.z) > 1) { d.dead = false; d.solid.dead = false; d.hp = d.max; d.group.visible = true; }
+        return;
+      }
+      d.hitT -= dt;
+      d.mats.body.emissive.setHex(d.hitT > 0 ? 0xffffff : 0x000000);
+      d.bar.visible = hudOn(0.5);
+      d.bar.quaternion.copy(camera.quaternion);
+      var k = Math.max(0, d.hp / d.max);
+      d.fg.scale.x = 0.8 * k; d.fg.position.x = -0.4 * (1 - k);
+      d.outline.visible = hudOn(0.75);
+    });
+    for (var i = dmgNums.length - 1; i >= 0; i--) {
+      var n = dmgNums[i];
+      n.age += dt;
+      if (n.age > 0.7) { dmgLayer.removeChild(n.el); dmgNums.splice(i, 1); continue; }
+      projV.copy(n.pos); projV.y += n.age * 0.8; projV.project(camera);
+      if (projV.z > 1) { n.el.style.opacity = 0; continue; }
+      n.el.style.opacity = 1 - n.age / 0.7;
+      n.el.style.transform = 'translate(' + ((projV.x + 1) / 2 * window.innerWidth) + 'px,' + ((1 - projV.y) / 2 * window.innerHeight) + 'px)';
+    }
+  }
+  function drawMap() {
+    var on = hudOn(1) && !menuOpen;
+    mapEl.hidden = !on;
+    if (!on) return;
+    var c = mapEl.getContext('2d'), sx = 180 / (W + 2), sz = 130 / (D + 2);
+    function px(x) { return (x + W / 2 + 1) * sx; } function pz(z) { return (z + D / 2 + 1) * sz; }
+    c.fillStyle = '#081829'; c.fillRect(0, 0, 180, 130);
+    c.fillStyle = '#193657'; c.fillRect(px(-W / 2), pz(-D / 2), W * sx, D * sz);
+    c.fillStyle = '#377ac4';
+    solids.forEach(function (s) {
+      if (s.dummy || s.minY >= H || s.maxY <= 0 || s.maxX - s.minX > W || s.maxZ - s.minZ > D - 1) return;
+      c.fillRect(px(s.minX), pz(s.minZ), (s.maxX - s.minX) * sx, (s.maxZ - s.minZ) * sz);
+    });
+    dummies.forEach(function (d) { if (d.dead) return; c.fillStyle = BC[d.brand].css; c.fillRect(px(d.x) - 3, pz(d.z) - 3, 6, 6); });
+    c.save(); c.translate(px(player.x), pz(player.z)); c.rotate(-player.yaw);
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(0, -7); c.lineTo(4.5, 5); c.lineTo(-4.5, 5); c.fill(); c.restore();
+  }
+
+  // ---------- WALLET console: a chunky handheld the card jams into ----------
+  var SHADES = {
+    GLD: ['#201923', '#896070', '#e6d09e', '#fff9e0'],
+    RED: ['#270f0d', '#741408', '#f74f45', '#ffe8e8'],
+    BLU: ['#081829', '#193657', '#377ac4', '#a1c7f4'],
+    GRN: ['#18251b', '#1d5527', '#59b568', '#94ffa6']
+  };
+  var TITLES = { GLD: 'ASCENSION RUN', RED: 'SHIFT CROSSING', GRN: 'FULFILLMENT', BLU: 'SIGNAL DEFENSE' };
+  var HELP = { GLD: 'LMB JUMP', RED: 'LMB UP RMB BACK', GRN: 'LMB TURN RMB DROP', BLU: 'LMB FIRE RMB TURN' };
+  var PAY = 50, FEE = 2.5;
+  var wc = document.createElement('canvas'); wc.width = 320; wc.height = 288;
+  var wx = wc.getContext('2d');
+  var wtex = new THREE.CanvasTexture(wc);
+  var walletRoot = new THREE.Group();
+  camera.add(walletRoot);
+  walletRoot.visible = false;
+  var shellMat = new THREE.MeshStandardMaterial({ color: 0xb8b3a5, roughness: 0.8 });
+  var shellDark = new THREE.MeshStandardMaterial({ color: 0x35333a, roughness: 0.7 });
+  var btnMat = new THREE.MeshStandardMaterial({ color: 0x8c2348, roughness: 0.5 });
+  bx(walletRoot, shellMat, 0.27, 0.38, 0.05, 0, 0, 0);
+  bx(walletRoot, shellDark, 0.235, 0.2, 0.004, 0, 0.075, 0.026);
+  var wscreen = new THREE.Mesh(new THREE.PlaneGeometry(0.205, 0.1845), new THREE.MeshBasicMaterial({ map: wtex }));
+  wscreen.position.set(0, 0.075, 0.029);
+  walletRoot.add(wscreen);
+  bx(walletRoot, shellDark, 0.066, 0.02, 0.012, -0.07, -0.095, 0.03);
+  bx(walletRoot, shellDark, 0.02, 0.066, 0.012, -0.07, -0.095, 0.03);
+  bx(walletRoot, btnMat, 0.03, 0.03, 0.012, 0.09, -0.08, 0.03);
+  bx(walletRoot, btnMat, 0.03, 0.03, 0.012, 0.045, -0.105, 0.03);
+  var walletCard = bx(walletRoot, cardBody, 0.11, 0.07, 0.006, 0, 0.19, 0);
+
+  var wallet = { on: false, t: 0, game: null, brand: 'GLD', flash: 0, msg: '', msgT: 0 };
+  function diff() { return 1 + Math.min(1, used()); } // Larger balance, harder game.
+  function closeWallet(msg) {
+    sfxJam();
+    wallet.on = false; wallet.game = null;
+    if (msg) toast(msg);
+  }
+  function wPay(amt, label) {
+    amt = Math.min(amt, balance());
+    if (money.bank <= 0 && money.savings <= 0) { wMsg('NO FUNDS'); sfxFailed(); return; }
+    billBank(amt);
+    money.cards[wallet.brand] = Math.max(0, money.cards[wallet.brand] - amt);
+    addReceipt(label || 'PAYMENT', -amt);
+    wMsg('PAID $' + amt.toFixed(2));
+    sfxPay();
+    if (balance() <= 0.005) { money.cards[wallet.brand] = 0; sfxPaidOff(); closeWallet('CARD PAID OFF'); }
+  }
+  function wFee(amt, label) {
+    money.cards[wallet.brand] += amt;
+    if (money.cards[wallet.brand] > LIMIT) { billBank(money.cards[wallet.brand] - LIMIT); money.cards[wallet.brand] = LIMIT; }
+    addReceipt(label || 'FEE', amt);
+    wallet.flash = 0.2; wMsg('FEE $' + amt.toFixed(2));
+    sfxFee();
+  }
+  function wMsg(s) { wallet.msg = s; wallet.msgT = 0.8; }
+  function openWallet() {
+    if (!active || menuOpen || wallet.on) return;
+    if (balance() <= 0) { toast(gun.card + ' card has nothing to repay'); return; }
+    sfxJam();
+    wallet.on = true; wallet.brand = gun.card;
+    wallet.game = GAMES[gun.card]();
+    trigger = false; bowCharge = 0;
+    dashT = 0;
+  }
+
+  function rect(c, x, y, w, h) { wx.fillStyle = c; wx.fillRect(x, y, w, h); }
+  var GAMES = {
+    RED: function () {
+      var rows = 7, rowH = 15, y0 = 128, lanes = [], row = 0, best = 0;
+      for (var l = 1; l < rows; l++) {
+        var n = 2 + (l % 2), cars = [];
+        for (var i = 0; i < n; i++) cars.push(i * (190 / n) + l * 13);
+        lanes.push({ dir: l % 2 ? 1 : -1, sp: 20 + l * 5, w: 20 + (l % 3) * 5, cars: cars });
+      }
+      function yOf(r) { return y0 - r * rowH; }
+      return {
+        a: function () {
+          blip(440, 660, 0.05);
+          row++;
+          if (row >= rows) { wPay(PAY * 2, 'CONTRACT SIGNED'); row = 0; best = 0; return; }
+          if (row > best) { best = row; wPay(PAY, 'LANE'); }
+        },
+        b: function () { blip(440, 300, 0.05); row = Math.max(0, row - 1); },
+        update: function (dt) {
+          lanes.forEach(function (l, i) {
+            for (var c = 0; c < l.cars.length; c++) {
+              l.cars[c] += l.dir * l.sp * diff() * dt;
+              if (l.cars[c] > 190) l.cars[c] -= 220;
+              if (l.cars[c] < -30) l.cars[c] += 220;
+              if (row === i + 1 && l.cars[c] < 84 && l.cars[c] + l.w > 76) { wFee(FEE, 'WORKPLACE INCIDENT'); row = 0; best = 0; }
+            }
+          });
+        },
+        draw: function (s) {
+          rect(s[1], 0, yOf(0) - 1, 160, rowH); rect(s[1], 0, yOf(rows - 1) - rowH - 1, 160, rowH);
+          lanes.forEach(function (l, i) {
+            var y = yOf(i + 1);
+            rect(s[1], 0, y + 13, 160, 1);
+            l.cars.forEach(function (c) { rect(s[2], c, y + 2, l.w, 10); rect(s[3], l.dir > 0 ? c + l.w - 4 : c, y + 4, 4, 6); });
+          });
+          var py = row >= rows ? yOf(rows - 1) : yOf(row);
+          rect(s[3], 76, py + 3, 8, 9); rect(s[0], 78, py + 5, 4, 2);
+        }
+      };
+    },
+    GLD: function () {
+      var gy = 126, py = 0, vy = 0, hold = false, obs = [], next = 1, slow = 0;
+      return {
+        a: function () { hold = true; if (py === 0) { vy = 118; blip(300, 780, 0.12); } },
+        aUp: function () { hold = false; },
+        b: function () {},
+        update: function (dt) {
+          var sp = 58 * diff() * (slow > 0 ? 0.5 : 1);
+          slow -= dt;
+          vy -= (hold && vy > 0 ? 180 : 420) * dt;
+          py = Math.max(0, py + vy * dt);
+          if (py === 0) vy = 0;
+          next -= dt;
+          if (next <= 0) { var h = 8 + Math.random() * 10; obs.push({ x: 165, w: 8 + Math.random() * 8, h: h, hit: false, done: false }); next = (0.9 + Math.random() * 0.8) / diff() * 1.3; }
+          for (var i = obs.length - 1; i >= 0; i--) {
+            var o = obs[i];
+            o.x -= sp * dt;
+            if (!o.hit && o.x < 36 && o.x + o.w > 28 && py < o.h) { o.hit = true; slow = 0.8; wFee(FEE, 'STUMBLE IN FAITH'); }
+            if (!o.done && !o.hit && o.x + o.w < 28) { o.done = true; wPay(PAY, 'JUMP'); }
+            if (o.x < -20) obs.splice(i, 1);
+          }
+        },
+        draw: function (s) {
+          rect(s[1], 0, gy, 160, 18);
+          for (var k = 0; k < 8; k++) { rect(s[2], (k * 26 - (performance.now() / 12) % 26), gy + 3, 12, 2); }
+          obs.forEach(function (o) { rect(o.hit ? s[1] : s[2], o.x, gy - o.h, o.w, o.h); });
+          rect(s[3], 28, gy - 10 - py, 8, 10); rect(s[0], 33, gy - 8 - py, 2, 2);
+        }
+      };
+    },
+    GRN: function () {
+      var cols = 10, rows = 18, cs = 6, ox = 50, oy = 26, grid = [], piece, px, py, dir = 1, sweepT = 0, fallT = 0;
+      var SH = [[[1, 1, 1, 1]], [[1, 1], [1, 1]], [[0, 1, 0], [1, 1, 1]], [[1, 0, 0], [1, 1, 1]], [[0, 0, 1], [1, 1, 1]], [[0, 1, 1], [1, 1, 0]], [[1, 1, 0], [0, 1, 1]]];
+      function clearAll() { grid = []; for (var r = 0; r < rows; r++) { var a = []; for (var c = 0; c < cols; c++) a.push(0); grid.push(a); } }
+      function fits(m, x, y) {
+        for (var r = 0; r < m.length; r++) for (var c = 0; c < m[0].length; c++) {
+          if (!m[r][c]) continue;
+          if (x + c < 0 || x + c >= cols || y + r >= rows) return false;
+          if (y + r >= 0 && grid[y + r][x + c]) return false;
+        }
+        return true;
+      }
+      function holes() {
+        var n = 0;
+        for (var c = 0; c < cols; c++) { var seen = false; for (var r = 0; r < rows; r++) { if (grid[r][c]) seen = true; else if (seen) n++; } }
+        return n;
+      }
+      function spawn() {
+        piece = SH[Math.floor(Math.random() * 7)];
+        px = 3; py = 0; dir = Math.random() < 0.5 ? 1 : -1;
+        if (!fits(piece, px, py)) { wFee(FEE * 3, 'TOPPED OUT'); clearAll(); }
+      }
+      function lock() {
+        var before = holes();
+        for (var r = 0; r < piece.length; r++) for (var c = 0; c < piece[0].length; c++) if (piece[r][c] && py + r >= 0) grid[py + r][px + c] = 1;
+        var cleared = 0;
+        for (var i = rows - 1; i >= 0; i--) {
+          if (grid[i].every(Boolean)) { grid.splice(i, 1); var e = []; for (var k = 0; k < cols; k++) e.push(0); grid.unshift(e); cleared++; i++; }
+        }
+        if (cleared) wPay(PAY * cleared * (cleared > 1 ? 1.5 : 1), 'ROW SHIPPED');
+        else if (holes() > before) wFee(FEE, 'PACKAGING WASTE');
+        if (wallet.on) spawn();
+      }
+      clearAll(); spawn();
+      return {
+        a: function () {
+          blip(620, 620, 0.03, 0.07);
+          var m = [];
+          for (var c = 0; c < piece[0].length; c++) { var row = []; for (var r = piece.length - 1; r >= 0; r--) row.push(piece[r][c]); m.push(row); }
+          if (fits(m, px, py)) piece = m;
+        },
+        b: function () { while (fits(piece, px, py + 1)) py++; blip(200, 90, 0.07); lock(); },
+        update: function (dt) {
+          sweepT += dt; fallT += dt;
+          if (sweepT > 0.3 / diff()) {
+            sweepT = 0;
+            if (fits(piece, px + dir, py)) px += dir; else { dir = -dir; if (fits(piece, px + dir, py)) px += dir; }
+          }
+          if (fallT > 0.8 / diff()) {
+            fallT = 0;
+            if (fits(piece, px, py + 1)) py++; else { blip(160, 110, 0.04, 0.07); lock(); }
+          }
+        },
+        draw: function (s) {
+          rect(s[1], ox - 2, oy - 1, cols * cs + 4, rows * cs + 3); rect(s[0], ox, oy, cols * cs, rows * cs);
+          for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) if (grid[r][c]) { rect(s[2], ox + c * cs, oy + r * cs, cs - 1, cs - 1); }
+          for (r = 0; r < piece.length; r++) for (c = 0; c < piece[0].length; c++) if (piece[r][c]) { rect(s[3], ox + (px + c) * cs, oy + (py + r) * cs, cs - 1, cs - 1); }
+        }
+      };
+    },
+    BLU: function () {
+      var ship = 80, dir = 1, shots = [], bombs = [], en = [], cd = 0, inv = 0, sway = 0, diveT = 2, bombT = 1.5;
+      function wave() { en = []; for (var r = 0; r < 3; r++) for (var c = 0; c < 6; c++) en.push({ hx: 24 + c * 20, hy: 30 + r * 12, x: 0, y: 0, dive: false, t: 0, h: 4 + (c * 3 + r) % 4 }); }
+      wave();
+      return {
+        a: function () { if (cd <= 0 && shots.length < 3) { shots.push({ x: ship, y: 124 }); cd = 0.2; blip(1100, 300, 0.09, 0.08); } },
+        b: function () { dir = -dir; blip(500, 500, 0.03, 0.06); },
+        update: function (dt) {
+          ship += dir * 62 * dt;
+          if (ship < 8) { ship = 8; dir = 1; } if (ship > 152) { ship = 152; dir = -1; }
+          cd -= dt; inv -= dt; sway += dt; diveT -= dt; bombT -= dt;
+          en.forEach(function (e) {
+            if (e.dive) {
+              e.t += dt; e.y += (34 + 16 * diff()) * dt; e.x = e.dx + Math.sin(e.t * 3) * 22;
+              if (e.y > 146) { e.dive = false; }
+            } else { e.x = e.hx + Math.sin(sway) * 8; e.y = e.hy; }
+          });
+          if (diveT <= 0 && en.length) { var d = en[Math.floor(Math.random() * en.length)]; if (!d.dive) { d.dive = true; d.t = 0; d.dx = d.x; } diveT = 2.4 / diff(); }
+          if (bombT <= 0 && en.length) { var b = en[Math.floor(Math.random() * en.length)]; bombs.push({ x: b.x, y: b.y + 4 }); bombT = 1.7 / diff(); }
+          for (var i = shots.length - 1; i >= 0; i--) {
+            var s = shots[i]; s.y -= 150 * dt;
+            if (s.y < 22) { shots.splice(i, 1); continue; }
+            for (var j = en.length - 1; j >= 0; j--) {
+              var e = en[j];
+              if (Math.abs(s.x - e.x) < 6 && Math.abs(s.y - e.y) < 6) {
+                noise(0.14, 0.25, 1400);
+                wPay(PAY * (e.dive ? 1.5 : 1), 'SHIP');
+                if (!wallet.on) return;
+                en.splice(j, 1); shots.splice(i, 1); break;
+              }
+            }
+          }
+          if (!en.length) wave();
+          for (i = bombs.length - 1; i >= 0; i--) {
+            var bb = bombs[i]; bb.y += 62 * dt;
+            if (bb.y > 146) { bombs.splice(i, 1); continue; }
+            if (inv <= 0 && Math.abs(bb.x - ship) < 7 && Math.abs(bb.y - 130) < 6) { wFee(FEE, 'SIGNAL LOSS'); inv = 1.2; bombs.splice(i, 1); }
+          }
+          en.forEach(function (e) { if (e.dive && inv <= 0 && Math.abs(e.x - ship) < 8 && Math.abs(e.y - 130) < 7) { wFee(FEE, 'SIGNAL LOSS'); inv = 1.2; } });
+        },
+        draw: function (c) {
+          en.forEach(function (e) {
+            rect(e.dive ? c[3] : c[2], e.x - 6, e.y - 3, 2, e.h + 2); rect(e.dive ? c[3] : c[2], e.x - 1, e.y - 4, 2, 8); rect(e.dive ? c[3] : c[2], e.x + 4, e.y - 3, 2, e.h);
+          });
+          shots.forEach(function (s) { rect(c[3], s.x - 1, s.y, 2, 6); });
+          bombs.forEach(function (b) { rect(c[2], b.x - 1, b.y, 3, 4); });
+          if (inv <= 0 || Math.floor(inv * 10) % 2) { rect(c[3], ship - 7, 130, 14, 4); rect(c[3], ship - 2, 125, 4, 5); }
+        }
+      };
+    }
+  };
+  function drawWallet() {
+    var s = SHADES[wallet.brand];
+    wx.setTransform(2, 0, 0, 2, 0, 0);
+    rect(s[0], 0, 0, 160, 144);
+    if (wallet.game) wallet.game.draw(s);
+    rect(s[1], 0, 0, 160, 20);
+    wx.fillStyle = s[3]; wx.font = 'bold 8px monospace'; wx.textBaseline = 'top';
+    wx.fillText(TITLES[wallet.brand], 3, 2);
+    var bal = '$' + balance().toFixed(2);
+    wx.fillText(bal, 157 - wx.measureText(bal).width, 2);
+    wx.font = '7px monospace';
+    wx.fillText(HELP[wallet.brand] + ' R EXIT', 3, 11);
+    if (wallet.msgT > 0) {
+      wx.fillStyle = s[3]; wx.font = 'bold 9px monospace';
+      var mw = wx.measureText(wallet.msg).width;
+      rect(s[0], 80 - mw / 2 - 2, 22, mw + 4, 11);
+      wx.fillStyle = s[3]; wx.fillText(wallet.msg, 80 - mw / 2, 23);
+    }
+    if (wallet.flash > 0) { wx.globalAlpha = 0.5; rect(s[3], 0, 20, 160, 124); wx.globalAlpha = 1; }
+    wtex.needsUpdate = true;
+  }
+  function updateWallet(dt) {
+    wallet.t += ((wallet.on ? 1 : 0) - wallet.t) * Math.min(1, dt * 10);
+    walletRoot.visible = wallet.t > 0.02;
+    var narrow = window.innerWidth < 760;
+    walletRoot.position.set(narrow ? 0 : -0.2, -0.13 - (1 - wallet.t) * 0.6, -0.4);
+    walletRoot.rotation.set(-0.1, narrow ? 0 : 0.14, 0);
+    walletCard.position.y = 0.19 - Math.max(0, wallet.t - 0.5) * 0.08;
+    if (!walletRoot.visible) return;
+    wallet.flash -= dt; wallet.msgT -= dt;
+    if (wallet.on && wallet.game && active && !menuOpen) wallet.game.update(dt);
+    if (wallet.brand) drawWallet();
+  }
+  function walletA() { if (wallet.game && wallet.game.a) wallet.game.a(); }
+  function walletAUp() { if (wallet.game && wallet.game.aUp) wallet.game.aUp(); }
+  function walletB() { if (wallet.game && wallet.game.b) wallet.game.b(); }
+
+  var receiptEl = document.getElementById('receipt'), mapEl = document.getElementById('map'), toastEl = document.getElementById('toast'), toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 1400);
+  }
+  var fireBtn = document.getElementById('t-fire');
+  document.getElementById('t-equip').addEventListener('click', function () { if (wallet.on) walletB(); else toggleEquip(); });
+  document.getElementById('t-card').addEventListener('click', function () { if (!wallet.on) swapCard(1); });
+  document.getElementById('t-repay').addEventListener('click', function () { if (wallet.on) closeWallet(); else openWallet(); });
+  document.getElementById('t-ability').addEventListener('click', function () { abilityKey(gun.card === 'BLU' ? 'KeyQ' : 'ShiftLeft'); });
+  document.getElementById('t-menu').addEventListener('click', function () { if (active) { if (menuOpen) closeMenu(); else openMenu(); } });
+  fireBtn.addEventListener('pointerdown', function () { if (wallet.on) { walletA(); return; } if (equipped) { trigger = true; triggerEdge = true; } });
+  fireBtn.addEventListener('pointerup', function () { trigger = false; walletAUp(); });
+  fireBtn.addEventListener('pointercancel', function () { trigger = false; });
+
+  renderer.autoClear = false;
+  var last = performance.now();
+  renderer.setAnimationLoop(function (now) {
+    var dt = Math.max(0, Math.min((now - last) / 1000, 0.05));
+    last = now;
+    update(dt);
+    camera.updateMatrixWorld(true);
+    if (active) moneyTick(dt);
+    updateTrigger(dt);
+    updateDummies(dt);
+    updateBowSound();
+    updateWallet(dt);
+    drawMap();
+    updateProjectiles(dt);
+    updateGunModel(dt);
+    hud(now);
+    gunHud(now);
+    camera.updateMatrixWorld(true);
+    renderer.clear();
+    renderer.render(scene, camera);
+    renderer.clearDepth();
+    renderer.render(gunScene, camera);
+  });
+})();
+</script>
+
+</body></html>

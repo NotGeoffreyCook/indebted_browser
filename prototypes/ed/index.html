@@ -1,0 +1,571 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>InDebtEd ED</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Space+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: same console as the Brand NPC viewer, stripped of brand colour. Ed has no district, so the page is Void and the viewport is the white space outside the districts. */
+:root{
+  --void:#0A0A0A; --surf:#161616; --line:#444444; --line2:#2A2A2A;
+  --white:#F0F0F0; --chalk:#B0B0B0;
+  --gld:#FFD24A; --red:#FF3B2F; --blu:#2F8FFF; --grn:#4AFF6B;
+  --display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;
+  --mono:'Space Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--void);color:var(--white)}
+body{font-family:var(--mono);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 36px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-bottom:4px solid var(--line);padding-bottom:16px}
+.nologo{width:52px;height:52px;border:2px dashed var(--chalk);display:grid;place-items:center;font-size:9px;line-height:1.1;letter-spacing:.08em;color:var(--chalk);text-align:center}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(36px,6vw,62px);line-height:.85;margin:0;text-transform:uppercase}
+.sub{font-size:11px;letter-spacing:.18em;color:var(--chalk);text-transform:uppercase;margin-top:8px}
+.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.stage{display:flex;flex-direction:column;gap:10px;min-width:0}
+.view{position:relative;border:6px solid var(--line);background:var(--white);aspect-ratio:4/3;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden}
+.view canvas{display:block;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;cursor:grab}
+.view canvas:active{cursor:grabbing}
+.hud{position:absolute;font-size:11px;letter-spacing:.14em;color:#0A0A0A;background:var(--white);padding:1px 5px;pointer-events:none;text-transform:uppercase;font-variant-numeric:tabular-nums}
+.hud.tl{left:10px;top:8px}.hud.tr{right:10px;top:8px}.hud.bl{left:10px;bottom:8px}.hud.br{right:10px;bottom:8px}
+.err{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#0A0A0A;font-size:13px}
+.controls{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.controls .label{font-size:11px;letter-spacing:.16em;color:var(--chalk);text-transform:uppercase;margin-right:4px;min-width:78px}
+.tog{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--chalk);background:var(--surf);border:2px solid var(--line2);padding:7px 10px;cursor:pointer}
+.tog:hover{border-color:var(--chalk)}
+.tog[aria-pressed="true"]{color:#0A0A0A;background:var(--white);border-color:var(--white)}
+.tog:focus-visible{outline:2px solid var(--white);outline-offset:2px}
+.tog:disabled{opacity:.4;cursor:default}
+.sheet{background:var(--surf);border:2px solid var(--line);border-left:8px solid var(--chalk);padding:20px 20px 22px;display:flex;flex-direction:column;gap:16px;min-width:0}
+.lot{font-size:11px;letter-spacing:.18em;color:var(--chalk);text-transform:uppercase}
+.sheet h2{font-family:var(--display);font-weight:900;font-size:96px;line-height:.8;margin:0;color:var(--white)}
+.tagline{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;color:var(--chalk);text-wrap:balance}
+dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 16px;border-top:2px solid var(--line);padding-top:14px}
+dt{font-size:11px;letter-spacing:.14em;color:var(--chalk);text-transform:uppercase;padding-top:2px}
+dd{margin:0;font-size:13px;line-height:1.45;color:var(--white);min-width:0}
+h3{font-family:var(--display);font-weight:800;font-size:24px;line-height:1;margin:0 0 6px;text-transform:uppercase}
+.opt{border-top:2px solid var(--line);padding-top:14px;font-size:13px;line-height:1.45}
+.opt small{display:block;font-size:11px;letter-spacing:.14em;color:var(--chalk);text-transform:uppercase;margin-bottom:6px}
+.cycle{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:10px}
+.cycle span{font-size:11px;font-weight:700;letter-spacing:.1em;text-align:center;padding:5px 0;border:2px solid var(--line2);color:var(--chalk)}
+.cycle span.on{background:var(--c);border-color:var(--c);color:#0A0A0A}
+.flags{border:2px solid var(--chalk);padding:10px 12px;font-size:12px;line-height:1.5;color:var(--chalk)}
+.flags b{color:var(--white)}
+.flags ul{margin:6px 0 0;padding-left:16px;display:flex;flex-direction:column;gap:6px}
+.specs{font-size:11px;line-height:1.7;letter-spacing:.06em;color:var(--chalk);border-top:2px solid var(--line2);padding-top:12px;font-variant-numeric:tabular-nums}
+.specs span{color:var(--white)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="nologo" aria-hidden="true">NO<br>BRAND</div>
+    <div>
+      <h1>Ed</h1>
+      <div class="sub">Character concept · pass 1 · 1997 hardware rules</div>
+    </div>
+  </header>
+  <div class="grid">
+    <section class="stage" aria-label="3D viewer">
+      <div class="view" id="view">
+        <canvas id="cv" width="320" height="240" aria-label="Rotating low-poly render of Ed"></canvas>
+        <div class="hud tl" id="hud-name"></div>
+        <div class="hud tr" id="hud-res">320×240 // 15-BIT</div>
+        <div class="hud bl">Drag to orbit</div>
+        <div class="hud br" id="hud-tris">TRIS —</div>
+      </div>
+      <div class="controls" role="group" aria-label="Camera view">
+        <span class="label">View</span>
+        <button class="tog" data-view="full">Full body</button>
+        <button class="tog" data-view="face">Face</button>
+        <button class="tog" data-view="badge">Badge</button>
+        <button class="tog" data-view="hands">Hands</button>
+        <button class="tog" data-view="turn">Turnaround</button>
+      </div>
+      <div class="controls" role="group" aria-label="Glove concept">
+        <span class="label">Gloves</span>
+        <button class="tog" data-glove="A">A Knuckles</button>
+        <button class="tog" data-glove="B">B Drum</button>
+        <button class="tog" data-glove="C">C Repaint</button>
+      </div>
+      <div class="controls" role="group" aria-label="Interface concept">
+        <span class="label">Interface</span>
+        <button class="tog" data-hud="A">A Visor</button>
+        <button class="tog" data-hud="B">B Quad lens</button>
+        <button class="tog" data-hud="C">C Monolith</button>
+        <button class="tog" data-hud="D">D Ad space</button>
+      </div>
+      <div class="controls" role="group" aria-label="Hat">
+        <span class="label">Hat</span>
+        <button class="tog" data-hat="wht">WHT</button>
+        <button class="tog" data-hat="gld">GLD</button>
+        <button class="tog" data-hat="red">RED</button>
+        <button class="tog" data-hat="blu">BLU</button>
+        <button class="tog" data-hat="grn">GRN</button>
+        <button class="tog" data-hat="none">None</button>
+      </div>
+      <div class="controls" role="group" aria-label="Show or hide">
+        <span class="label">Show</span>
+        <button class="tog" id="t-hudon">Interface on</button>
+        <button class="tog" id="t-gloveon">Gloves on</button>
+        <button class="tog" id="t-punch">Punch test</button>
+        <button class="tog" id="t-spin">Turntable</button>
+      </div>
+      <div class="controls" role="group" aria-label="Render settings">
+        <span class="label">Render</span>
+        <button class="tog" id="t-res">240p</button>
+        <button class="tog" id="t-wob">Vertex snap</button>
+        <button class="tog" id="t-aff">Affine UVs</button>
+        <button class="tog" id="t-dit">Dither</button>
+      </div>
+    </section>
+    <aside class="sheet" aria-live="polite">
+      <div class="lot">Unclaimed // Redeemer</div>
+      <h2>ED</h2>
+      <div class="tagline">Everything he owns is broken. Everything he was issued is not.</div>
+      <dl>
+        <dt>Body</dt><dd>Bare exoskeleton with the nervous system running through it. Left arm and right shin have no covering. The other plates are secondhand, chipped and taped, each from a different brand: RED thigh, BLU arm, GLD chest, with a few white plates mixed in. Over that, a sleeveless puffer hanging open and khaki cargo shorts. The head stays unbranded unless he picks a brand hat.</dd>
+        <dt>Face</dt><dd>The default smiley anyone gets if the big four never claimed them. Cracked at both eyes, with one crack running down the cheek like a tear.</dd>
+        <dt>Read</dt><dd>Scuffed and mismatched is his. Black and clean was issued, including the Redeemer ID with his photo. The hands and head should look like they cost more than the rest of him.</dd>
+      </dl>
+      <div class="opt" id="o-glove"></div>
+      <div class="opt" id="o-hud"></div>
+      <div class="opt" id="o-hat"></div>
+      <div class="flags"><b>My calls, yours to overrule</b>
+        <ul>
+          <li><b>The mask is off-white, not yellow.</b> A yellow smiley would read as GLD, and Ed is meant to be unclaimed.</li>
+          <li><b>The interface covers the eye cracks.</b> You only see them with it off. Worn, he keeps the smile and the tear, which comes out from under the unit.</li>
+          <li><b>The interface has eyes.</b> Every headset front carries two large digital eyes with a drifting pupil and a blink every few seconds. On the black glass they're white discs with black rings; on the white ad screen they're black discs with white rings.</li>
+          <li><b>The nerves are the only warm colour on him.</b> They are the human part, so they sit outside the grey scale and the brands.</li>
+          <li><b>"FINAL NOTICE", "Your ad here", "FINAL NOTICE" and the stencils are placeholder copy.</b></li>
+        </ul>
+      </div>
+      <div class="specs" id="s-specs"></div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const mk=o=>{o.list=Object.values(o.pal).map(h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]);return o;};
+const NEU=mk({key:'neu',edge:800,font:'"Space Mono",monospace',weight:700,pal:{950:'#0A0A0A',900:'#161616',800:'#2A2A2A',700:'#444444',600:'#666666',500:'#858585',400:'#9C9C9C',300:'#B0B0B0',200:'#D2D2D2',100:'#F0F0F0'}});
+const NRV=mk({key:'nrv',edge:800,font:'"Space Mono",monospace',weight:700,pal:{800:'#5E2F27',600:'#A8604F',400:'#D08E7A',200:'#F2CBBB'}});
+const KHK=mk({key:'khk',edge:700,font:'"Space Mono",monospace',weight:700,pal:{700:'#4F4630',500:'#8C7E58',300:'#B3A67E',100:'#D9CFAE'}});
+const SCR=mk({key:'scr',edge:950,font:'"Space Mono",monospace',weight:700,pal:{950:'#0A0A0A',800:'#2A2A2A',100:'#F0F0F0',gld:'#FFD24A',red:'#FF3B2F',blu:'#2F8FFF',grn:'#4AFF6B'}});
+const BPAL=(k,a,b,c,d,e,f)=>({950:a,800:b,700:c,500:d,300:e,100:f});
+const BR={
+  gld:mk({key:'gld',name:'GLD',edge:950,font:'"Space Mono",monospace',weight:700,shadow:'#5A1AAD',pal:BPAL('gld','#0D0900','#3D2C00','#6B4C00','#FFD24A','#FFE89B','#FFFAE8')}),
+  red:mk({key:'red',name:'RED',edge:950,font:'"Space Mono",monospace',weight:700,pal:BPAL('red','#0D0100','#3D0700','#6B0D00','#FF3B2F','#FF9895','#FFE8E7')}),
+  blu:mk({key:'blu',name:'BLU',edge:500,font:'"Space Mono",monospace',weight:700,jitter:1.6,pal:BPAL('blu','#00050D','#001E3D','#00366B','#2F8FFF','#95C4FF','#E8F3FF')}),
+  grn:mk({key:'grn',name:'GRN',edge:950,font:'"Space Mono",monospace',weight:700,pal:BPAL('grn','#010D04','#073D12','#0F6B20','#4AFF6B','#9BFFAA','#E8FFEC')})
+};
+const CYC=['gld','red','blu','grn'];
+let B=NEU;
+function snapPal(g,w,h){const d=g.getImageData(0,0,w,h),a=d.data,L=B.list;
+  for(let i=0;i<a.length;i+=4){let best=0,bd=1e9;for(let k=0;k<L.length;k++){const p=L[k],r=a[i]-p[0],gg=a[i+1]-p[1],b=a[i+2]-p[2],dd=r*r+gg*gg+b*b;if(dd<bd){bd=dd;best=k;}}
+    a[i]=L[best][0];a[i+1]=L[best][1];a[i+2]=L[best][2];a[i+3]=255;}g.putImageData(d,0,0);}
+function T(w,h,fn){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');fn(g,w,h);snapPal(g,w,h);
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.NearestFilter;t.generateMipmaps=false;t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+const R=(g,c,x,y,w,h)=>{g.fillStyle=B.pal[c];g.fillRect(x,y,w,h);};
+function border(g,w,h,t,c){t=t||3;c=c||B.edge;R(g,c,0,0,w,t);R(g,c,0,h-t,w,t);R(g,c,0,0,t,h);R(g,c,w-t,0,t,h);}
+function poly(g,c,pts){g.fillStyle=B.pal[c];g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath();g.fill();}
+function circ(g,c,x,y,r){g.fillStyle=B.pal[c];g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();}
+function diag(g,c,w,h,step,thick){for(let k=-h;k<w+h;k+=step)poly(g,c,[[k,h],[k+thick,h],[k+thick+h,0],[k+h,0]]);}
+function text(g,s,x,y,size,c,o){o=o||{};const al=o.align||'left',mw=o.maxW||999,f=o.font||B.font,wt=o.weight||B.weight;let sz=size;
+  g.font=wt+' '+sz+'px '+f;while(g.measureText(s).width>mw&&sz>5){sz--;g.font=wt+' '+sz+'px '+f;}
+  g.fillStyle=B.pal[c];g.textAlign=al;g.textBaseline='alphabetic';g.fillText(s,x,y);}
+function vtext(g,s,x,y,size,c,o){g.save();g.translate(x,y);g.rotate(-Math.PI/2);text(g,s,0,0,size,c,o);g.restore();}
+
+/* ---------- PS1 shader ---------- */
+const VS=`
+uniform vec2 uRes;uniform float uSnap;uniform vec3 uLight;uniform float uFogNear;uniform float uFogFar;uniform vec2 uRepeat;uniform vec2 uOff;uniform float uJitter;uniform float uTime;
+varying vec2 vUv;varying vec3 vUvA;varying float vLit;varying float vFog;
+float hh(vec3 p){return fract(sin(dot(p,vec3(12.9898,78.233,37.719)))*43758.5453);}
+void main(){
+  vec4 mv=modelViewMatrix*vec4(position,1.0);
+  vec4 p=projectionMatrix*mv;
+  if(uJitter>0.0){float t=floor(uTime*6.0);vec3 q=position+t;
+    p.xy+=(vec2(hh(q),hh(q+1.7))-0.5)*uJitter*4.0/uRes*p.w*step(0.8,hh(position*1.3+t*0.37));}
+  if(uSnap>0.5){vec2 g=uRes*0.5;p.xy=floor(p.xy/p.w*g+0.5)/g*p.w;}
+  gl_Position=p;
+  vec2 t=uv*uRepeat+uOff;vUv=t;vUvA=vec3(t*p.w,p.w);
+  vec3 n=normalize(normalMatrix*normal);
+  vLit=0.46+0.66*max(dot(n,uLight),0.0);
+  vFog=clamp((-mv.z-uFogNear)/(uFogFar-uFogNear),0.0,1.0);
+}`;
+const FS=`
+uniform sampler2D map;uniform float uAffine;uniform float uDither;uniform vec3 uFogColor;uniform float uShadowAmt;uniform vec3 uShadowCol;
+varying vec2 vUv;varying vec3 vUvA;varying float vLit;varying float vFog;
+float b2(vec2 a){a=floor(a);return fract(dot(a,vec2(0.5,a.y*0.75)));}
+float b4(vec2 a){return b2(0.5*a)*0.25+b2(a);}
+void main(){
+  vec2 uv=uAffine>0.5?vUvA.xy/vUvA.z:vUv;
+  vec3 tex=texture2D(map,uv).rgb;
+  vec3 c=tex*min(vLit,1.1);
+  float sh=uShadowAmt*(1.0-smoothstep(0.55,0.85,vLit));
+  c=mix(c,uShadowCol*(0.6+0.5*vLit)+tex*0.22,sh*0.8);
+  c=mix(c,uFogColor,vFog);
+  if(uDither>0.5){c+=(b4(gl_FragCoord.xy)-0.47)/31.0;}
+  c=floor(clamp(c,0.0,1.0)*31.0+0.5)/31.0;
+  gl_FragColor=vec4(c,1.0);
+}`;
+
+const view=document.getElementById('view'),cv=document.getElementById('cv');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas:cv,antialias:false,powerPreference:'low-power'});}
+catch(e){const d=document.createElement('div');d.className='err';d.textContent='This viewer needs WebGL, which this browser has turned off.';view.appendChild(d);return;}
+renderer.setPixelRatio(1);
+
+const U={uRes:{value:new THREE.Vector2(320,240)},uSnap:{value:1},uAffine:{value:1},uDither:{value:1},uLight:{value:new THREE.Vector3()},
+  uFogColor:{value:new THREE.Color(B.pal[950])},uFogNear:{value:10},uFogFar:{value:26},uTime:{value:0}};
+/* each material carries its own brand's shadow tint and jitter, so a mixed build keeps one brand per part */
+function M(tex,rep){return new THREE.ShaderMaterial({uniforms:Object.assign({},U,{map:{value:tex},uRepeat:{value:new THREE.Vector2(rep?rep[0]:1,rep?rep[1]:1)},uOff:{value:new THREE.Vector2(0,0)},
+  uShadowAmt:{value:B.shadow?1:0},uShadowCol:{value:new THREE.Color(B.shadow||'#000000')},uJitter:{value:B.jitter||0}}),vertexShader:VS,fragmentShader:FS});}
+const cache={};
+function C(name,w,h,fn,rep){const k=B.key+'|'+name;return cache[k]||(cache[k]=M(T(w,h,fn),rep));}
+function solid(c,b){return C('s'+c+'|'+(b||0),16,16,(g,w,h)=>{R(g,c,0,0,w,h);if(b)border(g,w,h,b);});}
+function place(m,x,y,z,parent){m.position.set(x||0,y||0,z||0);parent.add(m);return m;}
+function box(w,h,d,mats,x,y,z,parent){return place(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mats),x,y,z,parent);}
+function rodX(r1,r2,len,seg,mats,x,y,z,parent,twist){const geo=new THREE.CylinderGeometry(r2,r1,len,seg);geo.rotateY(twist||0);geo.rotateZ(-Math.PI/2);return place(new THREE.Mesh(geo,mats),x,y,z,parent);}
+function cylY(r1,r2,h,seg,mats,x,y,z,parent){return place(new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mats),x,y,z,parent);}
+function extrude(pts,depth,front,side,x,y,z,parent){
+  const s=new THREE.Shape();pts.forEach((p,i)=>i?s.lineTo(p[0],p[1]):s.moveTo(p[0],p[1]));
+  const geo=new THREE.ExtrudeGeometry(s,{depth:depth,bevelEnabled:false});geo.translate(0,0,-depth/2);geo.computeBoundingBox();
+  const bb=geo.boundingBox,uv=geo.attributes.uv,pos=geo.attributes.position,nor=geo.attributes.normal,W=bb.max.x-bb.min.x,H=bb.max.y-bb.min.y;
+  for(let i=0;i<uv.count;i++){const nz=nor.getZ(i);if(Math.abs(nz)>0.9){let u=(pos.getX(i)-bb.min.x)/W;if(nz<0)u=1-u;uv.setXY(i,u,(pos.getY(i)-bb.min.y)/H);}else uv.setXY(i,0.5,0.5);}
+  return place(new THREE.Mesh(geo,[front,side]),x,y,z,parent);
+}
+/* cube by bounds, for GRN's overlapping blocks */
+function cube(x0,x1,y0,y1,d,mats,z,parent){return box(x1-x0,y1-y0,d,mats,(x0+x1)/2,(y0+y1)/2,z||0,parent);}
+
+
+const hsh=n=>{const x=Math.sin(n*127.1+31.7)*43758.5453;return x-Math.floor(x);};
+const withB=(b,fn)=>{const p=B;B=b;const r=fn();B=p;return r;};
+const V=(x,y,z)=>new THREE.Vector3(x,y,z),UP=V(0,1,0);
+function bar(a,b,w,d,m,parent){const len=a.distanceTo(b),o=new THREE.Mesh(new THREE.BoxGeometry(w,len,d),m),dir=b.clone().sub(a).normalize();
+  o.position.copy(a).add(b).multiplyScalar(.5);o.quaternion.setFromUnitVectors(UP,dir);parent.add(o);return o;}
+
+/* ---------- Ed's own worn parts ---------- */
+const dk={100:200,200:300,300:500,400:600,500:700,600:800,700:800};
+function worn(name,base,lines,tape){return C('w'+name,64,64,(c,w,h)=>{R(c,base,0,0,w,h);const s=name.length*7.3+base;
+  R(c,dk[base],0,h-9,w,9);
+  for(let i=0;i<26;i++){const x=hsh(i+s)*w|0,y=hsh(i*2.1+s)*h|0,l=2+hsh(i*3.7+s)*12|0;R(c,dk[base],x,y,hsh(i+s*2)>.5?l:1,hsh(i+s*2)>.5?1:l);}
+  poly(c,700,[[0,0],[17,0],[8,6],[5,16],[0,20]]);poly(c,800,[[0,0],[10,0],[3,10],[0,12]]);
+  poly(c,700,[[w,h],[w-21,h],[w-12,h-5],[w-5,h-18],[w,h-24]]);
+  if(lines)lines.forEach((t,i)=>text(c,t,w/2,24+i*12,10,800,{align:'center',maxW:58}));
+  if(tape){c.save();c.translate(w/2,h*.68);c.rotate(-.35);R(c,100,-40,-6,80,12);R(c,300,-40,-6,80,2);c.restore();}
+  border(c,w,h,2,800);});}
+const wb=(k,n,l,t)=>withB(BR[k],()=>worn(n,500,l,t));
+const strutM=()=>C('strut',16,16,(c,w,h)=>{R(c,600,0,0,w,h);R(c,400,5,0,2,h);R(c,800,0,0,w,1);R(c,800,0,h-1,w,1);});
+const jointM=()=>C('joint',16,16,(c,w,h)=>{R(c,700,0,0,w,h);R(c,500,4,4,8,8);border(c,w,h,1,800);});
+const nerveM=()=>withB(NRV,()=>C('n',16,16,(c,w,h)=>{R(c,400,0,0,w,h);R(c,200,6,0,3,h);R(c,600,0,0,2,h);}));
+const pulseM=()=>withB(NRV,()=>C('p',8,8,(c,w,h)=>{R(c,200,0,0,w,h);}));
+function joint(r,x,y,z,p){const m=new THREE.Mesh(new THREE.OctahedronGeometry(r,0),jointM());m.position.set(x,y,z);p.add(m);return m;}
+function pulse(pts,speed,offset,parent,S){const m=new THREE.Mesh(new THREE.BoxGeometry(.075,.075,.075),pulseM());parent.add(m);m.userData.fx=true;
+  m.userData.anim=t=>{const u=(((t*speed+offset)%1+1)%1)*(pts.length-1),i=Math.floor(u),k=u-i;m.position.copy(pts[i]).lerp(pts[Math.min(i+1,pts.length-1)],k);};return m;}
+/* nerve bundle: a jagged run, not a tube, so it reads as organic at 240p */
+function nerve(a,b,n,amp,parent,seed){const pts=[a.clone()];for(let i=1;i<n;i++){const t=i/n,p=a.clone().lerp(b,t);p.x+=(hsh(i+seed)-.5)*amp;p.z+=(hsh(i*2+seed)-.5)*amp;pts.push(p);}pts.push(b.clone());
+  for(let i=0;i<pts.length-1;i++)bar(pts[i],pts[i+1],.055,.055,nerveM(),parent);return pts;}
+/* uncovered limb: twin rails, cross ties, nerve between them */
+function bare(a,b,parent,seed,w){w=w||.1;const off=V(w,0,0),m=strutM();bar(a.clone().add(off),b.clone().add(off),.055,.07,m,parent);bar(a.clone().sub(off),b.clone().sub(off),.055,.07,m,parent);
+  const ties=2;for(let i=1;i<=ties;i++){const p=a.clone().lerp(b,i/(ties+1));bar(p.clone().sub(off),p.clone().add(off),.04,.05,m,parent);}
+  return nerve(a,b,4,.09,parent,seed);}
+
+/* ---------- gloves: issued kit, clean black, big ---------- */
+const kit=(n)=>withB(NEU,()=>C('kit'+n,16,16,(c,w,h)=>{R(c,900,0,0,w,h);R(c,800,0,0,w,2);border(c,w,h,1,950);}));
+const cuffM=()=>withB(NEU,()=>C('cuff',64,24,(c,w,h)=>{R(c,900,0,0,w,h);R(c,100,0,0,w,3);R(c,100,0,h-3,w,3);text(c,'H.O.T.M.',w/2,16,10,100,{align:'center',maxW:58});}));
+const face500=k=>withB(BR[k],()=>C('hi',16,16,(c,w,h)=>{R(c,500,0,0,w,h);R(c,300,3,3,w-6,3);border(c,w,h,2,B.edge);}));
+const face700=k=>withB(BR[k],()=>C('lo',16,16,(c,w,h)=>{R(c,700,0,0,w,h);border(c,w,h,2,950);}));
+function shapeOf(k,w,h,d){ /* brand shapes: GLD diamond, RED slab, BLU uneven bars, GRN overlapping cubes */
+  if(k==='gld'){const g=new THREE.OctahedronGeometry(.5,0);g.scale(w,h*1.5,d*1.25);return g;}
+  if(k==='red')return new THREE.BoxGeometry(w,h*.62,d*1.2);
+  if(k==='blu')return new THREE.BoxGeometry(w*.55,h*1.45,d*.72);
+  return new THREE.BoxGeometry(w,h,d);}
+function palm(g,s){box(.44,.28,.54,[kit(0),kit(0),kit(0),kit(0),kit(0),kit(0)],0,-.1,0,g);
+  const cm=cuffM(),k=kit(0);box(.5,.24,.5,s>0?[cm,k,k,k,k,k]:[k,cm,k,k,k,k],0,.08,0,g);
+  box(.4,.46,.62,kit(0),0,-.42,0,g);box(.2,.36,.15,kit(0),0,-.36,.39,g);box(.22,.15,.17,kit(0),.04*s,-.56,.39,g);}
+function gloveA(g,s,st){palm(g,s);const zs=[.24,.08,-.08,-.24];
+  CYC.forEach((k,i)=>{const m=new THREE.Mesh(shapeOf(k,.44,.22,.15),face700(k));m.position.set(0,-.72,zs[i]);g.add(m);const hi=face500(k),lo=face700(k);
+    m.userData.anim=()=>{const on=st.i===i;m.material=on?hi:lo;m.position.y=on?-.8:-.72;};});
+  /* back of hand: a direction arrow, so the order reads */
+  const ar=withB(NEU,()=>C('arrow',32,32,(c,w,h)=>{R(c,900,0,0,w,h);for(let i=0;i<3;i++)poly(c,100,[[4+i*9,8],[9+i*9,8],[15+i*9,16],[9+i*9,24],[4+i*9,24],[10+i*9,16]]);}));
+  const t=box(.02,.32,.42,ar,s*.21,-.42,0,g);t.rotation.x=Math.PI/2;}
+function gloveB(g,s,st){palm(g,s);[.24,.08,-.08,-.24].forEach(z=>box(.42,.2,.145,kit(0),0,-.72,z,g));
+  /* four-sided drum on the back of the hand, one brand per face. Turns 90 degrees per hit. */
+  const faceM=k=>withB(BR[k],()=>C('drum',32,32,(c,w,h)=>{R(c,500,0,0,w,h);
+    if(k==='gld')poly(c,950,[[16,5],[27,16],[16,27],[5,16]]);if(k==='red')R(c,950,4,11,24,10);
+    if(k==='blu'){R(c,950,6,5,4,22);R(c,950,14,10,4,17);R(c,950,22,3,4,24);}if(k==='grn'){R(c,950,6,6,12,12);R(c,700,14,14,12,12);}border(c,w,h,2,950);}));
+  const piv=new THREE.Group();piv.position.set(s*.3,-.42,0);g.add(piv);
+  const e=kit(0);const order=s>0?[faceM('gld'),faceM('blu'),faceM('red'),faceM('grn')]:[faceM('blu'),faceM('gld'),faceM('grn'),faceM('red')];
+  const dr=box(.27,.27,.5,[order[0],order[1],order[2],order[3],e,e],0,0,0,piv);
+  box(.08,.06,.62,kit(0),-s*.05,.17,0,piv.parent===g?g:g).position.set(s*.26,-.25,0);box(.08,.06,.62,kit(0),0,0,0,g).position.set(s*.26,-.59,0);
+  let a=0;piv.userData.anim=()=>{const tgt=st.turn*Math.PI/2*s;a+=(tgt-a)*.28;piv.rotation.z=a;};}
+function gloveC(g,s,st){CYC.forEach((k,i)=>{const v=new THREE.Group();g.add(v);withB(BR[k],()=>{const m=face500(k),d=face700(k);
+    box(.5,.24,.5,d,0,.08,0,v);box(.44,.28,.54,m,0,-.1,0,v);box(.4,.46,.62,m,0,-.42,0,v);box(.2,.36,.15,d,0,-.36,.39,v);
+    [.24,.08,-.08,-.24].forEach((z,j)=>{const f=new THREE.Mesh(shapeOf(k,.42,k==='blu'?(.13+.1*(j%2)):.22,.15),j%2?d:m);f.position.set(0,-.73,z);v.add(f);});
+    box(.02,.2,.3,withB(BR[k],()=>C('badge',16,16,(c,w,h)=>{R(c,950,0,0,w,h);R(c,500,4,4,8,8);})),s*.21,-.42,0,v);});
+  v.userData.anim=()=>{v.visible=st.i===i;};});}
+const GLOVE={A:gloveA,B:gloveB,C:gloveC};
+function bareHand(g,s){const m=strutM();box(.3,.1,.34,jointM(),0,-.06,0,g);[.13,.04,-.05,-.14].forEach((z,i)=>{bar(V(0,-.1,z),V(0,-.32-(i%2)*.03,z*1.1),.05,.05,m,g);bar(V(0,-.32-(i%2)*.03,z*1.1),V(.0,-.44,z*1.1),.04,.04,m,g);});bar(V(0,-.08,.17),V(0,-.26,.27),.05,.05,m,g);nerve(V(0,0,0),V(0,-.26,0),2,.05,g,4+s);}
+
+/* ---------- Redeemer Interface ---------- */
+const tick=()=>withB(SCR,()=>{const t=T(256,32,(c,w,h)=>{R(c,950,0,0,w,h);[['GLD ▲.62','gld',4],['RED ▼.58','red',68],['BLU ??','blu',132],['GRN ▼.40','grn',188]].forEach(a=>text(c,a[0],a[2],22,14,a[1],{maxW:62}));});return t;});
+let tickT=null,tickMat=null;
+function tickerMat(){if(!tickMat){tickT=tick();tickMat=M(tickT,[.5,1]);}return tickMat;}
+const redeem=()=>withB(SCR,()=>C('redeem',96,24,(c,w,h)=>{R(c,950,0,0,w,h);text(c,'REDEEM NOW',w/2,17,14,100,{align:'center',maxW:90});}));
+const chart=()=>withB(SCR,()=>C('chart',96,48,(c,w,h)=>{R(c,950,0,0,w,h);for(let x=12;x<w;x+=16)R(c,800,x,0,1,h);for(let y=8;y<h;y+=12)R(c,800,0,y,w,1);
+  [['gld',16,.13],['red',24,.2],['blu',12,.5],['grn',34,.09]].forEach(a=>{c.strokeStyle=B.pal[a[0]];c.lineWidth=2;c.beginPath();for(let x=0;x<=w;x+=8){const y=a[1]+Math.sin(x*a[2])*5+x*.06;x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();});}));
+const stencil=()=>withB(NEU,()=>C('rdm',96,24,(c,w,h)=>{R(c,900,0,0,w,h);R(c,100,0,0,6,h);text(c,'REDEEMER',12,17,14,100,{maxW:80});}));
+/* issued hardware: chamfered shells, a glass face, one thin white accent, no visible fasteners */
+const shellM=()=>withB(NEU,()=>C('shell',32,32,(c,w,h)=>{R(c,900,0,0,w,h);R(c,800,0,0,w,4);}));
+const edgeM=()=>withB(NEU,()=>C('sedge',8,8,(c,w,h)=>{R(c,800,0,0,w,h);R(c,700,0,0,w,1);}));
+const glassM=()=>withB(NEU,()=>C('glass',64,32,(c,w,h)=>{R(c,950,0,0,w,h);poly(c,800,[[10,0],[22,0],[8,h],[0,h],[0,18]]);poly(c,900,[[28,0],[33,0],[19,h],[14,h]]);}));
+const lightM=()=>withB(NEU,()=>C('lightw',8,8,(c,w,h)=>{R(c,100,0,0,w,h);}));
+/* the eyes: two digital rings on the interface face, with a pupil that drifts and a blink every few seconds */
+function eyes(g,y,z,dx,r,dark){const bk=withB(NEU,()=>solid(950)),wt=lightM(),disc=dark?bk:wt,m=dark?wt:bk;[1,-1].forEach(s=>{const e=new THREE.Group();e.position.set(s*dx,y,z);g.add(e);
+  e.add(new THREE.Mesh(new THREE.CircleGeometry(r,12),disc));const rg=new THREE.Mesh(new THREE.RingGeometry(r*.6,r*.82,12),m);rg.position.z=.002;e.add(rg);const p=new THREE.Mesh(new THREE.CircleGeometry(r*.26,8),m);p.position.z=.004;e.add(p);
+  e.userData.anim=t=>{const c=t%3.7;e.scale.y=(c>3.45&&c<3.6)?.12:1;p.position.x=Math.sin(t*.6)*r*.22;p.position.y=Math.sin(t*.37)*r*.12;};});}
+function slab(w,h,c,d,front,side,x,y,z,p){const a=w/2,b=h/2;return extrude([[-a+c,-b],[a-c,-b],[a,-b+c],[a,b-c],[a-c,b],[-a+c,b],[-a,b-c],[-a,-b+c]],d,front,side,x,y,z,p);}
+function mark(g,x,y,z){const m=withB(NEU,()=>C('rmark',96,16,(c,w,h)=>{R(c,950,0,0,w,h);text(c,'REDEEMER',w/2,12,12,100,{align:'center',maxW:90});}));box(.3,.05,.006,m,x,y,z,g);}
+function band(g,dz){const e=edgeM();box(.05,.025,.82,e,0,.56,-.16+dz,g);[1,-1].forEach(s=>{box(.025,.05,.74,e,s*.5,.22,-.2+dz,g);
+    const r=new THREE.CylinderGeometry(.11,.11,.04,8);r.rotateZ(Math.PI/2);const p=new THREE.Mesh(r,shellM());p.position.set(s*.53,.22,.02+dz);g.add(p);});
+  box(1.0,.05,.025,e,0,.22,-.58+dz,g);bar(V(0,.2,-.59+dz),V(0,-.02,-.6),.025,.025,lightM(),g);}
+function hudA(g){band(g,0);slab(1.08,.52,.07,.3,shellM(),edgeM(),0,.27,.38,g);
+  slab(.98,.42,.05,.01,glassM(),edgeM(),0,.27,.535,g);box(.9,.1,.006,tickerMat(),0,.17,.542,g);box(.5,.012,.006,lightM(),0,.46,.542,g);eyes(g,.29,.548,.26,.18);}
+function hudB(g,st){band(g,0);slab(1.08,.46,.1,.28,shellM(),edgeM(),0,.27,.37,g);slab(1.0,.36,.07,.01,glassM(),edgeM(),0,.27,.515,g);
+  const xs=[[-.045,.36],[.045,.36],[-.045,.2],[.045,.2]];eyes(g,.27,.522,.27,.17);CYC.forEach((k,i)=>{const mk=(rad,dep,m,z)=>{const q=new THREE.CylinderGeometry(rad,rad,dep,8);q.rotateX(Math.PI/2);const o=new THREE.Mesh(q,m);o.position.set(xs[i][0],xs[i][1],z);g.add(o);return o;};
+    mk(.04,.02,edgeM(),.525);const hi=face500(k),lo=face700(k),l=mk(.03,.01,lo,.54);l.userData.anim=()=>{l.material=st.i===i?hi:lo;};});}
+function hudC(g){band(g,-.1);slab(1.1,.7,.05,.66,shellM(),edgeM(),0,.36,.24,g);
+  slab(1.0,.6,.03,.01,glassM(),edgeM(),0,.36,.575,g);eyes(g,.44,.584,.26,.2);box(.88,.08,.006,tickerMat(),0,.17,.582,g);box(.015,.26,.2,edgeM(),.555,.46,.1,g);}
+function hudD(g){band(g,0);slab(.94,.42,.06,.22,shellM(),edgeM(),0,.26,.34,g);
+  const ad=withB(NEU,()=>C('adspace3',128,56,(c,w,h)=>{R(c,100,0,0,w,h);text(c,'THIS SPACE FOR SALE',6,10,7,600,{maxW:116});
+    text(c,'Your ad here',w/2,51,12,950,{align:'center',font:'"Barlow Condensed",Arial,sans-serif',weight:800,maxW:112});border(c,w,h,2,950);}));
+  slab(1.5,.62,.03,.03,ad,edgeM(),0,.33,.47,g);box(1.36,.014,.014,lightM(),0,.67,.5,g);[-.5,.5].forEach(x=>box(.014,.04,.014,edgeM(),x,.65,.49,g));eyes(g,.36,.49,.3,.2,true);}
+/* hats sit behind the headset's front face, so every hat works with every interface */
+const HAT={
+  wht(g){const m=worn('capW',100,null),k=withB(NEU,()=>solid(200,1));
+    box(.84,.3,.78,m,0,.66,-.16,g);box(.7,.08,.64,m,0,.84,-.16,g);box(.86,.05,.8,withB(NEU,()=>solid(700)),0,.76,-.16,g);box(.2,.03,.2,withB(NEU,()=>solid(700)),0,.89,-.16,g);box(.76,.04,.42,k,0,.53,-.72,g);
+    const gap=withB(NEU,()=>C('snap',32,16,(c,w,h)=>{R(c,100,0,0,w,h);poly(c,950,[[6,h],[10,5],[22,5],[26,h]]);R(c,500,6,h-3,20,3);}));box(.34,.14,.012,gap,0,.6,.232,g);},
+  gld(g){withB(BR.gld,()=>{const m=wb('gld','hatG',null),d=face700('gld'),o=new THREE.OctahedronGeometry(.5,0);o.rotateY(Math.PI/4);o.scale(.8,1.1,.72);
+    const dm=new THREE.Mesh(o,m);dm.position.set(0,.86,-.16);g.add(dm);box(.8,.12,.72,d,0,.55,-.16,g);
+    const t=new THREE.Mesh(new THREE.OctahedronGeometry(.075,0),face500('gld'));t.position.set(0,1.45,-.16);g.add(t);});},
+  red(g){withB(BR.red,()=>{const m=wb('red','hatR',null),bk=solid(950);box(.9,.3,.82,m,0,.66,-.16,g);box(.92,.08,.84,bk,0,.58,-.16,g);box(1.02,.05,.94,m,0,.83,-.16,g);box(.76,.2,.05,m,0,.44,-.6,g);});},
+  blu(g){withB(BR.blu,()=>{const m=wb('blu','hatB',null),e=face700('blu');box(.84,.2,.78,e,0,.6,-.16,g);[[-.3,.34],[-.1,.62],[.1,.24],[.3,.48]].forEach(a=>box(.14,a[1],.5,m,a[0],.7+a[1]/2,-.16,g));});},
+  grn(g){withB(BR.grn,()=>{const m=wb('grn','hatN',null),m2=wb('grn','hatNN',null);box(.84,.26,.78,m,0,.63,-.16,g);box(.6,.26,.56,m2,-.08,.84,-.1,g);box(.34,.26,.32,m,.1,1.06,-.2,g);box(.98,.05,.92,face700('grn'),0,.52,-.16,g);});}
+};
+const HATTXT={wht:'WHT // Blank Cap',gld:'GLD // Mitre',red:'RED // Flat Top',blu:'BLU // Bar Crown',grn:'GRN // Stack Hat',none:'No hat'};
+const HATD={wht:'A plain white cap worn backward, with no logo. This is what the default looks like when the default gets its own line.',gld:'A tall diamond crown with a stone on the point. Prosperity church headwear.',red:'A flat slab with a black band and a neck guard. Standard issue for a defense contractor.',blu:'Uneven vertical bars of different heights, and they will not hold still.',grn:'Overlapping cubes on a wide brim, stepping up like a growth chart.',none:'Bare cage. You can see the brain from behind.'};
+const HUD={A:hudA,B:hudB,C:hudC,D:hudD};
+
+/* ---------- mask ---------- */
+function jag(c,col,pts,w){c.strokeStyle=B.pal[col];c.lineWidth=w;c.lineJoin='miter';c.beginPath();pts.forEach((p,i)=>i?c.lineTo(p[0],p[1]):c.moveTo(p[0],p[1]));c.stroke();}
+function maskM(){return C('mask',128,128,(c,w,h)=>{R(c,100,0,0,w,h);
+  for(let i=0;i<70;i++){const x=hsh(i+2)*w|0,y=hsh(i*1.7+1)*h|0;R(c,hsh(i*3)>.5?200:300,x,y,1+hsh(i)*4|0,1);}
+  R(c,200,0,114,w,14);
+  text(c,'DEFAULT',64,18,11,600,{align:'center'});
+  [[38,50],[90,50]].forEach(e=>{c.fillStyle=B.pal[950];c.beginPath();c.ellipse(e[0],e[1],9,14,0,0,7);c.fill();});
+  c.strokeStyle=B.pal[950];c.lineWidth=7;c.lineCap='butt';c.beginPath();c.arc(64,62,41,.2*Math.PI,.8*Math.PI);c.stroke();
+  R(c,950,92,80,10,4);R(c,950,26,80,10,4);
+  const cr=[[[46,42],[56,32],[53,24],[62,14]],[[30,40],[22,30],[24,22],[12,12]],[[82,42],[74,30],[78,20]],[[98,40],[108,34],[106,22],[120,18]],[[28,58],[14,60]]];
+  cr.forEach(p=>{jag(c,100,p.map(q=>[q[0]+1,q[1]+1]),1);jag(c,950,p,2);});
+  /* the tear: starts inside the eye, runs down the cheek, stops between the mouth corner and the edge of the face */
+  const tear=[[90,60],[95,67],[101,71],[103,80],[110,85],[107,92],[111,98]];
+  jag(c,100,tear.map(q=>[q[0]+2,q[1]]),1.5);jag(c,950,tear,3);
+  poly(c,600,[[20,104],[10,92],[6,106],[12,118]]);
+  c.strokeStyle=B.pal[700];c.lineWidth=4;c.beginPath();MASK.forEach((p,i)=>{const x=(p[0]+.5)*128,y=(.54-p[1])/1.04*128;i?c.lineTo(x,y):c.moveTo(x,y);});c.closePath();c.stroke();
+  });}
+var MASK=[[-.3,.54],[.3,.54],[.48,.32],[.5,0],[.42,-.3],[.2,-.5],[-.2,-.5],[-.42,-.3],[-.5,0],[-.48,.32]];
+
+/* ---------- ID photo: a small render target, shot once per build ---------- */
+let photoRT=null,photoM=null,photoDirty=0;
+function photoMat(){if(!photoM){photoRT=new THREE.WebGLRenderTarget(64,60,{minFilter:THREE.NearestFilter,magFilter:THREE.NearestFilter,generateMipmaps:false});photoM=M(photoRT.texture);}return photoM;}
+/* ---------- Ed ---------- */
+function buildEd(opt){const ed=new THREE.Group(),st={i:0,turn:0};ed.userData.st=st;
+  const P_L=[],pose={};
+  /* pelvis */
+  const pel=wb('blu','pel',null);box(.68,.36,.42,pel,0,2.58,0,ed);
+  const mkLeg=s=>{const o=new THREE.Group();o.position.set(s*.25,2.41,0);o.rotation.z=s*.11;ed.add(o);const i=new THREE.Group();i.position.set(-s*.25,-2.41,0);o.add(i);const l=new THREE.Group();l.scale.set(.78,1.4,.78);i.add(l);return l;};const lgL=mkLeg(1),lgR=mkLeg(-1);
+  /* legs. Ed's left is +x. */
+  const plateA=wb('red','thighL',['UNCLAIMED']),plateB=worn('shinL',100,null,true),plateC=wb('grn','thighR',null);
+  /* cargo shorts over the plates: khaki, knee length, pockets, frayed hem */
+  const khk=(n,fn)=>withB(KHK,()=>C(n,32,32,fn));
+  const sm=khk('sh',(c,w,h)=>{R(c,300,0,0,w,h);for(let i=0;i<16;i++)R(c,500,hsh(i)*w|0,hsh(i*2)*h|0,4,1);R(c,700,0,0,1,h);R(c,700,w-1,0,1,h);});
+  const hem=khk('hem',(c,w,h)=>{R(c,500,0,0,w,h);for(let x=0;x<w;x+=5)R(c,100,x,h-5,2,5);R(c,700,0,0,w,2);});
+  const pk=khk('pk',(c,w,h)=>{R(c,500,0,0,w,h);R(c,700,0,0,w,10);R(c,100,14,6,5,5);border(c,w,h,1,700);});
+  box(.76,.42,.5,sm,0,2.56,0,ed);const blt=withB(NEU,()=>C('belt',32,8,(c,w,h)=>{R(c,900,0,0,w,h);R(c,300,13,1,6,6);}));box(.78,.07,.52,blt,0,2.76,0,ed);
+  [[1,lgL],[-1,lgR]].forEach(([s,L])=>{box(.62,.68,.62,sm,s*.3,1.4,0,L);box(.65,.08,.65,hem,s*.3,1.04,0,L);box(.09,.26,.38,pk,s*.65,1.3,.0,L);});
+  /* left leg: covered, mismatched */
+  joint(.15,.3,1.72,0,lgL);box(.4,.82,.46,plateA,.32,1.28,0,lgL);joint(.16,.32,.86,.02,lgL);box(.34,.72,.4,plateB,.33,.46,.0,lgL);
+  box(.42,.2,.72,wb('grn','bootL',null),.33,.1,.12,lgL);
+  /* right leg: chipped thigh plate, bare shin, skeleton foot */
+  joint(.15,-.3,1.72,0,lgR);box(.36,.74,.42,plateC,-.32,1.28,0,lgR);bar(V(-.32,1.7,0),V(-.32,.88,0),.06,.06,strutM(),lgR);joint(.16,-.32,.86,.02,lgR);
+  const sh=bare(V(-.33,.82,.02),V(-.33,.2,0),lgR,11,.1);joint(.11,-.33,.18,0,lgR);
+  box(.3,.06,.28,jointM(),-.33,.07,.05,lgR);[-.1,0,.1].forEach(x=>bar(V(-.33+x,.07,.16),V(-.33+x*1.2,.04,.46),.05,.05,strutM(),lgR));
+  /* chest up, shoulders back */
+  const tor=new THREE.Group();tor.position.set(0,2.72,0);tor.rotation.x=-.05;tor.rotation.z=.05;ed.add(tor);
+  const tb=new THREE.Group();tb.scale.set(.8,1.12,.85);tor.add(tb);
+  /* open gut: the cord is on show */
+  const s0=strutM();[[.34,.2],[-.34,.2],[.34,-.2],[-.34,-.2]].forEach(a=>bar(V(a[0],0,a[1]),V(a[0]*1.25,.62,a[1]),.06,.06,s0,tb));
+  [.22,.42].forEach(y=>bar(V(-.36,y,-.2),V(.36,y,-.2),.05,.05,s0,tb));
+  const spine=[V(0,.0,-.1),V(.05,.22,-.08),V(-.05,.44,-.1),V(.03,.66,-.1),V(-.02,.9,-.1),V(.0,1.18,-.08)];
+  for(let i=0;i<spine.length-1;i++)bar(spine[i],spine[i+1],.11,.11,nerveM(),tb);
+  nerve(V(.03,.3,-.08),V(.34,.55,.02),3,.07,tb,3);nerve(V(-.03,.2,-.08),V(-.3,.5,.0),3,.07,tb,6);
+  /* chest: thin front shell over a rib frame, no back plate */
+  const chest=wb('gld','chest',null);box(.98,.5,.1,chest,0,.98,.24,tb);
+  const stk=withB(NEU,()=>C('notice',48,28,(c,w,h)=>{R(c,100,0,0,w,h);R(c,950,0,0,w,8);text(c,'FINAL',w/2,18,11,950,{align:'center',maxW:42});text(c,'NOTICE',w/2,26,9,950,{align:'center',maxW:42});}));
+  const n=box(.3,.18,.015,stk,-.3,1.06,.385,tb);n.rotation.z=-.12;
+  box(1.5,.12,.5,wb('red','yoke',null),0,1.3,0,tb);
+  /* sleeveless puffer: quilted bands, hanging open over the gut */
+  const qm=withB(BR.red,()=>C('quilt',64,16,(c,w,h)=>{R(c,500,0,0,w,h);R(c,700,0,0,w,2);R(c,700,0,h-2,w,2);R(c,300,0,5,w,2);for(let x=4;x<w;x+=8)R(c,800,x,1,3,1);}));
+  const qt=withB(BR.red,()=>C('quiltT',64,16,(c,w,h)=>{R(c,500,0,0,w,h);R(c,700,0,0,w,2);R(c,700,0,h-2,w,2);R(c,300,0,5,w,2);R(c,100,16,3,26,10);R(c,300,16,3,26,2);}));
+  [.64,.84,1.04,1.22].forEach((y,i)=>{const p=i%2?.02:0;[1,-1].forEach(s=>{box(.5,.2,.2,(i===1&&s<0)?qt:qm,s*.31,y,.26+p,tb);box(.16,.2,.36,qm,s*.6,y,.0,tb);});box(1.34,.2,.18,qm,0,y,-.27-p,tb);});
+  [1,-1].forEach(s=>{box(.42,.14,.14,qm,s*.3,1.4,.2,tb);box(.14,.14,.42,qm,s*.46,1.4,-.02,tb);});box(1.04,.14,.12,qm,0,1.4,-.26,tb);
+  bar(V(.07,.56,.37),V(.07,1.32,.37),.018,.012,kit(0),tb);bar(V(-.07,.56,.37),V(-.07,1.32,.37),.018,.012,kit(0),tb);
+  /* Redeemer ID: clipped to the chest, carries a live render of his own face */
+  const idc=withB(NEU,()=>C('idcard',48,64,(c,w,h)=>{R(c,100,0,0,w,h);R(c,950,0,0,w,10);text(c,'REDEEMER',w/2,8,8,100,{align:'center',maxW:44});text(c,'ED',4,h-5,12,950);
+    for(let x=22,i=0;x<45;i++){const b=1+(hsh(i)*2|0);R(c,950,x,h-13,b,10);x+=b+1;}border(c,w,h,1,950);}));
+  box(.42,.54,.02,idc,.3,.96,.385,tb);box(.31,.3,.012,photoMat(),.3,.98,.398,tb);box(.1,.05,.03,kit(0),.3,1.23,.39,tb);
+  [.72,.88,1.04,1.2].forEach(y=>bar(V(-.46,y,-.22),V(.46,y,-.22),.05,.05,s0,tb));[1,-1].forEach(s=>bar(V(s*.48,.7,.2),V(s*.48,1.26,.2),.06,.06,s0,tb),[1,-1].forEach(s=>bar(V(s*.48,.7,-.22),V(s*.48,1.26,-.22),.06,.06,s0,tb)));
+  bar(V(-.48,.7,.2),V(.1,.82,.22),.05,.05,s0,tb);
+  /* arms */
+  const arm=(s)=>{const sh=new THREE.Group();sh.position.set(s*.68,s>0?1.51:1.41,0);tor.add(sh);joint(.16,0,0,0,sh);const ua=new THREE.Group();ua.scale.set(.78,1.35,.78);sh.add(ua);
+    const el=new THREE.Group();el.position.y=-1.05;sh.add(el);joint(.13,0,0,0,el);const fa=new THREE.Group();fa.scale.set(.78,1.35,.78);el.add(fa);
+    const wr=new THREE.Group();wr.position.y=-1;el.add(wr);joint(.1,0,0,0,wr);
+    if(s>0){bare(V(0,-.04,0),V(0,-.72,0),ua,21,.09);bare(V(0,-.04,0),V(0,-.68,0),fa,27,.08);}
+    else{box(.3,.62,.32,wb('blu','uaR',null,true),0,-.38,0,ua);box(.38,.1,.38,worn('pauld',100,null),0,.14,0,sh);
+      box(.26,.3,.14,worn('faR',100,null),0,-.2,-.09,fa);bare(V(0,-.04,.04),V(0,-.68,.04),fa,33,.08);}
+    const gl=new THREE.Group();gl.scale.setScalar(.65);gl.visible=opt.gloveOn;wr.add(gl);GLOVE[opt.glove](gl,s,st);
+    const bh=new THREE.Group();bh.visible=!opt.gloveOn;wr.add(bh);bareHand(bh,s);
+    return {sh,el,wr,s};};
+  const aL=arm(1),aR=arm(-1);ed.userData.arms=[aL,aR];
+  /* head: cage, brain, mask */
+  const hd=new THREE.Group();hd.position.set(0,1.95,.02);hd.rotation.set(-.07,.6,-.05);tor.add(hd);ed.userData.head=hd;
+  bar(V(0,-.62,-.1),V(0,.12,-.1),.1,.1,nerveM(),hd);bar(V(.1,-.52,-.08),V(.1,.12,-.08),.04,.04,s0,hd);bar(V(-.1,-.52,-.08),V(-.1,.12,-.08),.04,.04,s0,hd);
+  const c=new THREE.Group();c.position.y=.42;hd.add(c);
+  const brain=new THREE.Mesh(new THREE.IcosahedronGeometry(.28,0),withB(NRV,()=>C('br',16,16,(g,w,h)=>{R(g,400,0,0,w,h);R(g,600,3,0,2,h);R(g,600,10,3,2,h);R(g,200,6,5,3,3);})));brain.position.set(0,.05,-.3);c.add(brain);
+  bar(V(0,-.3,-.2),V(0,-.05,-.28),.09,.09,nerveM(),c);
+  [[.36,.44],[-.36,.44],[.42,-.1],[-.42,-.1]].forEach(a=>bar(V(a[0],a[1],.14),V(a[0]*.85,a[1]*.85,-.56),.05,.05,s0,c));
+  [[-.34,.34,.34,.34],[-.36,-.08,.36,-.08]].forEach(a=>bar(V(a[0],a[1],-.56),V(a[2],a[3],-.56),.05,.05,s0,c));bar(V(-.3,.34,-.56),V(-.34,-.08,-.56),.05,.05,s0,c);bar(V(.3,.34,-.56),V(.34,-.08,-.56),.05,.05,s0,c);
+  extrude(MASK,.1,maskM(),solid(500),0,0,.18,c);
+  if(opt.hat!=='none'){const hg=new THREE.Group();c.add(hg);HAT[opt.hat](hg);}
+  const hudG=new THREE.Group();hudG.visible=opt.hudOn;c.add(hudG);HUD[opt.hud](hudG,st);
+  /* nerve pulses */
+  pulse(spine,.45,0,tb);pulse(spine,.45,.5,tb);
+  return ed;}
+
+/* ---------- world: the white, colourless space outside the districts ---------- */
+const scene=new THREE.Scene();scene.background=new THREE.Color(NEU.pal[100]);
+const camera=new THREE.PerspectiveCamera(42,4/3,0.1,120);
+const lightW=new THREE.Vector3(.45,.75,.65).normalize();
+U.uFogColor.value.set(NEU.pal[100]);
+function triCount(o){let n=0;o.traverse(m=>{if(m.isMesh&&!m.userData.fx&&m.visible){let v=true,p=m;while(p){if(!p.visible)v=false;p=p.parent;}if(v){const g=m.geometry;n+=(g.index?g.index.count:g.attributes.position.count)/3;}}});return Math.round(n);}
+function collect(o){const a=[];o.traverse(m=>{if(m.userData.anim)a.push(m.userData.anim);});return a;}
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120,30,30),M(T(32,32,(c,w,h)=>{R(c,100,0,0,w,h);}),[40,40]));floor.rotation.x=-Math.PI/2;floor.position.y=-.14;scene.add(floor);
+box(120,.02,.5,solid(950),0,-.13,-7,scene); /* the black line where a district would start */
+
+/* punch test target: a brand standee. The Hand cycles what it hits, not itself. */
+function standee(parent){const g=new THREE.Group();g.position.set(-.6,0,2.7);parent.add(g);const vs=CYC.map(k=>{const v=new THREE.Group();g.add(v);
+  withB(BR[k],()=>{const f=C('stand',48,96,(c,w,h)=>{R(c,500,0,0,w,h);R(c,700,0,h-24,w,24);
+    if(k==='gld')poly(c,950,[[24,16],[40,36],[24,56],[8,36]]);if(k==='red')R(c,950,6,28,36,18);if(k==='blu'){R(c,950,10,14,6,50);R(c,950,21,26,6,38);R(c,950,32,10,6,54);}if(k==='grn'){R(c,950,8,18,22,22);R(c,700,18,30,22,22);}
+    text(c,BR[k].name,w/2,h-7,14,100,{align:'center'});border(c,w,h,3,950);});
+    const e=solid(700);box(1.0,4.7,.16,[e,e,e,e,f,f],0,2.35,0,v);box(1.5,.1,.8,solid(700),0,.05,0,v);});return v;});
+  return {g,vs};}
+
+const $=id=>document.getElementById(id);
+const opt={hat:'wht',glove:'A',hud:'D',gloveOn:true,hudOn:true};
+let curView='full',punching=false,hi=false,spinOn=!matchMedia('(prefers-reduced-motion: reduce)').matches;
+let theta=0,phi=.12,dragging=false,lx=0,ly=0,eds=[],anims=[],spinG=new THREE.Group(),stand=null,tris=0;
+let camT=V(0,3.05,0),camR=11.6,punchClock=0,hitDone=false,shove=0;
+scene.add(spinG);
+function clear(o){while(o.children.length)o.remove(o.children[0]);}
+function rebuild(){clear(spinG);eds=[];
+  const n=curView==='turn'?3:1;
+  for(let i=0;i<n;i++){const e=buildEd(opt);if(n===3){e.position.x=(i-1)*3.6;e.rotation.y=[Math.PI/2*-1,0,Math.PI][i];}spinG.add(e);eds.push(e);}
+  stand=null;if(n===1){stand=standee(spinG);stand.g.visible=punching;}
+  anims=collect(spinG);tris=triCount(eds[0]);photoDirty=20;apply();}
+const GT={A:{n:'A // Ticker Knuckles',d:'Each knuckle is one brand, in cycle order, cut in that brand\'s shape. The brand it last wrote rises and lights. Most readable in first person, and the only one that always shows all four.'},
+  B:{n:'B // Cycle Drum',d:'Plain black fist with a four-sided drum on the back of the hand, like the GLD Cycle chamber. It turns 90° with a hit, so you see one brand at a time and get a satisfying mechanical beat.'},
+  C:{n:'C // Full Repaint',d:'The whole glove becomes the brand it last wrote, and the fingers change to that brand\'s shape. Loudest and cleanest against the one-brand-per-element rule. Costs four glove meshes unless the shape change is dropped.'}};
+const HT={D:{n:'D // Ad Space For Sale',d:'A slim white display on a premium unit, with a single light bar above it. Blank, no buyers. He is so unclaimed that even his face is on the market. It could take a live brand ad if a brand buys him out.'},A:{n:'A // Ticker Visor',d:'One chamfered shell with a continuous glass front and the live ticker sitting low in the glass. The closest to premium consumer hardware.'},
+  B:{n:'B // Quad Lens',d:'Four flush lenses behind a glass bar, one per brand, with the active brand lit. The most jewellery-like of the set.'},
+  C:{n:'C // Monolith',d:'A deep, plain block with a full glass face showing the chart and ticker. The bulkiest, but nothing on it is exposed except a flush card slot.'}};
+function apply(){
+  const st=eds[0]?eds[0].userData.st:{i:0};
+  $('o-glove').innerHTML='<small>Hand of the Market</small><h3>'+GT[opt.glove].n+'</h3>'+GT[opt.glove].d+'<div class="cycle">'+CYC.map((k,i)=>'<span style="--c:var(--'+k+')" class="'+(st.i===i?'on':'')+'">'+BR[k].name+'</span>').join('')+'</div>';
+  $('o-hud').innerHTML='<small>Redeemer Interface</small><h3>'+HT[opt.hud].n+'</h3>'+HT[opt.hud].d;
+  $('o-hat').innerHTML='<small>Hat</small><h3>'+HATTXT[opt.hat]+'</h3>'+HATD[opt.hat];document.querySelectorAll('[data-hat]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.hat===opt.hat));
+  document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===curView));
+  document.querySelectorAll('[data-glove]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.glove===opt.glove));
+  document.querySelectorAll('[data-hud]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.hud===opt.hud));
+  const set=(id,v)=>$(id).setAttribute('aria-pressed',v?'true':'false');
+  set('t-hudon',opt.hudOn);set('t-gloveon',opt.gloveOn);set('t-punch',punching);set('t-spin',spinOn&&curView==='full'||spinOn&&curView==='face');
+  $('t-spin').disabled=curView==='hands'||curView==='turn'||curView==='badge';$('t-punch').disabled=curView==='turn'||!opt.gloveOn;
+  set('t-res',!hi);$('t-res').textContent=hi?'480p':'240p';set('t-wob',!!U.uSnap.value);set('t-aff',!!U.uAffine.value);set('t-dit',!!U.uDither.value);
+  const W=hi?640:320,H=hi?480:240;$('hud-res').textContent=W+'×'+H+' // 15-BIT';renderer.setSize(W,H,false);U.uRes.value.set(W,H);
+  $('hud-name').textContent='ED // '+({full:'FULL BODY',face:'FACE',badge:'BADGE',hands:'HANDS',turn:'TURNAROUND'})[curView]+(punching?' // PUNCH TEST':'');$('hud-tris').textContent='TRIS '+tris;
+  U.uFogNear.value=curView==='turn'?22:14;U.uFogFar.value=curView==='turn'?70:44;
+  $('s-specs').innerHTML='Model <span>'+tris+' tris</span> incl. this glove and interface · textures <span>≤128px</span>, nearest filter, no mipmaps<br>Vertex snap <span>'+(U.uSnap.value?'on':'off')+'</span> · affine UVs <span>'+(U.uAffine.value?'on':'off')+'</span> · Bayer dither <span>'+(U.uDither.value?'on':'off')+'</span>';
+}
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{const was=curView;curView=b.dataset.view;if(curView==='turn')punching=false;if(curView!=='full'&&curView!=='face'){spinG.rotation.y=0;theta=curView==='turn'?0:.0;}
+  if(curView==='face'||curView==='badge'){theta=curView==='face'?.45:.0;spinG.rotation.y=0;}if(curView==='hands'){phi=.3;}else if(was==='hands')phi=.12;
+  if((was==='turn')!==(curView==='turn')||!eds.length)rebuild();else apply();});
+document.querySelectorAll('[data-hat]').forEach(b=>b.onclick=()=>{opt.hat=b.dataset.hat;rebuild();});
+document.querySelectorAll('[data-glove]').forEach(b=>b.onclick=()=>{opt.glove=b.dataset.glove;opt.gloveOn=true;rebuild();});
+document.querySelectorAll('[data-hud]').forEach(b=>b.onclick=()=>{opt.hud=b.dataset.hud;opt.hudOn=true;rebuild();});
+$('t-hudon').onclick=()=>{opt.hudOn=!opt.hudOn;rebuild();};
+$('t-gloveon').onclick=()=>{opt.gloveOn=!opt.gloveOn;if(!opt.gloveOn)punching=false;rebuild();};
+$('t-punch').onclick=()=>{punching=!punching;if(stand)stand.g.visible=punching;if(punching){spinG.rotation.y=0;punchClock=0;hitDone=false;}apply();};
+$('t-spin').onclick=()=>{spinOn=!spinOn;apply();};
+$('t-res').onclick=()=>{hi=!hi;apply();};
+$('t-wob').onclick=()=>{U.uSnap.value=U.uSnap.value?0:1;apply();};
+$('t-aff').onclick=()=>{U.uAffine.value=U.uAffine.value?0:1;apply();};
+$('t-dit').onclick=()=>{U.uDither.value=U.uDither.value?0:1;apply();};
+cv.addEventListener('pointerdown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;try{cv.setPointerCapture(e.pointerId);}catch(_){}});
+cv.addEventListener('pointermove',e=>{if(!dragging)return;theta-=(e.clientX-lx)*.008;phi=Math.max(-.08,Math.min(.85,phi+(e.clientY-ly)*.005));lx=e.clientX;ly=e.clientY;});
+const end=()=>{dragging=false;};cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
+
+const PHOTO_YAW=.7;
+const VIEW={badge:{t:[.16,3.82,.2],r:1.7},full:{t:[0,3.05,0],r:11.6},face:{t:[0,5.4,.2],r:3.7},hands:{t:[0,3.75,1.6],r:3.2},turn:{t:[0,2.85,0],r:18},punch:{t:[-.2,2.85,1.2],r:14}};
+const lerp=(a,b,k)=>a+(b-a)*k;
+let last=performance.now(),clock=0;
+function frame(now){
+  const dt=Math.max(0,Math.min(.05,(now-last)/1000));last=now;clock+=dt;U.uTime.value=clock;
+  if(tickMat)tickMat.uniforms.uOff.value.x=(clock*.05)%1;
+  const guard=curView==='hands';
+  /* punch: wind up, snap out, return. On contact the target's brand steps forward. */
+  let jab=0;if(punching){punchClock+=dt;const c=punchClock%1.5;if(c<.25)jab=-.25*(c/.25);else if(c<.4)jab=-.25+1.25*((c-.25)/.15);else if(c<.6)jab=1;else if(c<1)jab=1-(c-.6)/.4;else{jab=0;hitDone=false;}
+    if(c>=.38&&!hitDone){hitDone=true;shove=.5;eds.forEach(e=>{const s=e.userData.st;s.i=(s.i+1)%4;s.turn++;});apply();}}
+  shove*=Math.pow(.02,dt);
+  if(stand){stand.g.position.z=2.7+shove;stand.g.rotation.x=shove*.3;const i=eds[0].userData.st.i;stand.vs.forEach((v,k)=>{v.visible=k===i;});}
+  eds.forEach(e=>{const[aL,aR]=e.userData.arms;const br=Math.sin(clock*1.3)*.015;
+    [aL,aR].forEach(a=>{const s=a.s;
+      /* default: fists on hips, elbows out */
+      let sx=br,sz=s*1.05,ex=0,ez=-s*1.98,wy=0,wz=s*.46;
+      if(guard){sx=-.78;sz=s*-.06;ex=-.95;ez=0;wy=-s*Math.PI/2;wz=0;}
+      if(punching&&s<0&&!guard){const j=Math.max(jab,0),w=Math.min(jab,0);sx=lerp(-.06,-1.5,j)+w*-.5;ex=lerp(-.22,-.05,j)+w*1.6;sz=lerp(s*.13,.02,j);ez=0;wz=0;}
+      a.sh.rotation.x=lerp(a.sh.rotation.x,sx,.25);a.sh.rotation.z=lerp(a.sh.rotation.z,sz,.25);a.el.rotation.x=lerp(a.el.rotation.x,ex,.25);a.el.rotation.z=lerp(a.el.rotation.z,ez,.25);a.wr.rotation.y=lerp(a.wr.rotation.y,wy,.2);a.wr.rotation.z=lerp(a.wr.rotation.z,wz,.25);});
+    e.userData.head.rotation.x=-.07+Math.sin(clock*1.3+.6)*.012;});
+  anims.forEach(a=>a(clock));
+  if(spinOn&&!dragging&&!punching&&(curView==='full'||curView==='face'))spinG.rotation.y+=dt*.45;
+  if(curView==='hands'||curView==='turn'||curView==='badge')spinG.rotation.y=0;
+  if(photoDirty>0&&--photoDirty===0){const ry=spinG.rotation.y,vis=eds.map(e=>e.visible),sv=stand&&stand.g.visible,uy=U.uRes.value.clone(),fn=U.uFogNear.value,ff=U.uFogFar.value,ex=eds[0].position.x,ey=eds[0].rotation.y;
+    spinG.rotation.y=0;eds.forEach((e,i)=>{e.visible=i===0;});eds[0].position.x=0;eds[0].rotation.y=0;if(stand)stand.g.visible=false;floor.visible=false;
+    U.uRes.value.set(64,60);U.uFogNear.value=50;U.uFogFar.value=90;
+    const pc=new THREE.PerspectiveCamera(34,64/60,.1,50);pc.position.set(PHOTO_YAW*2.0,5.2,2.4);pc.lookAt(0,5.02,.15);pc.updateMatrixWorld();
+    U.uLight.value.copy(lightW).transformDirection(pc.matrixWorldInverse);
+    renderer.setRenderTarget(photoRT);renderer.clear();renderer.render(scene,pc);renderer.setRenderTarget(null);
+    spinG.rotation.y=ry;eds.forEach((e,i)=>{e.visible=vis[i];});eds[0].position.x=ex;eds[0].rotation.y=ey;if(stand)stand.g.visible=sv;floor.visible=true;U.uRes.value.copy(uy);U.uFogNear.value=fn;U.uFogFar.value=ff;}
+  const v=VIEW[punching?'punch':curView];camT.lerp(V(v.t[0],v.t[1],v.t[2]),.12);camR=lerp(camR,v.r,.12);
+  const th=punching?theta-.75:theta;
+  camera.position.set(camT.x+Math.sin(th)*Math.cos(phi)*camR,camT.y+Math.sin(phi)*camR,camT.z+Math.cos(th)*Math.cos(phi)*camR);
+  camera.lookAt(camT);camera.updateMatrixWorld();
+  U.uLight.value.copy(lightW).transformDirection(camera.matrixWorldInverse);
+  renderer.render(scene,camera);requestAnimationFrame(frame);
+}
+const faces=['900 48px "Barlow Condensed"','700 12px "Space Mono"','400 12px "Space Mono"'];
+Promise.race([Promise.all(faces.map(f=>document.fonts.load(f))),new Promise(r=>setTimeout(r,2500))]).catch(()=>{}).then(()=>{rebuild();requestAnimationFrame(frame);});
+})();
+</script>
+
+</body></html>

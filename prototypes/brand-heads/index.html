@@ -1,0 +1,520 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>InDebtEd Brand Heads</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600&family=Jost:wght@400;500&family=Varela+Round&display=swap">
+<style>
+/* Layout: a Void page with four brand stages in a 2x2 grid. Each stage's backdrop repeats its brand's leading line; chrome text stays neutral per the color rules. */
+:root {
+  --void: #0B0B0C;
+  --concrete: #141415;
+  --rule: #2A2A2D;
+  --white: #F0F0F0;
+  --chalk: #B0B0B0;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+.gld { --b950:#0D0900; --b900:#1A1200; --b800:#3D2C00; --b700:#6B4C00; --b500:#FFD24A; --font:'Varela Round', 'Nunito', system-ui, sans-serif; }
+.red { --b950:#0D0100; --b900:#1A0300; --b800:#3D0700; --b700:#6B0D00; --b500:#FF3B2F; --font:'Anton', Impact, 'Arial Narrow', sans-serif; }
+.blu { --b950:#00050D; --b900:#000D1A; --b800:#001E3D; --b700:#00366B; --b500:#2F8FFF; --font:'Archivo Black', 'Arial Black', sans-serif; }
+.grn { --b950:#010D04; --b900:#031A08; --b800:#073D12; --b700:#0F6B20; --b500:#4AFF6B; --font:'Jost', Futura, 'Century Gothic', sans-serif; }
+.head { --ind: var(--b500); }
+body.bear .head { --ind: var(--b700); }
+
+html, body { background: var(--void); }
+body {
+  color: var(--white);
+  font-family: var(--mono);
+  font-size: 14px;
+  line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+
+header { display: grid; gap: 18px; border-bottom: 1px solid var(--rule); padding-bottom: 22px; }
+.eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--chalk); }
+h1 { margin: 0; font-size: clamp(30px, 5vw, 48px); font-weight: 600; letter-spacing: -.01em; line-height: 1.05; text-wrap: balance; }
+.lede { margin: 0; max-width: 62ch; color: var(--chalk); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; }
+.ctl { display: flex; align-items: center; gap: 10px; }
+.ctl-label { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--chalk); }
+.seg { display: inline-flex; border: 1px solid var(--rule); }
+.seg button, .toggle {
+  font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--chalk); background: transparent; border: 0; padding: 9px 12px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"], .toggle[aria-pressed="true"] { background: var(--white); color: var(--void); }
+.toggle { border: 1px solid var(--rule); }
+button:focus-visible, canvas:focus-visible { outline: 2px solid var(--white); outline-offset: 2px; }
+.rule-note { font-size: 12px; color: var(--chalk); min-height: 1.5em; margin: 0; }
+
+.grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+.head { display: grid; border: 1px solid var(--b800); border-top: 3px solid var(--ind); background: var(--concrete); min-width: 0; transition: border-color .2s; }
+.stage { position: relative; aspect-ratio: 1 / 1; max-width: 100%; overflow: hidden; background-color: var(--b950); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: pan-y; }
+.stage canvas:active { cursor: grabbing; }
+.gld .stage { background-image: radial-gradient(circle at 50% 42%, var(--b900) 0, transparent 62%), repeating-linear-gradient(135deg, var(--b950) 0 30px, var(--b900) 30px 36px); }
+.red .stage { background-image: radial-gradient(circle at 50% 42%, var(--b900) 0, transparent 62%), repeating-linear-gradient(180deg, var(--b950) 0 30px, var(--b900) 30px 38px); }
+.blu .stage { background-image: radial-gradient(circle at 50% 42%, var(--b900) 0, transparent 62%), repeating-linear-gradient(90deg, var(--b950) 0 40px, var(--b900) 40px 46px); }
+.grn .stage { background: radial-gradient(circle at 50% 42%, var(--b900) 0, transparent 62%), conic-gradient(var(--b900) 25%, var(--b950) 0 50%, var(--b900) 0 75%, var(--b950) 0) 0 0 / 64px 64px, var(--b950); }
+.flash { position: absolute; inset: 0; background: var(--b500); opacity: 0; pointer-events: none; }
+.flash.on { opacity: .1; }
+.hint { position: absolute; left: 12px; bottom: 10px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--chalk); pointer-events: none; }
+.fallback { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--chalk); }
+
+.info { display: grid; gap: 14px; padding: 16px 18px 20px; border-top: 1px solid var(--b800); }
+.name { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.swatch { width: 12px; height: 12px; background: var(--ind); align-self: center; transition: background .2s; }
+.code { font-size: 12px; font-weight: 600; letter-spacing: .14em; color: var(--chalk); }
+.brand { margin: 0; font-family: var(--font); font-weight: 400; font-size: 30px; line-height: 1; color: var(--white); }
+.red .brand { letter-spacing: .02em; text-transform: uppercase; }
+.blu .brand { text-transform: uppercase; font-size: 26px; }
+.worth { margin-left: auto; font-size: 12px; color: var(--chalk); font-variant-numeric: tabular-nums; }
+dl { margin: 0; display: grid; gap: 10px; }
+dl div { display: grid; grid-template-columns: 9.5em 1fr; gap: 12px; }
+dt { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--chalk); padding-top: 2px; }
+dd { margin: 0; min-width: 0; font-size: 13px; }
+@media (max-width: 460px) { dl div { grid-template-columns: 1fr; gap: 2px; } }
+
+footer { font-size: 12px; color: var(--chalk); border-top: 1px solid var(--rule); padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) { .head, .swatch { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">InDebtEd // Claimed exteriors</div>
+    <h1>Brand Heads</h1>
+    <p class="lede">Four exoskeleton heads, one per brand. Each is built from its logo's leading line and tone board. Drag a head to turn it, or focus it and use the arrow keys.</p>
+    <div class="controls">
+      <div class="ctl">
+        <span class="ctl-label" id="mk-label">Market</span>
+        <div class="seg" role="group" aria-labelledby="mk-label">
+          <button type="button" id="mk-base" data-mode="base" aria-pressed="true">Base</button>
+          <button type="button" id="mk-bull" data-mode="bull" aria-pressed="false">Bull</button>
+          <button type="button" id="mk-bear" data-mode="bear" aria-pressed="false">Bear</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <span class="ctl-label">Turntable</span>
+        <button type="button" class="toggle" id="spin" aria-pressed="true">On</button>
+      </div>
+    </div>
+    <p class="rule-note" id="rule-note">Base: lit parts use each brand's 500 accent.</p>
+  </header>
+
+  <section class="grid">
+    <article class="head gld">
+      <div class="stage"><canvas id="cv-gld" tabindex="0" aria-label="Radiance head, 3D. Drag or use arrow keys to rotate."></canvas><div class="flash"></div><span class="hint">Drag to turn</span></div>
+      <div class="info">
+        <div class="name"><span class="swatch"></span><span class="code">GLD</span><h2 class="brand">Radiance</h2><span class="worth">Baseline $0.62 / rd</span></div>
+        <dl>
+          <div><dt>Leading line</dt><dd>45° diagonal, cream at the brow to umber at the jaw</dd></div>
+          <div><dt>Build</dt><dd>Domed shell banded on the diagonal. Purple appears only in the three-band visor slash, matching the logo's shadow zone. A gold nimbus sits behind.</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="head red">
+      <div class="stage"><canvas id="cv-red" tabindex="0" aria-label="Fire head, 3D. Drag or use arrow keys to rotate."></canvas><div class="flash"></div><span class="hint">Drag to turn</span></div>
+      <div class="info">
+        <div class="name"><span class="swatch"></span><span class="code">RED</span><h2 class="brand">Fire</h2><span class="worth">Baseline $0.58 / rd</span></div>
+        <dl>
+          <div><dt>Leading line</dt><dd>Horizontal bands inside a heavy frame</dd></div>
+          <div><dt>Build</dt><dd>Banded helmet with three pale visor bars. Each bar casts a dark offset shadow up and to the right, the logo's layered type turned into armor. Framed face, crest on top.</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="head blu">
+      <div class="stage"><canvas id="cv-blu" tabindex="0" aria-label="Zap head, 3D. Drag or use arrow keys to rotate."></canvas><div class="flash"></div><span class="hint">Drag to turn</span></div>
+      <div class="info">
+        <div class="name"><span class="swatch"></span><span class="code">BLU</span><h2 class="brand">Zap</h2><span class="worth">Baseline $0.45 / rd</span></div>
+        <dl>
+          <div><dt>Leading line</dt><dd>Vertical bars of unequal length</dd></div>
+          <div><dt>Build</dt><dd>Fourteen slats of uneven height around a dark core. The face is three lit rods with pale blocks where the letters sit. No eyes. The signal flickers.</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <article class="head grn">
+      <div class="stage"><canvas id="cv-grn" tabindex="0" aria-label="Growth head, 3D. Drag or use arrow keys to rotate."></canvas><div class="flash"></div><span class="hint">Drag to turn</span></div>
+      <div class="info">
+        <div class="name"><span class="swatch"></span><span class="code">GRN</span><h2 class="brand">Growth</h2><span class="worth">Baseline $0.40 / rd</span></div>
+        <dl>
+          <div><dt>Leading line</dt><dd>Quartered grid on a checker diagonal</dd></div>
+          <div><dt>Build</dt><dd>A cube with a 4 × 4 faceplate tiled at stepped depths. Two lit tiles sit on the checker diagonal. On top, a three-bar chart that slopes down.</dd></div>
+        </dl>
+      </div>
+    </article>
+  </section>
+
+  <footer>Concept heads for the exoskeleton exterior system. Colors come from the GLD, RED, BLU and GRN tone boards; one brand scale per head.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cards = {
+    gld: document.querySelector('.head.gld'), red: document.querySelector('.head.red'),
+    blu: document.querySelector('.head.blu'), grn: document.querySelector('.head.grn')
+  };
+
+  if (typeof THREE === 'undefined') {
+    Object.keys(cards).forEach(function (k) { failStage(cards[k], 'The 3D library did not load. Reload the page to try again.'); });
+    return;
+  }
+  function failStage(card, msg) {
+    var st = card.querySelector('.stage');
+    var d = document.createElement('div'); d.className = 'fallback'; d.textContent = msg; st.appendChild(d);
+    var h = st.querySelector('.hint'); if (h) h.hidden = true;
+  }
+
+  var V3 = THREE.Vector3;
+  function C(h) { return new THREE.Color(h).convertSRGBToLinear(); }
+  function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  /* ---------- pattern material: leading lines in object space ---------- */
+  var FRAG_HEAD = [
+    'varying vec3 vObjPos;',
+    'uniform int uMode; uniform vec3 uDir; uniform float uPeriod; uniform float uOffset; uniform float uGap;',
+    'uniform vec3 uGapCol; uniform vec3 uRamp[8]; uniform int uRampN; uniform vec2 uRange;',
+    'uniform int uBand; uniform float uBandW; uniform float uBandZ; uniform vec3 uBandRamp[4]; uniform int uBandN; uniform float uBandEmis;',
+    'vec3 rampA(int i){ vec3 r = uRamp[0]; for(int j=0;j<8;j++){ if(j==i) r = uRamp[j]; } return r; }',
+    'vec3 rampB(int i){ vec3 r = uBandRamp[0]; for(int j=0;j<4;j++){ if(j==i) r = uBandRamp[j]; } return r; }',
+    ''
+  ].join('\n');
+  var FRAG_MAIN = [
+    'vec3 patEmis = vec3(0.0);',
+    'vec3 pc = uRamp[0];',
+    'float s = dot(vObjPos, uDir);',
+    'float k = s / uPeriod + uOffset;',
+    'float f = fract(k);',
+    'float sc = (floor(k) + 0.5 - uOffset) * uPeriod;',
+    'if (uMode == 0) {',
+    '  float tq = (sc - uRange.x) / (uRange.y - uRange.x);',
+    '  pc = rampA(int(floor(clamp(tq, 0.0, 0.9999) * float(uRampN))));',
+    '} else {',
+    '  vec3 c = floor(vObjPos / uPeriod);',
+    '  pc = mod(c.x + c.y + c.z, 2.0) < 0.5 ? uRamp[0] : uRamp[1];',
+    '}',
+    'if (uBand == 1 && abs(sc) < uBandW && vObjPos.z > uBandZ) {',
+    '  float bt = (sc + uBandW) / (2.0 * uBandW);',
+    '  pc = rampB(int(floor(clamp(bt, 0.0, 0.9999) * float(uBandN))));',
+    '  patEmis = pc * uBandEmis;',
+    '}',
+    'if (uMode == 0 && f < uGap) { pc = uGapCol; patEmis = vec3(0.0); }',
+    'vec4 diffuseColor = vec4( pc, opacity );'
+  ].join('\n');
+
+  function patternMat(o) {
+    var m = new THREE.MeshStandardMaterial({ roughness: o.rough, metalness: o.metal });
+    var ramp = o.ramp.map(C); while (ramp.length < 8) ramp.push(ramp[ramp.length - 1]);
+    var band = o.band || { w: 0, z: 0, ramp: ['#000000'], emis: 0 };
+    var bramp = band.ramp.map(C); while (bramp.length < 4) bramp.push(bramp[bramp.length - 1]);
+    var u = {
+      uMode: { value: o.mode }, uDir: { value: (o.dir || new V3(1, 0, 0)).clone().normalize() },
+      uPeriod: { value: o.period }, uOffset: { value: o.offset || 0 }, uGap: { value: o.gap || 0 },
+      uGapCol: { value: C(o.gapCol || '#000000') }, uRamp: { value: ramp }, uRampN: { value: o.ramp.length },
+      uRange: { value: new THREE.Vector2(o.range ? o.range[0] : -1, o.range ? o.range[1] : 1) },
+      uBand: { value: o.band ? 1 : 0 }, uBandW: { value: band.w }, uBandZ: { value: band.z },
+      uBandRamp: { value: bramp }, uBandN: { value: band.ramp.length }, uBandEmis: { value: band.emis }
+    };
+    m.userData.u = u;
+    m.onBeforeCompile = function (sh) {
+      for (var key in u) sh.uniforms[key] = u[key];
+      sh.vertexShader = 'varying vec3 vObjPos;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvObjPos = position;');
+      sh.fragmentShader = FRAG_HEAD + sh.fragmentShader
+        .replace('vec4 diffuseColor = vec4( diffuse, opacity );', FRAG_MAIN)
+        .replace('vec3 totalEmissiveRadiance = emissive;', 'vec3 totalEmissiveRadiance = emissive + patEmis;');
+    };
+    return m;
+  }
+
+  function std(hex, o) {
+    var p = { color: C(hex), roughness: .45, metalness: .3 };
+    if (o) for (var k in o) p[k] = o[k];
+    return new THREE.MeshStandardMaterial(p);
+  }
+  function glowMat(c500, c700, base) {
+    var m = new THREE.MeshStandardMaterial({ color: C(c500), emissive: C(c500), emissiveIntensity: base, roughness: .3, metalness: 0 });
+    m.userData.glow = { c500: C(c500), c700: C(c700), base: base, flicker: 1 };
+    return m;
+  }
+  function box(w, h, d, mat, x, y, z) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return m;
+  }
+  function addNeck(g, glows, c900, c500, c700) {
+    var ring = std(c900, { metalness: .6, roughness: .35 });
+    var cable = glowMat(c500, c700, .9); glows.push(cable);
+    var cb = new THREE.Mesh(new THREE.CylinderGeometry(.11, .11, .95, 16), cable); cb.position.y = -1.42; g.add(cb);
+    [-1.12, -1.34, -1.56].forEach(function (y, i) {
+      var r = new THREE.Mesh(new THREE.CylinderGeometry(.34 - i * .02, .34 - i * .02, .12, 32), ring); r.position.y = y; g.add(r);
+    });
+    var collar = new THREE.Mesh(new THREE.CylinderGeometry(.42, .6, .14, 40), ring); collar.position.y = -1.82; g.add(collar);
+  }
+
+  /* ---------- GLD // RADIANCE ---------- */
+  function buildGLD() {
+    var g = new THREE.Group(), glows = [];
+    var shell = patternMat({
+      mode: 0, dir: new V3(1, -1, 0), period: .2, offset: 0, gap: .17, gapCol: '#0D0900',
+      ramp: ['#FFFAE8', '#FFF1C2', '#FFE89B', '#FFDC72', '#FFD24A', '#A87800', '#6B4C00', '#3D2C00'],
+      range: [-1, 1], rough: .3, metal: .45,
+      band: { w: .2, z: .3, ramp: ['#B47AFF', '#7B2FE0'], emis: .35 }
+    });
+    var head = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 96), shell);
+    head.scale.set(.98, 1.12, 1.02); g.add(head);
+    /* the nimbus always faces the viewer, so it lives outside the turning group */
+    var halo = new THREE.Group();
+    var nimbusMat = glowMat('#FFD24A', '#6B4C00', .75); glows.push(nimbusMat);
+    var nimbus = new THREE.Mesh(new THREE.TorusGeometry(1.38, .045, 16, 180), nimbusMat);
+    nimbus.position.set(0, .2, -1.3); halo.add(nimbus);
+    var inner = new THREE.Mesh(new THREE.TorusGeometry(1.26, .014, 8, 180), std('#FFFAE8', { metalness: .6, roughness: .25 }));
+    inner.position.set(0, .2, -1.28); halo.add(inner);
+    addNeck(g, glows, '#1A1200', '#FFD24A', '#6B4C00');
+    return { group: g, fixed: halo, glows: glows, band: shell.userData.u.uBandEmis, bandBase: .35 };
+  }
+
+  /* ---------- RED // FIRE ---------- */
+  function buildRED() {
+    var g = new THREE.Group(), glows = [];
+    var stripes = patternMat({ mode: 0, dir: new V3(0, 1, 0), period: .34, gap: .4, gapCol: '#0D0100', ramp: ['#FF3B2F'], range: [-1, 1], rough: .5, metal: .2 });
+    g.add(box(1.8, 2.0, 1.75, stripes, 0, 0, 0));
+    g.add(box(1.45, .5, 1.5, stripes, 0, -1.18, -.02));
+    var d800 = std('#3D0700', { roughness: .6, metalness: .2 });
+    var fw = 1.56, fh = 1.36, t = .14, fz = .9, fy = .12;
+    g.add(box(fw, t, .1, d800, 0, fy + fh / 2 - t / 2, fz));
+    g.add(box(fw, t, .1, d800, 0, fy - fh / 2 + t / 2, fz));
+    g.add(box(t, fh, .1, d800, -fw / 2 + t / 2, fy, fz));
+    g.add(box(t, fh, .1, d800, fw / 2 - t / 2, fy, fz));
+    var face = glowMat('#FF3B2F', '#6B0D00', .55); glows.push(face);
+    g.add(box(fw - 2 * t, fh - 2 * t, .06, face, 0, fy, .88));
+    var cream = std('#FFE8E7', { roughness: .35, metalness: .1, emissive: C('#FFE8E7'), emissiveIntensity: .06 });
+    [fy + .33, fy, fy - .33].forEach(function (y) {
+      g.add(box(1.1, .17, .06, d800, .06, y + .06, .935));
+      g.add(box(1.1, .17, .08, cream, 0, y, .97));
+    });
+    g.add(box(.32, .22, 1.5, d800, 0, 1.11, -.05));
+    g.add(box(.12, .08, 1.5, cream, 0, 1.25, -.05));
+    var slit = glowMat('#FF3B2F', '#6B0D00', .9); glows.push(slit);
+    [-1, 1].forEach(function (sx) {
+      g.add(box(.1, .8, .8, std('#0D0100', { roughness: .7 }), sx * .95, .05, -.05));
+      g.add(box(.03, .55, .08, slit, sx * 1.01, .05, -.05));
+    });
+    addNeck(g, glows, '#1A0300', '#FF3B2F', '#6B0D00');
+    return { group: g, glows: glows };
+  }
+
+  /* ---------- BLU // ZAP ---------- */
+  function buildBLU() {
+    var g = new THREE.Group(), glows = [];
+    var dark = std('#00050D', { roughness: .7, metalness: .1 });
+    var core = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 48), dark);
+    core.scale.set(.9, 1.15, .9); g.add(core);
+    var r = rng(48213), cols = ['#001E3D', '#00366B', '#0058A8', '#001E3D', '#00366B'], slatMats = {};
+    var n = 16, R = .84, slats = [];
+    for (var k = 0; k < n; k++) {
+      var a = (k + .5) / n * Math.PI * 2;
+      if (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) < .5) continue;
+      var h = 1.0 + r() * 1.25, c = cols[k % cols.length];
+      var mat = slatMats[c] || (slatMats[c] = std(c, { metalness: .55, roughness: .32 }));
+      var y = (k % 2) ? 1.2 - h / 2 : -1.12 + h / 2;
+      var s = box(.3, h, .24, mat, Math.sin(a) * R, y, Math.cos(a) * R);
+      s.rotation.y = a; g.add(s); slats.push(s);
+    }
+    g.add(box(.52, 2.15, .14, dark, 0, .02, .84));
+    var rods = [];
+    [-.12, 0, .12].forEach(function (x) {
+      var m = glowMat('#2F8FFF', '#00366B', 1.3); glows.push(m);
+      var rod = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.1, 12), m);
+      rod.position.set(x, .02, .93); g.add(rod); rods.push(rod);
+    });
+    var pale = std('#E8F3FF', { emissive: C('#E8F3FF'), emissiveIntensity: .12, roughness: .4, metalness: .1 });
+    var blocks = [.62, .02, -.6].map(function (y) { var b = box(.36, .26, .06, pale, 0, y, .97); g.add(b); return b; });
+    addNeck(g, glows, '#000D1A', '#2F8FFF', '#00366B');
+
+    var glitch = 0;
+    function update() {
+      if (reduce) return;
+      rods.forEach(function (rod) {
+        var gl = rod.material.userData.glow;
+        if (Math.random() < .03) gl.flicker = .15 + Math.random() * 1.6;
+        else gl.flicker += (1 - gl.flicker) * .15;
+      });
+      if (glitch > 0) { glitch--; if (glitch === 0) blocks.forEach(function (b) { b.position.x = 0; }); }
+      else if (Math.random() < .012) {
+        glitch = 4 + Math.floor(Math.random() * 6);
+        blocks[Math.floor(Math.random() * 3)].position.x = (Math.random() - .5) * .08;
+      }
+    }
+    return { group: g, glows: glows, update: update };
+  }
+
+  /* ---------- GRN // GROWTH ---------- */
+  function buildGRN() {
+    var g = new THREE.Group(), glows = [];
+    var shell = patternMat({ mode: 1, period: .42, ramp: ['#073D12', '#031A08'], rough: .6, metal: .08 });
+    g.add(box(1.7, 1.85, 1.65, shell, 0, 0, 0));
+    var m800 = std('#073D12', { roughness: .5, metalness: .15 }), m950 = std('#031A08', { roughness: .5, metalness: .15 });
+    var lit = glowMat('#4AFF6B', '#0F6B20', .9); glows.push(lit);
+    var T = .355, G = .03, span = 4 * T + 3 * G, start = -span / 2 + T / 2, r = rng(7);
+    for (var row = 0; row < 4; row++) for (var col = 0; col < 4; col++) {
+      var q = (row < 2 ? 0 : 2) + (col < 2 ? 0 : 1);
+      var isLit = (row === 1 && col === 1) || (row === 2 && col === 2);
+      var d = isLit ? .2 : [.05, .09, .13][Math.floor(r() * 3)];
+      var mat = isLit ? lit : (q === 0 || q === 3 ? m800 : m950);
+      g.add(box(T, T, d, mat, start + col * (T + G), .02 + (span / 2 - T / 2) - row * (T + G), .825 + d / 2));
+    }
+    [[.56, '#72FF8A'], [.38, '#1FA835'], [.2, '#0F6B20']].forEach(function (b, i) {
+      g.add(box(.3, b[0], .3, std(b[1], { roughness: .45, metalness: .1 }), -.42 + i * .38, .925 + b[0] / 2, .15));
+    });
+    addNeck(g, glows, '#031A08', '#4AFF6B', '#0F6B20');
+    return { group: g, glows: glows };
+  }
+
+  /* ---------- stage setup ---------- */
+  function makeEnv(renderer, tint) {
+    var s = new THREE.Scene();
+    s.add(new THREE.Mesh(new THREE.SphereGeometry(10, 32, 16), new THREE.MeshBasicMaterial({ color: 0x0d0d10, side: THREE.BackSide })));
+    function panel(w, h, c, x, y, z) {
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide }));
+      m.position.set(x, y, z); m.lookAt(0, 0, 0); s.add(m);
+    }
+    panel(9, 4, 0xffffff, 0, 7, 3);
+    panel(3, 7, 0x9a9a9a, -7, 1, 4);
+    panel(3, 7, C(tint), 7, 1, -3);
+    var pm = new THREE.PMREMGenerator(renderer);
+    var tex = pm.fromScene(s, .02).texture; pm.dispose();
+    return tex;
+  }
+
+  var stages = [];
+  function makeStage(key, build, tint, bg, yaw) {
+    var card = cards[key], canvas = card.querySelector('canvas'), renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true }); }
+    catch (e) { failStage(card, 'This browser could not start WebGL, so the 3D head cannot render.'); return; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.setClearColor(0x000000, 0);
+    var scene = new THREE.Scene();
+    scene.environment = makeEnv(renderer, tint);
+    var cam = new THREE.PerspectiveCamera(30, 1, .1, 50);
+    cam.position.set(0, .3, 8.4); cam.lookAt(0, -.15, 0);
+    scene.add(new THREE.HemisphereLight(0xffffff, C(bg), .45));
+    var key1 = new THREE.DirectionalLight(0xffffff, 1.05); key1.position.set(-3, 4, 5); scene.add(key1);
+    var rim = new THREE.DirectionalLight(C(tint), 1.3); rim.position.set(3, 2, -4); scene.add(rim);
+    var fill = new THREE.DirectionalLight(0xffffff, .3); fill.position.set(4, -1, 3); scene.add(fill);
+    var head = build(), pivot = new THREE.Group();
+    pivot.add(head.group); scene.add(pivot);
+    if (head.fixed) scene.add(head.fixed);
+    var st = { card: card, canvas: canvas, renderer: renderer, scene: scene, cam: cam, head: head, pivot: pivot,
+      yaw: yaw, pitch: 0, dragging: false, visible: true, flash: card.querySelector('.flash'), hint: card.querySelector('.hint') };
+
+    function resize() {
+      var w = canvas.clientWidth, h = canvas.clientHeight; if (!w || !h) return;
+      renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+    }
+    resize();
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas); else window.addEventListener('resize', resize);
+
+    var lx = 0, ly = 0, pid = null;
+    canvas.addEventListener('pointerdown', function (e) {
+      pid = e.pointerId; st.dragging = true; lx = e.clientX; ly = e.clientY;
+      try { canvas.setPointerCapture(pid); } catch (err) {}
+      if (st.hint) st.hint.hidden = true;
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (!st.dragging || e.pointerId !== pid) return;
+      st.yaw += (e.clientX - lx) * .01;
+      st.pitch = Math.max(-.45, Math.min(.45, st.pitch + (e.clientY - ly) * .006));
+      lx = e.clientX; ly = e.clientY;
+    });
+    function end() { st.dragging = false; pid = null; }
+    canvas.addEventListener('pointerup', end); canvas.addEventListener('pointercancel', end);
+    canvas.addEventListener('keydown', function (e) {
+      var used = true;
+      if (e.key === 'ArrowLeft') st.yaw -= .2; else if (e.key === 'ArrowRight') st.yaw += .2;
+      else if (e.key === 'ArrowUp') st.pitch = Math.max(-.45, st.pitch - .1);
+      else if (e.key === 'ArrowDown') st.pitch = Math.min(.45, st.pitch + .1);
+      else used = false;
+      if (used) { e.preventDefault(); st.kbHold = 90; }
+    });
+    stages.push(st);
+  }
+
+  makeStage('gld', buildGLD, '#FFDC72', '#0D0900', -.55);
+  makeStage('red', buildRED, '#FF6B62', '#0D0100', -.45);
+  makeStage('blu', buildBLU, '#62AAFF', '#00050D', -.6);
+  makeStage('grn', buildGRN, '#72FF8A', '#010D04', -.5);
+
+  if (window.IntersectionObserver) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { stages.forEach(function (s) { if (s.canvas === en.target) s.visible = en.isIntersecting; }); });
+    });
+    stages.forEach(function (s) { io.observe(s.canvas); });
+  }
+
+  /* ---------- market state + turntable ---------- */
+  var mode = 'base', spin = !reduce;
+  var notes = {
+    base: 'Base: lit parts use each brand’s 500 accent.',
+    bull: 'Bull: each stage flashes its 500 at 10% for three frames, and lit parts burn brighter.',
+    bear: 'Bear: indicators drop from 500 to 700. Dimmed, still structurally present.'
+  };
+  function applyMode() {
+    var mult = mode === 'bull' ? 1.7 : mode === 'bear' ? .5 : 1;
+    stages.forEach(function (s) {
+      s.head.glows.forEach(function (m) {
+        var gl = m.userData.glow, c = mode === 'bear' ? gl.c700 : gl.c500;
+        m.color.copy(c); m.emissive.copy(c); gl.mult = mult;
+      });
+      if (s.head.band) s.head.band.value = s.head.bandBase * mult;
+    });
+    document.body.classList.toggle('bear', mode === 'bear');
+    document.getElementById('rule-note').textContent = notes[mode];
+    if (mode === 'bull' && !reduce) {
+      stages.forEach(function (s) { s.flash.classList.add('on'); });
+      var n = 0; (function tick() { if (++n < 3) return requestAnimationFrame(tick); stages.forEach(function (s) { s.flash.classList.remove('on'); }); })();
+    }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (b) {
+    b.addEventListener('click', function () {
+      mode = b.getAttribute('data-mode');
+      Array.prototype.forEach.call(document.querySelectorAll('.seg button'), function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); });
+      applyMode();
+    });
+  });
+  var spinBtn = document.getElementById('spin');
+  function syncSpin() { spinBtn.setAttribute('aria-pressed', spin ? 'true' : 'false'); spinBtn.textContent = spin ? 'On' : 'Off'; }
+  spinBtn.addEventListener('click', function () { spin = !spin; syncSpin(); });
+  syncSpin(); applyMode();
+
+  /* ---------- loop ---------- */
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(.05, (now - last) / 1000); last = now;
+    stages.forEach(function (s) {
+      if (!s.visible) return;
+      if (s.kbHold) s.kbHold--;
+      if (spin && !s.dragging && !s.kbHold) s.yaw += dt * .35;
+      if (!s.dragging && !s.kbHold) s.pitch *= .96;
+      s.pivot.rotation.set(s.pitch, s.yaw, 0);
+      if (s.head.update) s.head.update(dt);
+      s.head.glows.forEach(function (m) { var gl = m.userData.glow; m.emissiveIntensity = gl.base * (gl.mult || 1) * gl.flicker; });
+      s.renderer.render(s.scene, s.cam);
+    });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
