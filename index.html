@@ -281,7 +281,7 @@ const CFG_DEF=[
 ['pickupR','Rebate pickup radius (px)',55,'I'],
 ['magnetSpd','Rebate pull speed inside radius (px/s)',520,'I'],
 ['rebateDelay','Rebate processing delay before it posts (s, 0 = instant)',0,'I'],
-['Enemy reactions (design ref 2026-11-22)'],
+['Enemy reactions (design ref 2026-11-23)'],
 ['reactOn','Enemy reactions on (0 / 1)',1,'I'],
 ['brandMix','Enemy brands: 0 = all GRN, 1 = mixed by seed',1,'I'],
 ['reactCd','One reaction roll per enemy every (s)',2,'S'],
@@ -302,8 +302,10 @@ const CFG_DEF=[
 ['retDur','Retaliate: sprint duration (s)',2,'S'],
 ['retSpd','Retaliate: sprint speed multiplier',1.25,'S'],
 ['retCd','Retaliate: cooldown (s)',5,'S'],
-['tfR','GRN Task Force: call radius (px)',260,'I'],
-['tfDur','GRN Task Force: regroup time (s)',2,'I'],
+['fkScat','GRN Scatter: sideways break distance (px)',90,'I'],
+['fkScatSpd','GRN Scatter: break speed multiplier',1.6,'I'],
+['fkMax','GRN Flank: give up travelling after (s)',4,'I'],
+['fkCd','GRN Flank: cooldown per enemy (s)',6,'S'],
 ['reactDir','Director tilts reactions (Kill: Adrenaline, Drain: Hesitate) 0 / 1',1,'I'],
 ['Market'],
 ['tickSec','Base market tick (s)',20,'S'],
@@ -1001,10 +1003,11 @@ function maybeDodge(e,dx,dy){if(!canDodge(e))return;if(dx==null){const a=Math.ra
  e.roll={t:st[1],vx:px*st[0]*(dive?1.25:1),vy:py*st[0]*(dive?1.25:1),dive,spin:sd*(dive?4:16)};e.dodgeT=G.t+CFG.dodgeGap;G.st.dodges++;
  G.fx.push({k:'dust',x:e.x,y:e.y,t:.3,T:.3})}
 
-/* ================= ENEMY REACTIONS (design reference, 2026-11-22) =================
+/* ================= ENEMY REACTIONS (design reference, 2026-11-23) =================
    On a hit or a near-miss an enemy rolls one weighted reaction: archetype base weights + its brand's bias.
    One roll per enemy every reactCd seconds. Near-miss = it sat inside a round's enemy-only whiz sphere and the round never hit it.
-   RED biases are confirmed; GLD / BLU / GRN are the proposed ones. Base weights are placeholders. */
+   RED and GRN biases are confirmed; GLD / BLU are the proposed ones. Base weights are placeholders.
+   GRN Scatter & Flank: shot at, it breaks sideways off your aim line, then paths to a point 60-120 deg off your facing and re-engages from there. */
 const REACT_BASE={
  fodder:{hesitate:60,push:15,none:25},
  rusher:{hesitate:20,sightline:15,push:25,adrenaline:10,roll:15,none:15},
@@ -1014,9 +1017,9 @@ const REACT_BASE={
  flanker:{adrenaline:15,roll:20,none:65},
  shipper:{hesitate:10,sightline:40,roll:20,none:30},
  courier:{hesitate:40,none:60}};
-const REACT_BIAS={RED:{adrenaline:40,retaliate:25,push:10,sightline:-20,hesitate:-30},GLD:{push:30,hesitate:-20},GRN:{regroup:30},BLU:{}};
-const REACT_NAME={hesitate:'Hesitate',sightline:'Break Sightline',push:'Push Forward',adrenaline:'Adrenaline',retaliate:'Retaliate',roll:'Roll / dive',regroup:'Task Force',none:'No reaction'};
-const REACT_AB={hesitate:'HS',sightline:'SL',push:'PF',adrenaline:'AD',retaliate:'RT',regroup:'TF'};
+const REACT_BIAS={RED:{adrenaline:40,retaliate:25,push:10,sightline:-20,hesitate:-30},GLD:{push:30,hesitate:-20},GRN:{flank:40,sightline:10,hesitate:-15,push:-25},BLU:{}};
+const REACT_NAME={hesitate:'Hesitate',sightline:'Break Sightline',push:'Push Forward',adrenaline:'Adrenaline',retaliate:'Retaliate',roll:'Roll / dive',flank:'Scatter & Flank',none:'No reaction'};
+const REACT_AB={hesitate:'HS',sightline:'SL',push:'PF',adrenaline:'AD',retaliate:'RT',flank:'FL'};
 function reactWeights(e,trig){const base=REACT_BASE[e.type];if(!base)return null;const bias=REACT_BIAS[e.b]||{},w={};
  for(const k in REACT_NAME){
   let v=e.b==='BLU'?(base[k]!=null?20:0):(base[k]||0)+(bias[k]||0); // BLU: no bias, rolls everything its archetype can do flat
@@ -1024,7 +1027,8 @@ function reactWeights(e,trig){const base=REACT_BASE[e.type];if(!base)return null
   if(k==='adrenaline'&&trig!=='hit')v=0;
   if(k==='retaliate'&&(trig!=='near'||(e.retCdT||0)>G.t))v=0;
   if(k==='hesitate'&&e.adr>=CFG.adrMax&&e.adrT>G.t)v=0; // max Adrenaline ignores Hesitate
-  if(k==='sightline'&&G.en.filter(o=>!o.dead&&o.sl).length>=CFG.slCap)v=0;
+  if(k==='sightline'&&reposN()>=CFG.slCap)v=0;
+  if(k==='flank'&&(e.type==='flanker'||e.type==='courier'||(e.fkCdT||0)>G.t))v=0; // Flankers have their own flank; couriers are busy; 6 s cooldown
   if(k==='roll'&&!canDodge(e))v=0;
   if(v>0)w[k]=v}
  return w}
@@ -1038,6 +1042,22 @@ function sightSpot(e){const p=G.p,best={s:-1e9,x:0,y:0};let found=false;
   const ux=x-p.x,uy=y-p.y,l=hyp(ux,uy)||1,off=1-(ux*p.aimx+uy*p.aimy)/l; // 0 = dead ahead of Ed's aim, 2 = behind it
   const sc=off*120-rad*.35;if(sc>best.s){best.s=sc;best.x=x;best.y=y;found=true}}}
  return found?[best.x,best.y]:null}
+function reposN(){return G.en.filter(o=>!o.dead&&(o.sl||o.fk)).length} // the 3-enemy repositioner cap: Break Sightline + GRN scatter / flank
+function bark(e,txt){if((G.barkT||0)>G.t)return;G.barkT=G.t+1;float(e.x,e.y-e.r-30,txt,BRAND[e.b].acc)} // one bark a second, so a scattering group reads as one voice
+// GRN Scatter: preferred side is away from Ed's aim point; GRN enemies reacting together alternate sides so the group splits (pincer).
+function fkSide(e){const p=G.p,cr=p.aimx*(e.y-p.y)-p.aimy*(e.x-p.x);let s=Math.abs(cr)>20?Math.sign(cr):(G.rng()<.5?-1:1);
+ const L=G.fkLast;if(L&&G.t-L.t<.6&&hyp(L.x-e.x,L.y-e.y)<260)s=-L.s;return s}
+function scatterSpot(e,side){const p=G.p,nx=-p.aimy,ny=p.aimx; // perpendicular to the aim line
+ for(const s of[side,-side])for(const k of[1,.6]){const x=e.x+nx*s*CFG.fkScat*k,y=e.y+ny*s*CFG.fkScat*k;
+  if(x<20||y<20||x>W-20||y>HT-20||roomOf(x,y)!==roomOf(e.x,e.y)||inSolid(x,y)||!los(e.x,e.y,x,y))continue;const o={x,y,r:e.r};collide(o);if(hyp(o.x-x,o.y-y)>2)continue;return[x,y,s]}
+ return null}
+// GRN Flank: a point 60-120 deg off Ed's facing on the scatter side, at about the current range. Prefers out-of-view spots.
+function grnFlankSpot(e,side){const p=G.p,A=Math.atan2(p.aimy,p.aimx),d0=clamp(hyp(e.x-p.x,e.y-p.y),180,320);let best=null,bs=-1e9;
+ for(const s of[side,-side])for(const off of[90,75,105,60,120])for(const rad of[d0,d0*.8,d0*1.2]){const a=A+s*off*Math.PI/180,x=p.x+Math.cos(a)*rad,y=p.y+Math.sin(a)*rad;
+  if(x<20||y<20||x>W-20||y>HT-20||inSolid(x,y))continue;const rm=roomOf(x,y);if(rm!==roomOf(e.x,e.y)&&rm!==roomOf(p.x,p.y))continue;
+  const o={x,y,r:e.r};collide(o);if(hyp(o.x-x,o.y-y)>2)continue;
+  const sc=(los(x,y,p.x,p.y)?0:120)+(s===side?60:0)-Math.abs(off-90)*.8-hyp(x-e.x,y-e.y)*.08;if(sc>bs){bs=sc;best=[x,y]}}
+ return best}
 function react(e,trig,s){if(!CFG.reactOn||e.dead||e.boss||e.born>0)return;
  if(trig==='hit'&&e.adrT>G.t&&e.adr>0)addAdr(e); // Adrenaline: every hit after the first is fuel, and refreshes the timer
  if((e.reactT||0)>G.t)return;if(e.type==='flanker'&&(e.st==='charge'||e.st==='tele'))return;
@@ -1053,11 +1073,17 @@ function react(e,trig,s){if(!CFG.reactOn||e.dead||e.boss||e.born>0)return;
  case'adrenaline':addAdr(e);break;
  case'retaliate':e.retT=G.t+CFG.retDur;e.retCdT=G.t+CFG.retCd;e.hesT=0;break;
  case'roll':maybeDodge(e,s&&s.dx,s&&s.dy);break;
- case'regroup':for(const o of G.en)if(o!==e&&!o.dead&&!o.boss&&o.born<=0&&o.type!=='flanker'&&!o.sl&&hyp(o.x-e.x,o.y-e.y)<CFG.tfR)o.rally={x:e.x,y:e.y,t:G.t+CFG.tfDur};break}
+ case'flank':{const capped=reposN()>=CFG.slCap,sc=scatterSpot(e,fkSide(e)); // over the cap: scatter only, no flank route
+  if(!sc&&capped){pick='none';break}
+  const side=sc?sc[2]:fkSide(e);G.fkLast={t:G.t,x:e.x,y:e.y,s:side};
+  e.fk={x:sc?sc[0]:e.x,y:sc?sc[1]:e.y,side,t:G.t+.8,flank:!capped};e.fkCdT=G.t+CFG.fkCd;e.hesT=0;e.pushT=0;bark(e,"LET'S TAKE THIS OFFLINE");break}}
  reactPop(e,pick)}
 // Movement overrides. Returns true when the reaction owns this frame (no steering or attacks from the archetype).
 function reactMove(e,dt,dx,dy,d){
- if(e.sl){const g=e.sl;if(G.t>g.t||hyp(g.x-e.x,g.y-e.y)<24){e.sl=null;e.slBack=G.t+2;return false}
+ if(e.fk){const g=e.fk,gd=hyp(g.x-e.x,g.y-e.y); // GRN scatter leg, then hand the flank leg to the Break Sightline mover
+  if(G.t>g.t||gd<10){e.fk=null;if(g.flank){const f=grnFlankSpot(e,g.side)||sightSpot(e);if(f)e.sl={x:f[0],y:f[1],t:G.t+CFG.fkMax,f:bfs(f[0],f[1]),fk:1}}return false}
+  const ux=(g.x-e.x)/gd,uy=(g.y-e.y)/gd,sp=e.spd*CFG.fkScatSpd*reactSpd(e);e.x+=ux*sp*dt;e.y+=uy*sp*dt;faceTo(e,ux,uy,dt);return true}
+ if(e.sl){const g=e.sl;if(G.t>g.t||hyp(g.x-e.x,g.y-e.y)<24){e.sl=null;e.slBack=G.t+2;if(g.fk)bark(e,'CIRCLING BACK');return false}
   const v=(g.f&&flowDir(e,g.f))||[g.x-e.x,g.y-e.y].map(q=>q/(hyp(g.x-e.x,g.y-e.y)||1));e.x+=v[0]*e.spd*CFG.slSpd*reactSpd(e)*dt;e.y+=v[1]*e.spd*CFG.slSpd*reactSpd(e)*dt;faceTo(e,v[0],v[1],dt);return true}
  if(e.retT>G.t){const v=e.see?[dx/d,dy/d]:(flowDir(e,G.flow)||[0,0]);const sp=e.spd*CFG.retSpd*reactSpd(e);e.x+=v[0]*sp*dt;e.y+=v[1]*sp*dt;faceTo(e,v[0],v[1],dt);return true} // locked on, can't fire: the punish window
  return false}
@@ -1315,9 +1341,8 @@ function updEnemy(e,dt){const p=G.p,dx=p.x-e.x,dy=p.y-e.y,d=hyp(dx,dy)||1;
    else if(e.st==='charge'){mx=e.cdx;my=e.cdy;sp=620;if(!e.hitp&&d<reach+4){hurtPlayer(20,e);e.hitp=true}if(e.ct<=0){e.st='chase';e.ct=4.5}}
    else{const v=seek(e);mx=v[0];my=v[1];if(d<reach){mx=my=0;if(e.cd<=0){hurtPlayer(e.dmg,e);e.cd=e.atk}}if(e.ct<=0&&e.see&&d<560){e.st='tele';e.ct=.9}}break}
  }
- // reactions: Push Forward advances, Task Force regroups, Hesitate slows, and anyone walking into a hesitating body is stuck in its traffic
+ // reactions: Push Forward advances, Hesitate slows, and anyone walking into a hesitating body is stuck in its traffic
  if(e.pushT>G.t&&e.type!=='flanker'){const v=seek(e);if(d>reach){mx=v[0];my=v[1]}sp*=CFG.pushSpd}
- else if(e.rally&&e.rally.t>G.t&&e.type!=='flanker'){const rx=e.rally.x-e.x,ry=e.rally.y-e.y,rl=hyp(rx,ry);if(rl>e.r+34&&d>reach&&los(e.x,e.y,e.rally.x,e.rally.y)){mx=rx/rl;my=ry/rl}}
  sp*=reactSpd(e);
  if(e.hesT>G.t)sp*=CFG.hesSpd;
  else if(e.type!=='flanker'&&(mx||my)&&G.hes&&G.hes.length){for(const o of G.hes){if(o===e||o.dead)continue;const ox=o.x-e.x,oy=o.y-e.y;if(hyp(ox,oy)<e.r+o.r+8&&ox*mx+oy*my>0){const cap=o.spd*CFG.hesSpd;if(sp>cap){sp=cap;e.jam=G.t+.1}break}}}
@@ -1510,8 +1535,8 @@ function drawReact(e){const p=G.p,S=2;
  if(e.jam>G.t){cx.strokeStyle='rgba(13,13,13,.6)';cx.lineWidth=2;cx.setLineDash([3,3]);cx.beginPath();cx.arc(e.x,e.y,e.r+4,0,7);cx.stroke();cx.setLineDash([])}
  if(e.pushT>G.t){const a=Math.atan2(p.y-e.y,p.x-e.x),r=e.r+9;cx.fillStyle=BRAND[e.b].acc;cx.strokeStyle='#0d0d0d';cx.lineWidth=2;for(const o of[0,7]){cx.beginPath();cx.moveTo(e.x+Math.cos(a)*(r+o+7),e.y+Math.sin(a)*(r+o+7));cx.lineTo(e.x+Math.cos(a+.5)*(r+o),e.y+Math.sin(a+.5)*(r+o));cx.lineTo(e.x+Math.cos(a-.5)*(r+o),e.y+Math.sin(a-.5)*(r+o));cx.closePath();cx.fill();cx.stroke()}}
  if(e.retT>G.t){cx.strokeStyle=BRAND[e.b].col;cx.lineWidth=3;cx.setLineDash([10,6]);cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(p.x,p.y);cx.stroke();cx.setLineDash([]);cx.fillStyle='#0d0d0d';cx.font='900 14px "Archivo Black",sans-serif';cx.textAlign='center';cx.fillText('!',e.x,e.y-e.r-10);cx.textAlign='left'}
- if(e.sl){cx.strokeStyle='rgba(13,13,13,.45)';cx.lineWidth=2;cx.setLineDash([4,6]);cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(e.sl.x,e.sl.y);cx.stroke();cx.setLineDash([])}
- if(e.rally&&e.rally.t>G.t){cx.strokeStyle=BRAND.GRN.acc;cx.globalAlpha=.6;cx.lineWidth=2;cx.setLineDash([2,5]);cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(e.rally.x,e.rally.y);cx.stroke();cx.setLineDash([]);cx.globalAlpha=1}}
+ if(e.sl){if(e.sl.fk){cx.strokeStyle=BRAND.GRN.acc;cx.globalAlpha=.6}else cx.strokeStyle='rgba(13,13,13,.45)';cx.lineWidth=2;cx.setLineDash([4,6]);cx.beginPath();cx.moveTo(e.x,e.y);cx.lineTo(e.sl.x,e.sl.y);cx.stroke();cx.setLineDash([]);cx.globalAlpha=1}
+ if(e.fk){cx.strokeStyle='#0d0d0d';cx.lineWidth=6;cx.beginPath();cx.arc(e.x,e.y,e.r+5,0,7);cx.stroke();cx.strokeStyle=BRAND.GRN.acc;cx.lineWidth=3;cx.stroke()}} // Bloom-magenta flash on the sideways hop
 function plateShape(x,y,rot,b,s){const r=s==='M'?11:8;cx.save();cx.translate(x,y);cx.rotate(rot||0);cx.lineCap='round';cx.strokeStyle='#0d0d0d';cx.lineWidth=r*.9+3;cx.beginPath();cx.arc(0,r*.5,r,-2.5,-.64);cx.stroke();cx.strokeStyle=BRAND[b].col;cx.lineWidth=r*.9;cx.stroke();cx.restore();cx.lineCap='butt'}
 function drawPlates(e){if(!e.p0)return;const n=e.p0,seg=Math.PI*2/n,R=e.r+(e.type==='rusher'||e.type==='ranged'?7:5);
  for(let i=0;i<e.plates;i++){const a=e.rot+i*seg-Math.PI/2;cx.strokeStyle='#0d0d0d';cx.lineWidth=8;cx.beginPath();cx.arc(e.x,e.y,R,a+seg*.12,a+seg*.88);cx.stroke();cx.strokeStyle=e.flash>0?'#fff':BRAND[e.b].col;cx.lineWidth=4.5;cx.stroke();cx.strokeStyle=BRAND[e.b].acc;cx.lineWidth=1.2;cx.beginPath();cx.arc(e.x,e.y,R-2,a+seg*.12,a+seg*.88);cx.stroke()}
@@ -2085,8 +2110,9 @@ function showStart(){paused=true;
  <li><b>Enemies react to being shot and shot at.</b> A hit, or a near-miss (a round passing through its whiz sphere without hitting it), rolls one reaction from a weighted table: archetype base weights plus a brand bias. One roll per enemy every ${CFG.reactCd} s. Misses still cost money, but near-misses now buy suppression.</li>
  <li><b>Hesitate</b> (three dots): slows to ${Math.round(CFG.hesSpd*100)}% for ${CFG.hesMin} to ${CFG.hesMax} s. Mostly Temps; anyone walking into a hesitating body is stuck in its traffic (dashed ring). Flankers push through. <b>Break Sightline</b> (dashed path): moves out of your view, to the side of your aim, then comes back from that angle; at most ${CFG.slCap} at once. <b>Push Forward</b> (chevrons): advances faster for ${CFG.pushDur} s. <b>Roll / dive</b>: the old flavor roll, now one entry in the table.</li>
  <li>${chip('RED')} <b>gets angrier</b> (confirmed): Adrenaline +40, Retaliate +25, Push +10, Sightline -20, Hesitate -30. <b>Adrenaline</b> (coolant ring): +${Math.round(CFG.adrMove*100)}% move and +${Math.round(CFG.adrAtk*100)}% attack rate per stack, up to ${CFG.adrMax}; every further hit adds a stack and refreshes the ${CFG.adrDur} s timer; at max it vents steam and ignores Hesitate. <b>Retaliate</b> (near-miss only, line and !): sprints at you at +${Math.round((CFG.retSpd-1)*100)}% for ${CFG.retDur} s and can't fire, then a ${CFG.retCd} s cooldown.</li>
- <li>Proposed biases: ${chip('GLD')} pushes forward and drags nearby Temps with it. ${chip('BLU')} has no bias and rolls everything its archetype can do flat. ${chip('GRN')} Task Force calls allies within ${CFG.tfR} px to regroup on it for ${CFG.tfDur} s, which bunches them up for area damage.</li>
- <li>Each reaction pops a pixel badge: HS, SL, PF, AD, RT, TF. The Director tilts the table: Kill adds weight to Adrenaline, Drain to Hesitate.</li>
+ <li>Proposed biases: ${chip('GLD')} pushes forward and drags nearby Temps with it. ${chip('BLU')} has no bias and rolls everything its archetype can do flat. </li>
+ <li>${chip('GRN')} <b>Scatter &amp; Flank</b> (confirmed 2026-11-23, replaces Task Force): Flank +40, Sightline +10, Hesitate -15, Push -25. Shot at, it hops ${CFG.fkScat} px sideways off your aim line (magenta ring), away from your aim point; GRN enemies reacting together alternate sides, so a group splits around you. Then it paths (magenta dashed line) to a spot 60 to 120 deg off your facing, preferring cover, and comes back at you from the side. No flank spot: falls back to Break Sightline. Counts toward the cap of ${CFG.slCap}; over the cap it only scatters. ${CFG.fkCd} s cooldown. Not available to Flankers or Couriers.</li>
+ <li>Each reaction pops a pixel badge: HS, SL, PF, AD, RT, FL. The Director tilts the table: Kill adds weight to Adrenaline, Drain to Hesitate.</li>
  <li>To make brand patterns visible, store enemies now roll a primary brand from the seed (Tuning: Enemy brands, 0 puts everything back to GRN).</li></ul>
  <b class="hd">New in this pass: rebates</b><ul>
  <li><b>Enemies drop rebate slips, not cash.</b> A slip carries the enemy's brand. Its value is the old payout scaled by that brand's share price against its baseline, so a GLD enemy in Bull pays more than one in Bear.</li>
@@ -2151,7 +2177,7 @@ function showStart(){paused=true;
  <li><b>Survivors pass:</b> a Temp kill counts ${CFG.fodderCombo} toward combo and the market kill nudge, and is left out of the Director's kills/min, so a horde alone does not max the combo or trip Tier 3.</li>
  <li><b>Survivors pass:</b> kill rebates and the performance bonus are credited on pickup, not on the kill. Drops inside the pickup radius are pulled through shelves. Smash cash and the Positive-stance refund still pay instantly.</li>
  <li><b>Survivors pass:</b> BudgetReplenishRate is raised from 2 to 3 per second so bulk orders do not starve the Director's regular spawns.</li>
- <li><b>Reactions pass:</b> the archetype base weights, the whiz sphere (${CFG.whizR} px beyond the body), the GLD drag radius, Task Force radius and time, Push Forward speed and the Director tilt are invented. Bosses don't react. Break Sightline gives up after ${CFG.slMax} s if it can't reach cover. RED's Retaliate needs a near-miss, and Adrenaline needs a hit.</li>
+ <li><b>Reactions pass:</b> the archetype base weights, the whiz sphere (${CFG.whizR} px beyond the body), the GLD drag radius, GRN scatter distance, flank angles and cooldown, Push Forward speed and the Director tilt are invented. Bosses don't react. Break Sightline gives up after ${CFG.slMax} s if it can't reach cover. RED's Retaliate needs a near-miss, and Adrenaline needs a hit.</li>
  <li><b>Reactions pass:</b> brands are rolled per enemy for testing; the design's "Target buys hired brand units" would decide this in a real day. Same-brand ammo is still Neutral here, so RED on RED skips the relationship web until self-stances are built.</li>
  <li><b>Rebates pass:</b> rebate value = old payout x enemy brand Worth / baseline Worth, so pacing at baseline is unchanged. Paying down a card earns no XP. GRN Dividend, smash cash and plate loot still pay cash directly.</li>
  <li><b>This pass:</b> enemy outlines through shelves were part of the BLU HUD ladder and were not on your default list, so enemies you have no line of sight to stay hidden (and off the map).</li>

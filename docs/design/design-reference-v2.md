@@ -2,7 +2,7 @@
 
 Design Reference  //  Systems, Math & Headlines
 
-*Revised 2026-10-30 (hygiene pass). Now the single source for market states and headlines; market_states_v3 is retired. New: Fence & Hoard section and expanded Open Questions.*
+*Revised 2026-11-23 (GRN enemy reaction bias changed to Scatter & Flank). Previous revision 2026-11-22 (market fixes pass; Enemy Reactions section added). Momentum decay, saturating nudges, zone-boosted recovery, seeded sine phase, Worth^0.7 damage, heal speed by provider Worth, numeric Floor / Recovery thresholds, and one Worth scale with a Price Bases table. Previous revision 2026-10-30 (hygiene pass). This is the single source for market states and headlines; market_states_v3 is retired.*
 
 **GLOSSARY**
 
@@ -10,26 +10,27 @@ Key terms used throughout this document. All values are runtime variables unless
 
 | **TERM** | **DEFINITION** |
 | --- | --- |
-| **Worth** | Float 0.0 to 1.0. The current market value of a brand. Directly maps to per-round price ($0.00 to $1.00) and damage output. The primary market variable. |
+| **Worth** | Float 0.01 to 1.00. The current market value of a brand and the only Worth scale in the game. Every price is Worth x a base from the Price Bases table. Drives damage output (Worth^0.7). The primary market variable. |
 | **Baseline Worth** | Design constant. The resting value Worth oscillates around per brand. GLD: 0.62, RED: 0.58, BLU: 0.45, GRN: 0.40. |
 | **Volatility** | Integer 0 to 5. Amplitude multiplier on the sinusoidal engine. Higher = larger price swings per tick. |
-| **Momentum** | Integer -3 to +3. Directional pressure applied to Worth each tick. Positive pushes up, negative pushes down. |
-| **Recovery Rate** | Integer 0 to 5, or R (BLU random). Speed at which Worth drifts back toward Baseline after an event. 0 = frozen. |
+| **Momentum** | Integer -3 to +3. Directional pressure applied to Worth each tick. Positive pushes up, negative pushes down. Baseline is 0 for every brand. Market events set it to +3 / -3; it then decays one step toward 0 every 4 ticks. |
+| **Recovery Rate** | Integer 0 to 5, or R (BLU random). Speed at which Worth drifts back toward Baseline. Doubled while Worth is in the Bull or Bear zone. 0 = frozen. |
 | **Liquidity** | Integer 0 to 5. Controls shop ammo availability and how much player actions move the price. 0 = ammo absent. |
-| **Base Tick** | The 20-second timer cycle. Primary cadence for sinusoidal update, recovery drift, and Sudden Death debt increment. |
-| **Event Trigger** | Immediate market update fired by player action (kill, purchase, combo change, threshold crossing). Fires on top of base tick. |
+| **Sine Phase** | Per-brand offset (0 to 2π) rolled from MarketStream at Wake-Up so the four brands do not peak and dip together. |
+| **Base Tick** | The 20-second timer cycle. Primary cadence for sinusoidal update, recovery drift, momentum decay, and Sudden Death debt increment. |
+| **Event Trigger** | Immediate market update fired by player action (kill, purchase, combo change, threshold crossing). Adds on top of the base tick; never replaces it. |
 | **Foreshadow Headlines** | Ticker headlines that run before a threshold is crossed. Signal to attentive players that a market event is coming. |
 | **Triggered Headlines** | Ticker headlines that fire when a threshold is crossed. Reflect the brand identity spin on the market state. |
 | **Pre-State** | Market metric values during the foreshadow window — the conditions heading into a threshold. |
 | **Effect State** | Market metric deltas that apply instantly when a threshold is crossed. |
-| **Threshold** | A Worth value that triggers a market event. Four per brand: Bull (above 75%), Bear (below 25%), Floor (absolute bottom), Recovery (climbing from below 25%). |
+| **Threshold** | A Worth value that triggers a market event. Four per brand: Bull (above 0.75), Bear (below 0.25), Floor (at or below 0.05), Recovery (leaving Floor: back above 0.10, or automatically after 6 ticks at Floor). |
 | **Performance Bonus** | End-of-level payout. Combo multiplier x total earnings during level. Paid to Savings at Settlement (Walk Home). Currently the only path to Savings growth; under revision, see Fence & Hoard. |
 | **Sudden Death** | Player state triggered when cash goes negative after a heal bill. Next hit = instant death (which triggers the Zero HP flow). Debt accumulates each tick until cleared. Accepting a loan clears the negative balance. |
 | **Combo Multiplier** | Float scaling with tier (Bronze through InDebtEd!!!). Applied to earnings and performance bonus. Degrades over time without kills. |
 | **Credit Card** | Purchasable item. Grants a credit line usable in shops. Card abilities scale with % of credit used. Challenges grow the credit line. |
-| **Provider** | Player-chosen brand for healing. Heal cost per HP = provider brand Worth at time of charge. Also prices the Medical Bill. |
+| **Provider** | Player-chosen brand for healing. Heal cost per HP = provider Worth x $1.00 at time of charge. Heal speed also scales with provider Worth — cheap providers heal slowly. Also prices the Medical Bill. |
 | **Medical Cost** | Savings deduction when a run ends. Permanent career penalty. Amount determined by run circumstances. |
-| **Nudge** | Small immediate Worth adjustment from a player action. Kill nudge: +0.01 x Liquidity. Purchase nudge: spend / 100. |
+| **Nudge** | Small immediate Worth adjustment from a player action. Saturating: upward nudges are scaled by (1 − Worth), downward nudges by Worth. Kill nudge: 0.005 x Liquidity. Purchase nudge: 0.0005 x Liquidity per round bought. |
 | **Day** | One run. Generated in full at Wake-Up from a single Day Seed. |
 | **Day Seed** | Integer that drives all day generation. Each system derives its own sub-stream so tuning one system never shifts another. Shown on the morning paper as the edition number. |
 | **Player Position** | Snapshot taken at Wake-Up: Savings, credit line size, card levels. Scales the Target Budget. Cash is not included. |
@@ -49,6 +50,8 @@ Key terms used throughout this document. All values are runtime variables unless
 | **Steal / Smash** | Choice on melee against a breakable object. Smash pays cash now. Steal bags the item as loot to sell at the Walk Home. |
 | **Hoard** | Unsold stolen loot, carried over between days and stored in the player's apartment. One wall stretches backward as it grows. |
 | **Decay** | Every looted item expires 3 days after it was stolen. Unsold items are lost. |
+| **Reaction Table** | Per-enemy weighted list of reactions rolled on a hit or near-miss. Base weights from archetype, bias from brand. See Enemy Reactions. |
+| **Near-Miss** | A projectile passing within its enemy-only whiz sphere of an enemy without hitting it. Triggers a reaction roll. Misses still cost money, so near-misses buy suppression. |
 
 **IMPLEMENTATION TO-DO  //  PRIORITY ORDER**
 
@@ -57,9 +60,9 @@ Ordered by what is needed to close the core gameplay loop first. Items marked PR
 | **STATUS** | **SYSTEM** | **NOTES** |
 | --- | --- | --- |
 | **PROTOTYPE** | **Combo system** | Kill increments counter, timer resets on kill, timer expiry breaks combo. BP_ComboManager on Player Controller. Tier thresholds: Bronze 1-4, Silver 5-9, Gold 10-19, Platinum 20-34, InDebtEd!!! 35+. |
-| **PROTOTYPE** | **Ammo economy / stock market** | Sinusoidal engine, base tick timer, Worth variable per brand, per-round price output. Prices must move in response to player behavior before any downstream system works. |
+| **PROTOTYPE** | **Ammo economy / stock market** | Sinusoidal engine, base tick timer, Worth variable per brand, per-round price output. Needs the 2026-11-22 market fixes: seeded sine phase, momentum decay, zone-boosted recovery, saturating additive nudges, Worth^0.7 damage, numeric Floor / Recovery. |
 | **TODO** | **Performance bonus** | Combo multiplier x earnings tracker. Accumulates during level, paid out to Savings at Settlement. Degrades over time to discourage camping. Visible only with starter credit card at 50% usage. |
-| **TODO** | **Market event system** | Threshold monitors per brand. Bull above 75%, Bear below 25%, Floor at bottom, Recovery climbing back. Each fires effect state values instantly and triggers headline rotation. |
+| **TODO** | **Market event system** | Threshold monitors per brand. Bull above 0.75, Bear below 0.25, Floor at or below 0.05, Recovery back above 0.10 (or 6 ticks at Floor). Each fires effect state values instantly and triggers headline rotation. |
 | **TODO** | **News ticker / in-level displays** | UMG scrolling ticker. Foreshadow headlines during normal play. Triggered headlines on threshold crossing. Constant velocity scroll, pause on market events. |
 | **TODO** | **Foreshadow headlines** | Pre-threshold headline rotation. Fires approximately 60s (3 ticks) before projected threshold crossing based on current momentum and trajectory. Not guaranteed — momentum can shift. |
 | **TODO** | **In-level marketing assets** | Spawnable billboards, storefront banners, digital screens. Placed by level generator at tagged socket locations. Each actor pulls correct brand copy from DataTable at spawn. Tied to foreshadow state. |
@@ -71,6 +74,7 @@ Ordered by what is needed to close the core gameplay loop first. Items marked PR
 | **TODO** | **Morning paper** | Relationship headlines (dueling statements) + Target Article. Rendered on WBP_NewsPanel. |
 | **TODO** | **Loan + death flow** | 0 HP offer UI (two offers), four-tier brand ladders, debuff application, checkpoint respawn, Medical Bill, boss fight restart. |
 | **TODO** | **Debt collectors** | Free mob. Spawn cap scaled by outstanding balance. Wage garnishment on hit. Spawns in store and boss arena. |
+| **TODO** | **Enemy reaction layer** | Weighted reaction table per enemy (archetype base + brand bias), 2s per-enemy cooldown, enemy-only whiz sphere on projectiles for near-misses, EQS for out-of-sight and flank points, max 3 simultaneous repositioners. RED and GRN biases first. See Enemy Reactions. |
 | **TODO** | **Settlement (Walk Home)** | Loan auto-repaid from cash, shortfall = run over, then performance bonus payout. Stolen loot sold here. No combat after leaving the store. |
 | **TODO** | **Fence & Hoard** | Steal / smash choice on breakables, loot bag, Walk Home sale screen, apartment hoard with stretching wall, 3-day decay. See Fence & Hoard. |
 | **TODO** | **Easter egg shrine rooms** | Two rooms under GLD. The Reliquary (games) and The Sanctuary (people). GLD diagonal geometry throughout. Reliquary: high ceiling, central altar, 9 game pedestals. Sanctuary: chapel scale, no brand glyph on back wall, 13 personal shrines. |
@@ -107,7 +111,7 @@ Everything resolves when the player wakes up. Tentative stances do not resolve m
 
 5. Run Target shopping — fill budget bands, filtered by the web
 
-6. Seed the market — each brand starts at Baseline Worth
+6. Seed the market — each brand starts at Baseline Worth, Momentum 0, and a Sine Phase rolled from MarketStream
 
 7. Generate the news — relationship headlines + Target Article
 
@@ -150,7 +154,7 @@ Each pair of brands holds one symmetric stance, rolled at Wake-Up and fixed for 
 | --- | --- | --- | --- | --- |
 | **Neutral** | Baseline | No interaction | None | Baseline |
 | **Positive** | -20% damage. Kill refunds 25% of round cost | Support: tag +1 charge, tag price halved | Shared fate (see below) | -15% heal cost |
-| **Negative** | +25% damage. Double kill nudge to ammo brand. Rival -0.01 Worth per kill | Conflict: existing passive / active debuffs | Inverse (see below) | +15% heal cost |
+| **Negative** | +25% damage. Double kill nudge to ammo brand. Rival -0.01 x RivalWorth per kill | Conflict: existing passive / active debuffs | Inverse (see below) | +15% heal cost |
 | **Tentative** | Damage rolls 0.8x – 1.3x per hit | Each shot rolls support or conflict | None | Baseline |
 
 **COMBAT RESOLUTION RULES**
@@ -171,7 +175,7 @@ Same-brand ammo vs enemy = Neutral.
 | **Bear** | A -0.02 | A +0.03 |
 | **Floor** | A -0.05, A Liquidity -1 | A +0.05, A Liquidity +1 |
 
-Sympathy nudges fire with the threshold event and follow the existing nudge priority order.
+Sympathy nudges fire with the threshold event. Like every nudge, they add on top of the tick; they are flat values (not saturating) because they come from rare threshold events, not repeated player actions.
 
 **THE ROLL  //  triangle balance**
 
@@ -273,7 +277,9 @@ Debt collectors can also spawn in the boss arena if the player owes a loan.
 
 **STOCK PRICE MATH  //  WORTH CALCULATION**
 
-All formulas operate on Worth as a float 0.0 to 1.0. Worth is always clamped to 0.01 minimum (never true zero) and 1.0 maximum after any operation.
+All formulas operate on Worth as a float 0.01 to 1.00. This is the only Worth scale: UI may display it as 1–100, but no system stores or prices on another scale. Worth is clamped to 0.01 minimum (never true zero) and 1.00 maximum after any operation.
+
+Tick order, every 20s per brand: 1. Sine + momentum  →  2. Recovery drift  →  3. Momentum decay  →  4. Threshold checks. Player nudges apply immediately when they happen and add on top; they never cancel or replace a tick.
 
 **SINUSOIDAL ENGINE  //  fires every 20s base tick**
 
@@ -281,9 +287,11 @@ Amplitude    A = VOL x 0.02                        Range: 0.00 to 0.10
 
 Frequency    F = 0.1 (fixed)                       1 full cycle = 10 ticks / 200s
 
+Phase        φ = MarketStream roll, 0 to 2π         One per brand, rolled at Wake-Up
+
 Mom. Offset  M = MOM x 0.01                        Range: -0.03 to +0.03
 
-Sine Value   S = A x sin(2 x PI x F x t)
+Sine Value   S = A x sin(2 x PI x F x t + φ)
 
 Apply        Worth += S + M
 
@@ -295,57 +303,102 @@ Example: VOL 0, MOM  0  ->  A=0.00, M=0.00,  frozen — no movement
 
 Note: S is added every tick, so Worth accumulates the sine. The per-tick change is at most ±A, but the cumulative swing over half a cycle is about 3.1 × A (VOL 2 ≈ 0.12 peak to trough), before recovery drift damps it.
 
+Note: without φ, every brand shares t and F and moves in lockstep. The per-brand phase keeps their cycles apart, so one brand can be peaking while another dips.
+
+**MOMENTUM DECAY  //  fires every 20s base tick after recovery**
+
+Baseline     MOM = 0 for every brand. Brand character comes from Baseline Worth, Volatility and Recovery, not a standing lean.
+
+Market event MOM = +3 or -3 (replaces current Momentum; the decay counter restarts)
+
+Decay        Every 4 ticks (80s), MOM moves one step toward 0
+
+Shock length +3 / -3 lasts 12 ticks (4 min) before Momentum is back to 0
+
+Total push   (3 + 2 + 1) x 4 ticks x 0.01 = 0.24 Worth before recovery drift
+
+Simulated result (no player input): a -3 event takes RED from 0.58 to about 0.39 and GRN from 0.40 into Bear (about 0.23) within 5 ticks, then both drift back to baseline within about 5 minutes. A +3 event takes GLD into Bull (about 0.84) for roughly 3 minutes.
+
+Note: this resolves the old momentum equilibrium problem. Constant momentum used to settle Worth at Baseline + MOM / REC, which parked GLD permanently in Bull (about 0.87) and GRN near Floor (about 0.07). With decay, the long-run equilibrium is Baseline.
+
 **RECOVERY DRIFT  //  fires every 20s base tick after sine**
 
 Difference   D = BaselineWorth - CurrentWorth
 
-Drift Step   Step = D x REC x 0.01
+Zone boost   REC_eff = REC x 2 if Worth > 0.75 (Bull) or Worth < 0.25 (Bear), else REC
+
+Drift Step   Step = D x REC_eff x 0.01
 
 Apply        Worth += Step
 
-Skip if      REC == 0 (frozen — awaiting trigger event)
+Skip if      REC == 0 (frozen — awaiting trigger event), or the brand is at Floor
 
-BLU special  REC = random roll 0 to 5 each tick
+BLU special  REC = random roll 0 to 5 each tick (the zone boost doubles the roll)
 
-Example: Worth 0.20, Baseline 0.62, REC 3  ->  D=0.42, first Step=+0.013  half the gap closed in ~23 ticks / 7.6 min
+Example: Worth 0.20, Baseline 0.62, REC 3  ->  D=0.42, in Bear zone REC_eff=6, first Step=+0.025
 
-Example: Worth 0.20, Baseline 0.62, REC 5  ->  D=0.42, first Step=+0.021  half the gap closed in ~14 ticks / 4.5 min
+Example: Worth 0.50, Baseline 0.62, REC 5  ->  D=0.12, normal zone REC_eff=5, Step=+0.006
 
 Example: Worth 0.20, Baseline 0.62, REC 0  ->  frozen, no drift until recovery event fires
 
-Note: the step shrinks as the gap shrinks, so Worth approaches baseline exponentially and never fully arrives. Half-life in ticks = ln 0.5 / ln(1 − REC × 0.01): REC 1 ≈ 69, REC 2 ≈ 34, REC 3 ≈ 23, REC 4 ≈ 17, REC 5 ≈ 14.
+Note: the step shrinks as the gap shrinks, so Worth approaches baseline exponentially and never fully arrives. Half-life in ticks in the normal zone = ln 0.5 / ln(1 − REC × 0.01): REC 1 ≈ 69, REC 2 ≈ 34, REC 3 ≈ 23, REC 4 ≈ 17, REC 5 ≈ 14. In the Bull / Bear zones the half-life is roughly halved.
 
-Note: constant momentum and recovery settle at an equilibrium of Worth = Baseline + MOM / REC. See Open Questions (Momentum equilibrium).
+Note: the zone boost is the "overbought / oversold" correction. Players can still hold a brand in Bull by killing steadily, but the market pushes back harder the further it is pushed.
 
-**EVENT NUDGES  //  fire immediately, override next tick adjustment**
+**EVENT NUDGES  //  fire immediately, add on top of the tick**
 
-Kill nudge       Worth += 0.01 x Liquidity          Max at LIQ 5: +0.05
+Saturation   Upward nudges are multiplied by (1 − Worth). Downward nudges are multiplied by Worth. Each push gets weaker the closer the brand is to the ceiling or the floor.
 
-Purchase nudge   Worth += SpendAmount / 100         Ex: $6.20 spend = +0.062
+Kill nudge       Worth += 0.005 x Liquidity x (1 − Worth)        Ex: LIQ 4 at 0.62 = +0.0076
 
-Combo tier up    Worth += 0.03  (active brand)
+Purchase nudge   Worth += 0.0005 x Liquidity x Rounds x (1 − Worth)    Ex: 50 rounds, LIQ 4 at 0.62 = +0.038
 
-Combo break      Worth -= 0.05  (active brand)
+Other purchase   Counts as Spend / RoundPrice rounds of that brand, capped at +0.05 per purchase
 
-Threshold event  Apply full effect state instantly   Overrides all other nudges
+Combo tier up    Worth += 0.03 x (1 − Worth)  (active brand)
 
-Priority order if multiple fire same frame:
+Combo break      Worth -= 0.05 x Worth  (active brand)
 
-1. Threshold event  (highest — overrides all)
+Rival kill       RivalWorth -= 0.01 x RivalWorth  (Negative stance only)
 
-2. Combo change
+Threshold event  Apply full effect state instantly
 
-3. Kill nudge
+All nudges stack additively and none of them suppress the base tick. If a threshold event fires in the same frame as other nudges, its effect state applies last.
 
-4. Purchase nudge   (all stack additively)
+Simulated steady state (45 ticks, no market events) — the ammo brand settles at:
+
+| **KILLS PER 20s TICK** | **GLD** | **RED** | **BLU** | **GRN** |
+| --- | --- | --- | --- | --- |
+| **0 (no player)** | 0.57–0.73 | 0.49–0.67 | 0.43–0.50 | 0.34–0.48 |
+| **1** | 0.77 | 0.68 | 0.66 | 0.65 |
+| **3** | 0.85 | 0.78 | 0.80 | 0.78 |
+| **7 (hordes)** | 0.93 | 0.87 | 0.89 | 0.87 |
+
+Previous formulas pinned every brand at 1.00 within 1–12 ticks at as little as one kill per tick. Now heavy play earns a Bull market without locking it at the ceiling.
+
+**FLOOR AND RECOVERY  //  numeric thresholds**
+
+Floor enter     Worth <= 0.05
+
+At Floor        Volatility 0, Momentum 0, Recovery frozen, Liquidity 0 (ammo leaves shops, kill nudges do nothing). Brands at Floor do not lend or buy.
+
+Recovery fires  Worth rises above 0.10 (sympathy nudges, market events), OR the brand has spent 6 ticks (2 min) at Floor
+
+Recovery effect Worth = max(Worth, 0.10) + 0.15. Momentum +2 (then decays as normal). Volatility, Recovery Rate and Liquidity return to Baseline values. Recovery headlines fire.
+
+Simulated result: every brand forced to Floor recovers within 6 ticks and lands at about 0.25–0.36, then drifts back toward baseline.
+
+Note: the +0.15 spike is the engine default until effect-state units are settled (see Open Questions). The brand tables' Recovery Worth values (GLD +25%, RED +30%, BLU +35%, GRN +20%) replace it once converted.
 
 **OUTPUT FORMULAS  //  derived from Worth each tick**
 
-Price per round    Price = Worth x $1.00
+Price per round    Price = AmmoWorth x $1.00 + Sum(TagWorth x $0.01)  (see Price Bases)
 
-Damage output      Damage = Worth x MaxDamage
+Damage output      Damage = MaxDamage x Worth^0.7
 
 Heal cost per HP   HealCost = ProviderWorth x $1.00
+
+Heal speed         HealRate = BaseHealRate x (0.25 + 0.75 x ProviderWorth)  (BaseHealRate starting value 10 HP/s)
 
 Full heal bill     Bill = HealCost x HP_Recovered
 
@@ -360,6 +413,27 @@ Medical Bill       Bill = ProviderWorth x MaxHP x 2.0  (decline loan, respawn at
 Loan amount        Amount = LadderBase x LenderWorth x 1.6  (frozen at acceptance)
 
 Loan repayment     Repay = Amount x (1 + APR)  (auto-deducted from cash at Settlement)
+
+Projectile spec    Damage = BaseDamageEvent x Brand.Worth^0.7 x PriceMultiplier x DamageMultiplier  (Worth read live at impact; PriceMultiplier frozen at spawn)
+
+Note: the 0.7 exponent breaks the flat cost per kill on purpose. Price rises 1:1 with Worth but damage rises more slowly, so a high-Worth brand kills faster but costs more per kill. A Bull brand (0.85) costs about 44% more per kill than a Bear brand (0.25) and kills about 2.4x faster.
+
+**PRICE BASES  //  one Worth scale, one table of bases**
+
+Every price in the game is Worth (0.01–1.00) x a base from this table. No system uses a different Worth scale.
+
+| **ITEM** | **FORMULA** | **AT WORTH 0.62** | **NOTES** |
+| --- | --- | --- | --- |
+| **Ammo round** | AmmoWorth x $1.00 | $0.62 | Replaces the projectile spec's AmmoType.Worth x $100 |
+| **Loaded tag** | TagWorth x $0.01 per tag per round | $0.0062 | Keeps the old 100 : 1 ammo-to-tag ratio |
+| **Heal** | ProviderWorth x $1.00 per HP | $62 per 100 HP | Stance modifier ±15% on top |
+| **Share** | Worth x $10.00 | $6.20 | Stock trading (loop step 5) |
+| **Card ability charge** | Worth x $10.00 per use | $6.20 | RED dash, GRN jump, BLU Zap. GLD sprint is charged per step — see Open Questions |
+| **Loan** | LadderBase x LenderWorth x 1.6 | $50–$496 | Unchanged |
+| **Punchables** | ItemBase x Worth | TBD | Item bases to be set |
+| **Loot sale (proposed)** | ItemBase x Worth at Settlement | TBD | See Fence & Hoard |
+
+Reference wallet: $250 starting card limit, $1000 BANK card in testing. At these bases a baseline engagement (5 enemies) costs about $12 and a full 100 HP heal about $62, so healing is the larger money sink.
 
 **CLAMP  //  applied after every operation**
 
@@ -384,6 +458,8 @@ All market metrics use fixed numerical scales. Labels in the threshold tables ma
 
 **MOMENTUM  //  directional pressure on worth per tick**
 
+Baseline 0. Set to ±3 by market events, then decays one step toward 0 every 4 ticks.
+
 | **VALUE** | **LABEL** | **MEANING** |
 | --- | --- | --- |
 | **-3** | Negative, steep | Accelerating hard downward |
@@ -395,6 +471,8 @@ All market metrics use fixed numerical scales. Labels in the threshold tables ma
 | **+3** | Positive, aggressive | Accelerating hard upward |
 
 **RECOVERY RATE  //  speed of drift back to baseline after event**
+
+Doubled while Worth is in the Bull (> 0.75) or Bear (< 0.25) zone.
 
 | **VALUE** | **LABEL** | **MEANING** |
 | --- | --- | --- |
@@ -424,18 +502,20 @@ Hybrid system — base timer tick every 20 seconds with event triggers firing im
 | **EVENT** | **CADENCE** | **TYPE** | **NOTES** |
 | --- | --- | --- | --- |
 | **Base market tick** | Every 20s | Timer | Core sinusoidal cycle. Worth shifts, momentum nudges, recovery pulls toward baseline. |
-| **Sinusoidal worth update** | Every tick | Timer | Volatility value determines amplitude of each shift. |
+| **Sinusoidal worth update** | Every tick | Timer | Volatility value determines amplitude of each shift. Per-brand phase. |
+| **Momentum decay** | Every 4 ticks | Timer | Momentum moves one step toward 0. Counter restarts when a market event sets Momentum. |
 | **Liquidity recalculation** | Every tick | Timer | Shop inventory and price responsiveness updates on each tick. |
 | **Sudden Death debt increment** | Every tick | Timer | While insolvent, debt grows once per 20s tick. 20 seconds between increments. |
-| **Kill / purchase nudge** | Immediate | Event | Fires instantly. Overrides next base tick worth adjustment for that brand. |
+| **Kill / purchase nudge** | Immediate | Event | Fires instantly and adds on top. Never replaces or cancels the next base tick. |
 | **Combo tier change** | Immediate | Event | Tier up or break fires market signal immediately. |
 | **Threshold crossed** | Immediate | Event | Full effect state values applied instantly. Triggered headlines fire. Relationship sympathy nudges fire on paired brands. |
+| **Floor auto-recovery** | 6 ticks at Floor | Timer | Recovery fires if the brand has not climbed above 0.10 on its own. |
 | **Foreshadow window opens** | ~60s before threshold | Predictive | 3 ticks before projected crossing. Momentum can still shift — not guaranteed. |
-| **Day generation** | Once, at Wake-Up | Seeded | Relationship web, Target, Target shopping, market seed, news. Fixed for the day. |
+| **Day generation** | Once, at Wake-Up | Seeded | Relationship web, Target, Target shopping, market seed (incl. sine phases), news. Fixed for the day. |
 
-Base tick cadence: 20s default. Tune between 15s (reactive) and 30s (tidal) based on playtest feel.
+Base tick cadence: 20s default. Tune between 15s (reactive) and 30s (tidal) based on playtest feel. Momentum decay (4 ticks) and Floor auto-recovery (6 ticks) are counted in ticks, so they scale with cadence.
 
-Event triggers override the next base tick worth adjustment for that brand only — other brands unaffected.
+Event nudges add on top of the tick for that brand only — other brands unaffected.
 
 Foreshadow window is predictive, not guaranteed. Momentum shift can cancel it before crossing.
 
@@ -451,10 +531,11 @@ Resting state values the sinusoidal engine oscillates around. Each brand reflect
 | --- | --- | --- | --- | --- |
 | **Worth** | 62% | 58% | 45% | 40% |
 | **Price / round** | $0.62 | $0.58 | $0.45 | $0.40 |
-| **Volatility** | Low | Medium | Very low | Low |
-| **Momentum** | Slight + | Neutral | Neutral | Slight - |
-| **Recovery rate** | Fast | Very fast | Unknown | Medium |
-| **Liquidity** | High | High | Controlled | High |
+| **Volatility** | Low (2) | Medium (3) | Very low (1) | Low (2) |
+| **Momentum** | Neutral (0) | Neutral (0) | Neutral (0) | Neutral (0) |
+| **Recovery rate** | Fast (4) | Very fast (5) | Unknown (R) | Medium (3) |
+| **Liquidity** | High (4) | High (4) | Controlled (3) | High (4) |
+| **Sine phase** | Seeded | Seeded | Seeded | Seeded |
 
 **GLD  **Sits above midpoint. Congregation believes things are always ascending. Room to crash but baseline confidence is high.
 
@@ -462,27 +543,28 @@ Resting state values the sinusoidal engine oscillates around. Each brand reflect
 
 **BLU  **Deliberately opaque at midpoint. The market cannot read it. Every move feels surprising.
 
-**GRN  **Perpetually underperforming its own projections. Looks stable on paper, quietly sliding. Slight negative momentum by default.
+**GRN  **Perpetually underperforming its own projections. Looks stable on paper, sits lowest of the four, and has the slowest recovery, so dips linger.
 
 **DAMAGE AND ECONOMY SCALE**
 
-Worth translates directly to per-round cost (62% = $0.62/round) and damage output. Standard engagement: 5v1. Base enemy requires 4 body hits or 2 headshots at baseline price.
+Worth translates directly to per-round cost (62% = $0.62/round). Damage scales with Worth^0.7. Standard engagement: 5v1. Base enemy requires 4 body hits or 2 headshots at GLD baseline (0.62).
 
-| **STATE** | **PRICE / RND** | **BODY HITS** | **HEADSHOTS** | **COST / ENG.** |
-| --- | --- | --- | --- | --- |
-| Bull (85%) | $0.85 | ~2 | 1 | $8.50 |
-| GLD base (62%) | $0.62 | 4 | 2 | $12.40 |
-| RED base (58%) | $0.58 | 4 | 2 | $11.60 |
-| BLU base (45%) | $0.45 | 5-6 | 3 | $12.38 |
-| GRN base (40%) | $0.40 | 6 | 3 | $12.00 |
-| Bear (25%) | $0.25 | 8-9 | 4-5 | $11.25 |
-| Near floor (10%) | $0.10 | ~16 | 8 | $8.00 |
+| **STATE** | **PRICE / RND** | **DAMAGE** | **BODY HITS** | **HEADSHOTS** | **COST / ENG.** |
+| --- | --- | --- | --- | --- | --- |
+| Ceiling (100%) | $1.00 | 1.00x | ~3 | 1-2 | $14.31 |
+| Bull (85%) | $0.85 | 0.89x | ~3 | 2 | $13.63 |
+| GLD base (62%) | $0.62 | 0.72x | 4 | 2 | $12.40 |
+| RED base (58%) | $0.58 | 0.68x | 4 | 2 | $12.15 |
+| BLU base (45%) | $0.45 | 0.57x | 5 | 2-3 | $11.26 |
+| GRN base (40%) | $0.40 | 0.53x | 5-6 | 3 | $10.87 |
+| Bear (25%) | $0.25 | 0.38x | 7-8 | 4 | $9.44 |
+| Near floor (10%) | $0.10 | 0.20x | ~14 | 7 | $7.17 |
 
-Damage scales directly with worth — 100% = max damage, 1% = minimum damage. Relationship stance modifies damage on top (Negative +25%, Positive -20%, Tentative 0.8x–1.3x).
+Damage multiplier is relative to a Worth 1.00 round. Relationship stance modifies damage on top (Negative +25%, Positive -20%, Tentative 0.8x–1.3x).
 
-Total engagement cost stays broadly flat (~$8–12). Low price = more rounds fired = longer exposure.
+Cost per engagement now rises with Worth (~$7 near floor to ~$14 at ceiling) while time to kill falls. High Worth = fast and expensive. Low Worth = cheap and slow, with longer exposure and more damage taken.
 
-The economy is self-balancing: price changes danger not total cost. Cheap ammo is a survival tax.
+The trade is speed versus cost, and healing prices the exposure: a cheap brand saves on ammo but loses time and HP, and a cheap provider heals slowly.
 
 Dynamic damage means combo multiplier compounds both economy and combat effectiveness simultaneously.
 
@@ -511,7 +593,7 @@ Four distinct financial layers, each with different risk profiles, accessibility
 
 **HEALING SYSTEM**
 
-Shield recharges automatically after damage (Halo-style). Recharge is not free — cost is deducted from cash when the player reaches 100% HP. Cost per HP equals the current stock % of the player chosen heal provider.
+Shield recharges automatically after damage (Halo-style). Recharge is not free — cost is deducted from cash when the player reaches 100% HP. Cost per HP equals the current stock % of the player chosen heal provider. Recharge speed also follows the provider's Worth: HealRate = BaseHealRate x (0.25 + 0.75 x ProviderWorth).
 
 **  NORMAL STATE  **
 
@@ -537,17 +619,19 @@ Loan offers appear. Accept = revive in place. Decline = pay Medical Bill and res
 
 Cash lost entirely. Savings charged medical costs. Savings persist but reduced.
 
-**HEAL COST BY PROVIDER STOCK STATE**
+**HEAL COST AND SPEED BY PROVIDER STOCK STATE**
 
-| **STATE** | **STOCK %** | **COST / HP** | **100 HP FULL** | **RISK LEVEL** |
-| --- | --- | --- | --- | --- |
-| Bull (85%) | 85% | $0.85 | $85.00 | Insolvency risk high |
-| GLD base (62%) | 62% | $0.62 | $62.00 | Moderate |
-| GRN base (40%) | 40% | $0.40 | $40.00 | Lower risk — debt accumulates slower |
-| Bear (25%) | 25% | $0.25 | $25.00 | Low cost but weak ammo — longer fights |
-| Near floor (10%) | 10% | $0.10 | $10.00 | Cheapest heals — but ammo is nearly useless |
+BaseHealRate starting value: 10 HP/s.
 
-Provider is player-chosen at start of level. Heal cost tracks that brand stock in real time.
+| **STATE** | **STOCK %** | **COST / HP** | **100 HP FULL** | **HEAL RATE** | **100 HP TIME** | **RISK LEVEL** |
+| --- | --- | --- | --- | --- | --- | --- |
+| Bull (85%) | 85% | $0.85 | $85.00 | 8.9 HP/s | ~11s | Insolvency risk high |
+| GLD base (62%) | 62% | $0.62 | $62.00 | 7.2 HP/s | ~14s | Moderate |
+| GRN base (40%) | 40% | $0.40 | $40.00 | 5.5 HP/s | ~18s | Lower cost — slower to get back into fights |
+| Bear (25%) | 25% | $0.25 | $25.00 | 4.4 HP/s | ~23s | Cheap but slow — long exposure at low HP |
+| Near floor (10%) | 10% | $0.10 | $10.00 | 3.3 HP/s | ~31s | Cheapest heals — slowest recharge, fragile for half a minute |
+
+Provider is player-chosen at start of level. Heal cost and heal speed track that brand stock in real time.
 
 Provider stance vs the player's ammo brand modifies heal cost: Positive -15%, Negative +15%.
 
@@ -555,7 +639,7 @@ Provider also prices the Medical Bill — provider choice affects what death cos
 
 Sudden Death debt grows every 20s market tick — hiding does not stop the clock.
 
-Cheap provider = slower debt accumulation in Sudden Death. Provider choice is also a risk management decision.
+Cheap provider = slower debt accumulation in Sudden Death, but slower recovery between fights. Provider choice is a cost-versus-tempo decision, not a pick-the-lowest-brand default.
 
 The performance bonus is currently the only path to Savings growth; fencing stolen loot is planned to overtake it (see Fence & Hoard). Combo maintenance still scales the bonus.
 
@@ -575,7 +659,7 @@ DECLINE  ->  Cash < Medical Bill   ->  Run ends
 
 Offers come from the two highest-Worth brands — brands with capital lend. One offers a lower tier, one a higher tier.
 
-Brands at Floor do not lend (no liquidity).
+Brands at Floor (Worth <= 0.05) do not lend (no liquidity).
 
 Amount = LadderBase x LenderWorth x 1.6, frozen at acceptance (same rule as PriceMultiplier — locked at the transaction moment).
 
@@ -650,6 +734,128 @@ Multiple lenders = multiple crews. If the lenders are rivals in the web, their c
 
 Can spawn in the store and the boss arena. Never after the player leaves the store.
 
+**ENEMY REACTIONS  //  HIT AND NEAR-MISS**
+
+Status: direction set 2026-11-22. RED biases confirmed; GRN bias confirmed 2026-11-23 (Scatter & Flank); GLD and BLU biases proposed. All numbers are starting values.
+
+Enemies react at random to being shot or shot at, so fights vary run to run without feeling scripted. Each enemy rolls on a weighted reaction table when it is hit or near-missed. Base weights come from its archetype; its primary brand adds a bias on top. Brand biases let players learn patterns; the roll keeps any single fight unpredictable.
+
+**RULES**
+
+Trigger: a hit, or a near-miss. Near-miss = an enemy inside a projectile's enemy-only whiz sphere as it passes during the travel phase (works because every round is a discrete projectile).
+
+Cooldown: one reaction roll per enemy every 2s, so it does not react to every bullet.
+
+Tells: every reaction has a readable animation / bark so the player can learn brand patterns.
+
+Repositioning cap: at most 3 enemies breaking sightline or flanking at once, or the whole room scatters.
+
+Flankers ignore Hesitate traffic (they already push through crowds).
+
+The existing roll / dive away flavor stays pure flavor with no economic cost to the player.
+
+Economy: misses still cost money, but near-misses now buy suppression. Spraying a crowd becomes a deliberate spend, not pure waste.
+
+**REACTIONS**
+
+| **REACTION** | **TRIGGER** | **EFFECT** | **NOTES** |
+| --- | --- | --- | --- |
+| **Hesitate** | Hit or near-miss | Slow to ~40% speed for 1–1.5s | Mostly fodder. Fodder leads the push, so larger enemies behind get stuck in traffic. |
+| **Break Sightline** | Hit or near-miss | Move to the nearest point out of the player's view (EQS, scoring offset to the side of the player's aim), then return from that angle | Mid-tier. Builds on the roll / dive flavor and gives it a goal. Counts toward the 3-enemy cap. |
+| **Push Forward** | Hit or near-miss | Advances instead of slowing | Anchor reaction. GLD pushes forward with fodder; RED pushes alone. |
+| **Adrenaline** | Hit only | Stacking move-speed and attack-rate buff | RED signature. Punishes chip damage; rewards focused takedowns. |
+| **Retaliate** | Near-miss | Turns and sprints at the shooter | RED only. See RED detail. |
+| **Scatter & Flank** | Hit or near-miss | Breaks left or right off the line of fire, then paths a flanking route and re-engages from the player's side | GRN signature. Counts toward the 3-enemy cap. See GRN detail. |
+| **Roll / dive** | Hit or near-miss | Evasive roll away | Existing flavor reaction. No economic cost. |
+
+**BRAND BIASES  //  added to archetype base weights**
+
+| **BRAND** | **BIAS** | **STATUS** |
+| --- | --- | --- |
+| **GLD** | Pushes forward when shot ("doubt is the enemy") and drags fodder along. The opposite of Hesitate. | Proposed |
+| **RED** | Shooting it makes it angrier. Adrenaline and Retaliate heavy; rarely hesitates or hides. | Confirmed — see RED detail |
+| **BLU** | No bias. Rolls the full table flat, so its reactions are deliberately hard to predict (enemy-side illegibility; tag customization stays legible). | Proposed |
+| **GRN** | Scatter & Flank: when shot at, GRN enemies scatter to their left and right and seek flanking routes, re-engaging from the player's sides. Splits groups apart instead of clustering them. Replaces the earlier Task Force regroup proposal. | Confirmed — see GRN detail |
+
+**RED  //  FIRE  —  reaction biases**
+
+Design intent: shooting RED makes it angrier. These weight adjustments add on top of each archetype's base table.
+
+| **REACTION** | **RED BIAS** | **WHY** |
+| --- | --- | --- |
+| **Adrenaline** | +40 | Signature reaction. Every hit becomes fuel. |
+| **Retaliate** | +25 | On a near-miss, turns and closes on the shooter instead of flinching. |
+| **Push Forward** | +10 | Shares GLD's reaction, but pushes alone rather than carrying fodder. |
+| **Break Sightline** | −20 | RED does not hide. When it does, it comes back faster. |
+| **Hesitate** | −30 | Almost never slows. RED fodder makes a poor screen for the enemies behind it, which is also why it is dangerous. |
+
+**ADRENALINE  //  starting values**
+
+Per stack   +15% move speed, +10% attack rate
+
+Max         3 stacks (+45% move speed, +30% attack rate)
+
+Duration    4s per stack; each new hit refreshes the timer
+
+At max      Ignores Hesitate entirely, including from near-misses
+
+Tell        Coolant-cyan (#7FF3FF) glow that intensifies per stack; steam-vent burst at max stacks
+
+**RETALIATE  //  starting values**
+
+Trigger     Near-miss
+
+Effect      Locks onto the shooter and sprints at +25% speed for 2s
+
+Window      Cannot fire while sprinting — a short punish window for the player
+
+Cooldown    5s, so it never gets stuck chasing
+
+**STANCE INTERACTIONS**
+
+| **STANCE vs RED** | **EFFECT ON REACTIONS** |
+| --- | --- |
+| **Negative** | +25% damage shortens RED's time to stack. Rivalry days turn Adrenaline from a threat into a burst-damage reward. |
+| **Positive** | −20% damage means more hits per kill, so RED hits max stacks more often. A soft penalty for using friendly ammo on RED. |
+| **Tentative** | The per-hit damage roll (0.8x–1.3x) makes stack speed unpredictable. |
+
+Player read: RED cannot be suppressed and gets worse when chipped. Kill it fast or leave it alone, and save cheap spray for GLD crowds.
+
+**GRN  //  GROWTH  —  reaction biases**
+
+Design intent: shooting at GRN splits it. A shot GRN group breaks apart to its left and right and comes back at the player from the sides. Corporate framing: diversifying exposure, then circling back.
+
+| **REACTION** | **GRN BIAS** | **WHY** |
+| --- | --- | --- |
+| **Scatter & Flank** | +40 | Signature reaction. Fire into GRN and it spreads out around you. |
+| **Break Sightline** | +10 | Shares the goal of getting out of the line of fire; used when no flank route is found. |
+| **Hesitate** | −15 | GRN fodder scatters rather than stalling, so it screens poorly for enemies behind it. |
+| **Push Forward** | −25 | GRN does not take a head-on push. It goes around. |
+
+**SCATTER & FLANK  //  starting values**
+
+Trigger     Hit or near-miss
+
+Scatter     Short lateral break (~3–5 m) perpendicular to the player's aim line. Side is chosen away from the aim point; when several GRN enemies react together, sides alternate so the group splits left and right (a pincer).
+
+Flank       EQS query for a reachable point roughly 60–120° off the player's facing, preferring cover or out-of-view positions. Paths there, then re-engages from that side.
+
+Fallback    No valid flank point within ~1.5s of searching: falls back to Break Sightline.
+
+Cap         Counts toward the 3-enemy repositioner cap. GRN enemies over the cap scatter only (lateral break, no flank route).
+
+Cooldown    6s per enemy before it can flank again.
+
+Tell        Lateral hop with a Bloom-magenta (#FF3DCB) flash in shadow zones; corporate bark on scatter ("Let's take this offline") and on re-engage ("Circling back").
+
+Distinct from the Flanker archetype: GRN flankers re-engage normally from the side. They do not get the Flanker's look-at-it-or-it-charges threat or push through crowds.
+
+Player read: shooting into a GRN group splits it to your sides. Area damage pays off on the opening shot, before the group breaks; after that, track the sides or put your back to a wall.
+
+**AI DIRECTOR HOOK  //  proposed**
+
+Director approach tilts reaction weights: Trick favors Break Sightline and GRN Scatter & Flank, Kill favors Adrenaline, Drain favors Hesitate (making the player spend more on suppression).
+
 **SETTLEMENT  //  WALK HOME**
 
 No combat after leaving the store. Current steps, in order (where the loot sale sits in this order is open — see Fence & Hoard):
@@ -701,13 +907,15 @@ Every item decays: 3 days to sell before it is gone.
 | **WALLET repayment** | Usable outside the store (before the boss), or only inside? |
 | **Target identity** | Does each Target have a primary brand, or is it a non-brand entity that hires all its muscle? |
 | **Tuning** | Medical Bill multiplier (2.0x), APR bands, stance damage values, WealthScale, collector spawn cap. All starting values. |
+| **Market fix tuning** | New starting values from the 2026-11-22 pass: damage exponent 0.7, kill nudge 0.005, purchase nudge 0.0005 per round, other-purchase cap +0.05, momentum decay every 4 ticks, Bull / Bear recovery x2, Floor 0.05, Recovery 0.10 / 6 ticks / +0.15 spike, BaseHealRate 10 HP/s and 25% minimum heal speed. Validated in a numerical sim only — retune in play. |
+| **Enemy reaction tuning** | Archetype base weights not yet set. Starting values to retune in play: 2s reaction cooldown, whiz sphere radius, Hesitate 40% / 1–1.5s, repositioner cap 3, RED Adrenaline and Retaliate values, GRN scatter distance / flank angle / 6s flank cooldown. Confirm GLD / BLU biases. |
 | **Fence proceeds** | Do sale proceeds land in cash, Savings, or both? Where does the sale sit relative to loan repayment? |
 | **Morning funding** | Cash is lost at day end and Savings can't be spent. What pays for step 4 purchases besides credit? |
 | **Purpose of Savings** | Higher Savings only raises Target budgets. What does it unlock or lead to — a long-term goal or end state? |
 | **Credit card overnight** | Settlement covers loans only. What happens to an unpaid card balance at day end (APR, carry-over, Player Position)? |
-| **Effect-state units** | Is "+20% Worth" absolute (+0.20) or relative (x1.2)? "+15% Volatility" doesn't fit the integer 0–5 scale. Effect states need concrete deltas. |
-| **Threshold values** | Floor and Recovery have no numeric Worth value. Recovery needs a crossing point (e.g. back above 0.25 from Floor). |
-| **Momentum equilibrium** | Constant momentum settles Worth at Baseline + MOM / REC. GLD (MOM +1, REC 4) rests at ~0.87, permanently Bull. GRN (MOM −1, REC 3) rests at ~0.07, near Floor. Options: momentum decays toward 0 after events, or baseline momentum is 0 and the lean comes from elsewhere. |
+| **Effect-state units** | Is "+20% Worth" absolute (+0.20) or relative (x1.2)? "+15% Volatility" doesn't fit the integer 0–5 scale. Effect states need concrete deltas. Until then, Recovery uses the engine default spike (+0.15). |
+| **Threshold events vs market events** | Bull / Bear effect states (e.g. GLD Bull +20% Worth) would push a brand straight to the ceiling. Decide whether threshold crossings still apply Worth spikes, or only fire headlines and coupling now that the four daily market events drive Momentum. |
+| **GLD sprint cost** | Card abilities are Worth x $10 per use, but GLD sprint is charged per step. At $6.20 a step it drains a card in ~40 steps. Needs a per-second or per-step base of its own. |
 | **Ammo brand for stance** | Heal pricing uses "the ammo brand," but a loadout can carry several. Equipped brand at time of charge, or most-fired? |
 | **Undefined values** | Run-end medical cost, performance bonus decay rate, and whether gun parts / tags persist between days. |
 | **Loan naming** | Player loan, Director LoanTotal and Target Loan all feed the bonus. Consider renaming the latter two (e.g. Director overdraft, Target credit line). |
