@@ -6,10 +6,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>InDebtEd — Store Slice Prototype</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Barlow+Condensed:wght@800;900&family=DM+Mono:wght@500&family=DM+Sans:opsz,wght@9..40,700&display=swap');
 :root{--ink:#0d0d0d;--paper:#ece8df;--gld:#FFD24A;--red:#FF3B2F;--blu:#2F8FFF;--grn:#4AFF6B;--gld-acc:#9B4DFF;--red-acc:#7FF3FF;--blu-acc:#FF8A1A;--grn-acc:#FF3DCB;--mag:#ff2fb0}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--ink);font-family:'Space Mono',ui-monospace,Menlo,monospace;font-size:13px}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--ink);font-family:'Space Mono',ui-monospace,Menlo,monospace;font-size:13px;font-variant-numeric:tabular-nums}
+/* Brand typography. Space Mono stays the shared face for every number and price; brand display faces are for names, labels and headlines.
+   Same mapping as the earlier prototypes (gun-parts, brand-npcs, merchandise). Keep in sync with BRAND[b].type in JS. */
+[data-bf=GLD]{--bf:'Bebas Neue','Arial Narrow',Impact,sans-serif;--bw:400;--bt:.03em}
+[data-bf=RED]{--bf:'Barlow Condensed','Arial Narrow',Impact,sans-serif;--bw:900;--bt:0}
+[data-bf=BLU]{--bf:'DM Mono',ui-monospace,monospace;--bw:500;--bt:.04em}
+[data-bf=GRN]{--bf:'DM Sans',Arial,sans-serif;--bw:700;--bt:-.02em}
+.bf[data-bf],#ban .bf[data-bf]{font-family:var(--bf);font-weight:var(--bw);letter-spacing:var(--bt)}
+#ban .bt.bf{font-size:18px}
 #c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
 h1,h2,h3,.hd{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0}
 .hud{position:fixed;pointer-events:none;z-index:2}
@@ -325,6 +333,15 @@ GLD:{name:'RADIANCE',col:'#FFD24A',acc:'#9B4DFF',accName:'PURPLE',base:.62,vol:2
 RED:{name:'FIRE',col:'#FF3B2F',acc:'#7FF3FF',accName:'COOLANT',base:.58,vol:3,rec:5,liq:4},
 BLU:{name:'ZAP',col:'#2F8FFF',acc:'#FF8A1A',accName:'ARC',base:.45,vol:1,rec:'R',liq:3},
 GRN:{name:'GROWTH',col:'#4AFF6B',acc:'#FF3DCB',accName:'BLOOM',base:.40,vol:2,rec:3,liq:4}};
+// Brand display faces (mirror of the [data-bf] CSS rules). Numbers and prices never use these: they stay in Space Mono.
+BRAND.GLD.type={family:'"Bebas Neue","Arial Narrow",Impact,sans-serif',weight:400};
+BRAND.RED.type={family:'"Barlow Condensed","Arial Narrow",Impact,sans-serif',weight:900};
+BRAND.BLU.type={family:'"DM Mono",ui-monospace,monospace',weight:500};
+BRAND.GRN.type={family:'"DM Sans",Arial,sans-serif',weight:700};
+function bfont(b,px){const t=BRAND[b].type;return t.weight+' '+px+'px '+t.family}
+function bfa(b){return`class="bf" data-bf="${b}"`}
+// Canvas text doesn't trigger web-font loading on its own, so request the brand faces up front.
+if(document.fonts&&document.fonts.load)for(const b of BR)document.fonts.load(bfont(b,16)).catch(()=>{});
 const EDITION=48213;
 const WEB={'GLD-RED':'Positive','GLD-BLU':'Neutral','GLD-GRN':'Negative','RED-BLU':'Negative','RED-GRN':'Tentative','BLU-GRN':'Positive'};
 const HIDDEN={'GLD-BLU':1,'BLU-GRN':1};
@@ -1300,7 +1317,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  for(let i=0;i<6;i++){const x0=i===0?0:DIV[i-1]+40,x1=i===5?W:DIV[i];cx.fillStyle=fl[i];cx.fillRect(x0,0,x1-x0,900);
   cx.fillStyle='rgba(13,13,13,.07)';cx.font='900 64px "Archivo Black",sans-serif';cx.fillText(SEG_NAME[i],x0+24,70+(i%2)*780)}
  for(const x of DIV){cx.fillStyle='#cfcabd';cx.fillRect(x,380,40,140)}
- cx.fillStyle='#f3c9c5';cx.fillRect(1700,900,600,360);cx.fillStyle='rgba(229,51,42,.25)';cx.font='900 54px "Archivo Black",sans-serif';cx.fillText('FIRE // BRAND SPACE',1722,1010);
+ cx.fillStyle='#f3c9c5';cx.fillRect(1700,900,600,360);cx.fillStyle='rgba(229,51,42,.25)';cx.font=bfont('RED',64);cx.fillText('FIRE // BRAND SPACE',1722,1010);
  // checkpoints + terminal
  for(const q of[[250,450],[2600,450],[3620,450]]){const on=G.cp.x===q[0];cx.strokeStyle=on?'#ff2fb0':'#888';cx.lineWidth=4;cx.setLineDash([10,6]);cx.strokeRect(q[0]-26,q[1]-26,52,52);cx.setLineDash([])}
  const ge=G.events[3];cx.fillStyle=ge.fired?'#777':BRAND.GRN.col;cx.strokeStyle='#0d0d0d';cx.lineWidth=3;cx.fillRect(TERMINAL.x-18,TERMINAL.y-34,36,26);cx.strokeRect(TERMINAL.x-18,TERMINAL.y-34,36,26);
@@ -1309,7 +1326,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
   else if(r.k==='shelf'){const j=r.rat>0?r.rat*14:0,ox=(Math.random()-.5)*j,oy=(Math.random()-.5)*j;
    if(r.x!==r.hx||r.y!==r.hy){cx.strokeStyle='rgba(13,13,13,.18)';cx.lineWidth=2;cx.setLineDash([6,6]);cx.strokeRect(r.hx,r.hy,r.w,r.h);cx.setLineDash([])}
    cx.fillStyle='#55524c';cx.fillRect(r.x+ox,r.y+oy,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x+2+ox,r.y+2+oy,r.w-4,r.h-4)}
-  else{cx.fillStyle=r.stock>0?BRAND[r.b].acc:'#444';cx.fillRect(r.x+6,r.y+6,r.w,r.h);cx.fillStyle=r.stock>0?BRAND[r.b].col:'#777';cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x,r.y,r.w,r.h);cx.fillStyle='#0d0d0d';cx.font='700 11px "Space Mono",monospace';cx.textAlign='center';cx.fillText(r.kind.toUpperCase(),r.x+r.w/2,r.y+22);cx.fillText(r.stock>0?$$(vendPrice(r))+' x'+r.stock:'SOLD OUT',r.x+r.w/2,r.y+40);cx.textAlign='left'}}
+  else{cx.fillStyle=r.stock>0?BRAND[r.b].acc:'#444';cx.fillRect(r.x+6,r.y+6,r.w,r.h);cx.fillStyle=r.stock>0?BRAND[r.b].col:'#777';cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x,r.y,r.w,r.h);cx.fillStyle='#0d0d0d';cx.font=bfont(r.b,14);cx.textAlign='center';cx.fillText(r.kind.toUpperCase(),r.x+r.w/2,r.y+22);cx.font='700 11px "Space Mono",monospace';cx.fillText(r.stock>0?$$(vendPrice(r))+' x'+r.stock:'SOLD OUT',r.x+r.w/2,r.y+40);cx.textAlign='left'}}
  for(const d of G.world.doors){if(d.open)continue;const gate=d.i===2;cx.fillStyle=gate?'#ff2fb0':'#f5b800';cx.fillRect(d.x,d.y,d.w,d.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;for(let y=d.y;y<d.y+d.h;y+=20){cx.beginPath();cx.moveTo(d.x,y+20);cx.lineTo(d.x+d.w,y);cx.stroke()}cx.strokeRect(d.x,d.y,d.w,d.h);
   if(gate&&G.gate.started){cx.fillStyle='#0d0d0d';cx.font='900 22px "Archivo Black",sans-serif';cx.textAlign='right';cx.fillText(Math.ceil(G.gate.t)+'s',d.x-10,d.y-10);cx.textAlign='left'}}
  // merch
@@ -1491,7 +1508,7 @@ function cardSlot(c,x,y,card,small){const w=small?14:20,h=small?9:13,cc=BRAND[ca
  const lit=card.light>0?'#3f6':card.light<0?'#f22':inZone(card)?(Math.floor(G.t*3)%2?'#ffb000':'#5a3b00'):'#333';c.fillStyle=lit;c.beginPath();c.arc(x+w+4,y+h/2,2.6,0,7);c.fill()}
 function drawWallet(){const w=G.wallet,s=WSH[w.brand],rect=(c,x,y,ww,h)=>{wx.fillStyle=c;wx.fillRect(x,y,ww,h)};
  wx.setTransform(1.5,0,0,1.5,0,0);rect(s[0],0,0,160,144);w.game.draw(s,wx);rect(s[1],0,0,160,20);
- wx.fillStyle=s[3];wx.font='bold 8px monospace';wx.textBaseline='top';wx.fillText(WTITLE[w.brand],3,2);
+ wx.fillStyle=s[3];wx.font=bfont(w.brand,9);wx.textBaseline='top';wx.fillText(WTITLE[w.brand],3,2);wx.font='bold 8px monospace';
  const bal=$$(w.card.bal);wx.fillText(bal,157-wx.measureText(bal).width,2);wx.font='7px monospace';wx.fillText(WHELP[w.brand]+' · R EXIT',3,11);
  if(w.msgT>0){wx.font='bold 9px monospace';const mw=wx.measureText(w.msg).width;rect(s[0],80-mw/2-2,22,mw+4,11);wx.fillStyle=s[3];wx.fillText(w.msg,80-mw/2,23)}
  if(w.flash>0){wx.globalAlpha=.5;rect(s[3],0,20,160,124);wx.globalAlpha=1}}
@@ -1499,7 +1516,7 @@ const chip=b=>b?`<span class="chip" style="background:${BRAND[b].col};box-shadow
 function perkLine(){const ids=Object.keys(G.perks);return ids.length?ids.map(id=>PERK[id].n+' '+G.perks[id]).join(' · '):'none yet: spend on a card to level it'}
 function hud(){const p=G.p,D=G.dir;
  let h='';for(const b of BR){const m=G.mk[b],ar=m.w>m.prev+.002?'▲':m.w<m.prev-.002?'▼':'■';
-  h+=`<div class="tile" style="background:${BRAND[b].col};box-shadow:4px 4px 0 ${BRAND[b].acc}"><b>${b}</b> <span class="w">${(m.w*100).toFixed(0)}% ${ar}</span><small>${$$(m.w*CFG.pricePerWorth)}/rnd · MOM ${m.mom>0?'+':''}${m.mom}${m.floor>0?' · FLOOR':m.bull?' · BULL':m.bear?' · BEAR':''}</small></div>`}
+  h+=`<div class="tile" style="background:${BRAND[b].col};box-shadow:4px 4px 0 ${BRAND[b].acc}"><b ${bfa(b)}>${b}</b> <span class="w">${(m.w*100).toFixed(0)}% ${ar}</span><small>${$$(m.w*CFG.pricePerWorth)}/rnd · MOM ${m.mom>0?'+':''}${m.mom}${m.floor>0?' · FLOOR':m.bull?' · BULL':m.bear?' · BEAR':''}</small></div>`}
  h+=`<div id="head" class="box ${G.head.n!==lastHead?'new':''}"><span class="chip" style="background:${BRAND[G.head.b].col};box-shadow:2px 2px 0 ${BRAND[G.head.b].acc};margin-right:8px">${G.head.b}</span>${G.head.txt}</div>`;
  if(G.head.n!==lastHead||hud.tick!==G.tickN||!el('top').firstChild){el('top').innerHTML=h;lastHead=G.head.n;hud.tick=G.tickN}
  else{const t=el('top').children;BR.forEach((b,i)=>{const m=G.mk[b];t[i].querySelector('.w').textContent=(m.w*100).toFixed(0)+'% '+(m.w>m.prev+.002?'▲':m.w<m.prev-.002?'▼':'■')})}
@@ -1518,7 +1535,7 @@ function hud(){const p=G.p,D=G.dir;
  const evs=G.events.map(e=>{const st=e.prevented?'<span class="st x">PREVENTED</span>':e.fired?'<span class="st f">FIRED '+fmtT(e.at)+'</span>':G.over?'<span class="st x">EXPIRED</span>':'<span class="st">PENDING</span>';
   return`<div class="ev"><span><span class="chip" style="background:${BRAND[e.b].col};box-shadow:2px 2px 0 ${BRAND[e.b].acc}">${e.b}</span> ${e.dir>0?'▲ UP':'▼ DOWN'}</span>${st}</div>`}).join('');
  el('evp').innerHTML=`<div class="row"><b class="hd">TODAY'S MARKET EVENTS</b><span>${G.events.filter(e=>!e.fired).length} open</span></div>${evs}<div style="opacity:.7">Trigger and place are not disclosed. Look for brand-colored signals.</div>`;
- const bn=el('ban');if(G.ban&&G.ban.t>0){if(bn.dataset.n!=String(G.ban.n)){bn.dataset.n=G.ban.n;bn.innerHTML=`<div class="bt" style="background:${BRAND[G.ban.b].col};border-bottom:5px solid ${BRAND[G.ban.b].acc}">${G.ban.title}</div><div class="bs">${G.ban.sub}</div>`}bn.style.display='block'}else bn.style.display='none';
+ const bn=el('ban');if(G.ban&&G.ban.t>0){if(bn.dataset.n!=String(G.ban.n)){bn.dataset.n=G.ban.n;bn.innerHTML=`<div class="bt bf" data-bf="${G.ban.b}" style="background:${BRAND[G.ban.b].col};border-bottom:5px solid ${BRAND[G.ban.b].acc}">${G.ban.title}</div><div class="bs">${G.ban.sub}</div>`}bn.style.display='block'}else bn.style.display='none';
  const S=D.snap;
  el('dir').innerHTML=`<div class="row"><b class="hd">AI DIRECTOR</b><span>[T] hide</span></div>
  State <b>${D.state}</b> · Approach <b>${D.ap}</b> · Tier <b>${D.tier}</b><br>Weights Kill ${D.w.Kill} / Drain ${D.w.Drain}<br>
@@ -1658,7 +1675,7 @@ function bindGun(again){bindDurTip(scr);scr.querySelectorAll('[data-gp]').forEac
 const SLW=118,SLG=10;
 const BN={open:false,again:null,drag:null,hover:null,flash:null,tip:null,lane:null,shake:null,added:null};
 function bTagCard(id,tag,cls,extra){const T=TAGS[tag],w=W_(tag),c=BRAND[T.brand];
- return`<div class="tcard ${cls||''}" data-card="${id}" data-tt="${tag}" style="--c:${c.col};--a:${c.acc};width:${w*SLW+(w-1)*SLG}px;${extra||''}"><i class="ph" style="background:${PHASE_COL[T.phase]}"></i><b>${tag}</b><small>${T.fx}</small><span class="bb">${T.brand} · ${T.phase}${w>1?' · '+w+' SLOTS':''}</span></div>`}
+ return`<div class="tcard ${cls||''}" data-card="${id}" data-tt="${tag}" style="--c:${c.col};--a:${c.acc};width:${w*SLW+(w-1)*SLG}px;${extra||''}"><i class="ph" style="background:${PHASE_COL[T.phase]}"></i><b ${bfa(T.brand)}>${tag}</b><small>${T.fx}</small><span class="bb">${T.brand} · ${T.phase}${w>1?' · '+w+' SLOTS':''}</span></div>`}
 function stripHTML(g){const L=slotLayout(g);if(!L.length)return'<span class="gd">This build has no tag slots.</span>';let h='';const seen={};
  L.forEach((sl,i)=>{const id=g.slots[i];if(id&&seen[id])return;if(id)seen[id]=1;const t=id?g.cards[id]:'',w=t?W_(t):1;
   h+=`<span class="tsc" ${t?`data-tt="${t}"`:''} style="flex:${w};${t?`background:${BRAND[TAGS[t].brand].col};box-shadow:2px 2px 0 ${BRAND[TAGS[t].brand].acc}`:''}"><i>${sl.part.toUpperCase()}${sl.sub?' '+sl.sub:''}</i>${t||'empty'}</span>`});return h}
@@ -1685,15 +1702,15 @@ function bClick(id){const g=opts.gun;if(g.slots.includes(id)){bApply(id,'stock')
 function bProjected(){const d=BN.drag,g=opts.gun;if(!d||!d.moved||!BN.hover||!BN.hover.startsWith('gun:'))return g.slots;const r=bPlace(g,d.id,BN.hover);return r?r.slots:g.slots}
 function benchRender(){if(!BN.open)return;const g=opts.gun,L=slotLayout(g),slots=bProjected(),R=previewRound(g),box=el('bwrap');
  let rail='';let gi=0;['frame','chamber','barrel'].forEach((part,pi)=>{const P=PARTS[part][g[part]],n=P.slots||0;
-  rail+=`<div class="bgrp" style="--c:${BRAND[g[part]].col};--a:${BRAND[g[part]].acc}"><div class="bgl">${part.toUpperCase()} · ${g[part]} ${P.name.toUpperCase()}</div><div class="bslots">`;
+  rail+=`<div class="bgrp" style="--c:${BRAND[g[part]].col};--a:${BRAND[g[part]].acc}"><div class="bgl bf" data-bf="${g[part]}">${part.toUpperCase()} · ${g[part]} ${P.name.toUpperCase()}</div><div class="bslots">`;
   if(!n)rail+=`<div class="bslot none">NO TAG SLOT</div>`;
   for(let k=0;k<n;k++,gi++){const id=slots[gi],first=id&&slots.indexOf(id)===gi,sl=L[gi],hot=BN.hover==='gun:'+gi;
    rail+=`<div class="bslot ${hot?'hot':''}" data-drop="gun:${gi}"><span class="bsub">${gi+1}${sl.sub?' · '+sl.sub:''}</span>${first?bTagCard(id,g.cards[id],'inslot'+(BN.drag&&BN.drag.id===id&&BN.drag.moved?' ghosted':'')+(BN.flash&&BN.flash.id===id?' fl-'+BN.flash.k:'')+(BN.shake===id?' shake':'')):''}</div>`}
   rail+=`</div></div>`;if(pi<2)rail+='<b class="barrow">▶</b>'});
  const stock=g.stock,n=stock.length,span=Math.min(940,Math.max(0,(n-1)*128)),sp=n>1?span/(n-1):0;
  let hand='';stock.forEach((id,k)=>{const o=k-(n-1)/2;hand+=bTagCard(id,g.cards[id],'inhand'+(BN.drag&&BN.drag.id===id&&BN.drag.moved?' ghosted':'')+(BN.shake===id?' shake':'')+(BN.added===id?' added':''),`left:${40+k*sp+(940-span)/2}px;top:${26+o*o*1.6}px;--r:${o*2.2}deg;z-index:${10+k}`)});
- let cat='';for(const b of BR){cat+=`<div class="cbrand" style="--c:${BRAND[b].col};--a:${BRAND[b].acc}">${b} · ${BRAND[b].name}</div>`;
-  TAG_ORDER.filter(t=>TAGS[t].brand===b).forEach(t=>{const T=TAGS[t];cat+=`<button class="crow" data-add="${t}" data-tt="${t}"><i style="background:${PHASE_COL[T.phase]}"></i><b>${t}</b><span>${'▮'.repeat(W_(t))}</span><small>${T.phase} · ${T.fx}</small></button>`})}
+ let cat='';for(const b of BR){cat+=`<div class="cbrand bf" data-bf="${b}" style="--c:${BRAND[b].col};--a:${BRAND[b].acc}">${b} · ${BRAND[b].name}</div>`;
+  TAG_ORDER.filter(t=>TAGS[t].brand===b).forEach(t=>{const T=TAGS[t];cat+=`<button class="crow" data-add="${t}" data-tt="${t}"><i style="background:${PHASE_COL[T.phase]}"></i><b ${bfa(b)}>${t}</b><span>${'▮'.repeat(W_(t))}</span><small>${T.phase} · ${T.fx}</small></button>`})}
  const imp=R.plan.imp,names=[];imp.forEach(s=>{const n_=s.tag.toUpperCase();if(names.length&&names[names.length-1].n===n_)names[names.length-1].k++;else names.push({n:n_,k:1,b:TAGS[s.tag].brand})});
  const order=R.plan.exec.map(s=>`<span class="oc ${s.skip?'sk':''}" style="--c:${BRAND[TAGS[s.tag].brand].col};--p:${PHASE_COL[TAGS[s.tag].phase]}">${s.tag}${s.copy?' ×2':''}${s.fed?' (FED)':''}${s.skip?' · '+s.skip:''}</span>`).join('')||'<span class="gd">nothing loaded</span>';
  const price=roundPrice(g.ammo),cap=R.dur,stat=STATUS[g.ammo],hits=R.widths?Math.ceil(CFG.statusAt/R.widths):0,M=R.mods;
