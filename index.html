@@ -14,8 +14,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(-
 h1,h2,h3,.hd{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-transform:uppercase;letter-spacing:.02em;margin:0}
 .hud{position:fixed;pointer-events:none;z-index:2}
 .box{background:var(--paper);border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink)}
-#top{top:8px;left:260px;right:8px;display:flex;gap:8px;align-items:stretch}
-#tick{top:8px;left:8px;width:240px;display:flex;flex-direction:column;gap:9px}.tile .tr{display:flex;align-items:baseline;gap:6px}.tile .tr .d{margin-left:auto;font:700 11px 'Space Mono',monospace}.tile canvas{display:block;width:100%;height:30px;margin:3px 0 2px;background:rgba(255,255,255,.35);border:2px solid var(--ink)}
+#top{top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:stretch}
+#tick{top:50px;left:8px;right:8px;display:flex;flex-direction:row;gap:10px}#tick .tile{flex:1 1 0;min-width:0} /* the four stock tiles, in a row under the news ticker */.tile .tr{display:flex;align-items:baseline;gap:6px}.tile .tr .d{margin-left:auto;font:700 11px 'Space Mono',monospace}.tile canvas{display:block;width:100%;height:30px;margin:3px 0 2px;background:rgba(255,255,255,.35);border:2px solid var(--ink)}
 .tile{padding:4px 8px;min-width:118px;border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);color:var(--ink)}
 .tile b{font-family:'Archivo Black',sans-serif;font-size:15px}
 .tile .w{font-size:17px;font-weight:700}
@@ -53,10 +53,10 @@ h1,h2,h3,.hd{font-family:'Archivo Black','Arial Black',Impact,sans-serif;text-tr
 #gcol{display:flex;flex-direction:column;gap:6px;width:374px}#gi{font-size:11px;line-height:1.35;border:3px solid var(--ink);background:#fffdf6;padding:5px 7px}#gi .row{display:flex;justify-content:space-between;gap:8px}#gi .am{display:flex;align-items:center;gap:8px;border:3px solid var(--ink);background:#fff;padding:3px 8px}#gi .am .chip{font-size:13px;padding:1px 6px}#gi .am .al{display:flex;flex-direction:column;font:700 10px 'Space Mono',monospace}#gi .am .al small{font-size:10px;opacity:.75}#gi .am b{margin-left:auto;font-family:'Archivo Black',sans-serif;font-size:20px}#gi .am b small{font:700 10px 'Space Mono',monospace;opacity:.75}#gi .gdbg{display:none;margin-top:6px;border-top:2px dashed var(--ink);padding-top:4px}body.dbg #gi .gdbg{display:block}
 #gunhud{display:block;width:374px;height:103px;background:#0a0a0a;border:3px solid var(--ink);margin:0}
 body:not(.dbg) #evp,body:not(.dbg) #map{display:none!important}
-#evp{right:8px;top:172px;width:300px;padding:6px 8px;font-size:11px;line-height:1.5}
+#evp{right:8px;top:calc(var(--tb,150px) + 100px);width:300px;padding:6px 8px;font-size:11px;line-height:1.5}
 #evp .ev{display:flex;justify-content:space-between;gap:6px;border-top:1px dashed #999;padding:1px 0}#evp .ev:first-of-type{border-top:0}
 #evp .st{font-weight:700}#evp .st.f{background:var(--ink);color:#fff;padding:0 4px}#evp .st.x{opacity:.55;text-decoration:line-through}
-#ban{left:50%;top:118px;transform:translateX(-50%);width:min(620px,70vw);display:none;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);background:var(--paper);padding:0}
+#ban{left:50%;top:calc(var(--tb,150px) + 14px);transform:translateX(-50%);width:min(620px,70vw);display:none;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);background:var(--paper);padding:0}
 #ban .bt{color:var(--ink);font-family:'Archivo Black',sans-serif;padding:5px 10px;font-size:15px}#ban .bs{padding:5px 10px;font-weight:700}
 .card .cb{position:relative}.card .kn{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
 .card .pw.hi{font-weight:700}.card .pw.mx{font-weight:700;background:var(--ink);color:#fff;padding:0 3px;animation:pl2 .5s steps(2) infinite}@keyframes pl2{50%{color:#ff2fb0}}
@@ -77,10 +77,10 @@ body:not(.dbg) #evp,body:not(.dbg) #map{display:none!important}
 .card .cb{height:6px;background:rgba(0,0,0,.6);margin-top:3px}.card .cb i{display:block;height:100%;background:#fff}
 .card .xb{height:4px;background:rgba(0,0,0,.45);margin-top:2px}.card .xb i{display:block;height:100%;background:var(--mag)}
 .pk{font-size:10px;margin-top:5px;line-height:1.35}
-#dir{left:262px;top:72px;display:none;width:300px;padding:8px 10px;font-size:11px;line-height:1.45}
+#dir{left:262px;top:calc(var(--tb,150px) + 10px);display:none;width:300px;padding:8px 10px;font-size:11px;line-height:1.45}
 #dir .log{border-top:3px solid var(--ink);margin-top:5px;padding-top:4px;color:#333}
 #prompt{left:50%;bottom:70px;transform:translateX(-50%);padding:6px 12px;font-weight:700;display:none;text-align:center}
-#sd{left:50%;top:76px;transform:translateX(-50%);padding:6px 14px;background:var(--red);color:#fff;border:3px solid var(--ink);font-family:'Archivo Black',sans-serif;display:none;animation:bl .5s steps(2) infinite}
+#sd{left:50%;top:calc(var(--tb,150px) + 10px);transform:translateX(-50%);padding:6px 14px;background:var(--red);color:#fff;border:3px solid var(--ink);font-family:'Archivo Black',sans-serif;display:none;animation:bl .5s steps(2) infinite}
 @keyframes bl{50%{background:var(--ink)}}
 #wallet{left:8px;bottom:270px;width:296px;padding:12px 12px 8px;display:none;background:#b8b3a5;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);border-radius:6px 6px 24px 6px}
 #wallet .scr{background:#35333a;padding:8px 10px;border:3px solid var(--ink)}
@@ -170,7 +170,7 @@ select option{background:#fff;color:#0d0d0d}select option:checked{background:#0d
 .perk p{margin:0;font-size:12px;flex:1}
 button.sm{font-size:10px;padding:3px 6px;box-shadow:2px 2px 0 var(--ink)}
 @media(max-width:760px){.perks{grid-template-columns:1fr}}
-#map{right:8px;top:76px;width:300px;height:84px;border:3px solid var(--ink);background:var(--paper);display:none;position:fixed;z-index:2;pointer-events:none}
+#map{right:8px;top:calc(var(--tb,150px) + 10px);width:300px;height:84px;border:3px solid var(--ink);background:var(--paper);display:none;position:fixed;z-index:2;pointer-events:none}
 #screen{position:fixed;inset:0;z-index:5;background:rgba(13,13,13,.86);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:22px}
 #screen .in{width:min(980px,100%);padding:20px 22px;pointer-events:auto}
 #screen h1{font-size:40px;line-height:.95}
@@ -669,30 +669,36 @@ const WTITLE={GLD:'ASCENSION RUN',RED:'SHIFT CROSSING',GRN:'FULFILLMENT',BLU:'SI
 const WHELP={GLD:'RMB JUMP',RED:'RMB HOP',GRN:'RMB ON THE BEAT',BLU:'RMB FIRE'};
 
 /* ================= WORLD ================= */
-const W=4700,HT=1300,CELL=25,GW=W/CELL,GH=HT/CELL,DIV=[500,1500,2500,3500,4500];
-const SPAWNS={1:[[1440,90],[1440,810],[620,90],[620,810],[1050,450],[1250,60],[1250,840],[850,450]],
+/* Layout is authored in the original left-to-right plan (OW x OH) and rotated 90deg on build:
+   plan x (progress) becomes screen up, so the Entrance is at the bottom and the Arena at the top.
+   plan y becomes screen x (the RED brand space, plan y>900, sits on the right of Seg 2). */
+const OW=4700,OH=1300,tp=(x,y)=>[y,OW-x],tr=(x,y,w,h)=>({x:y,y:OW-x-w,w:h,h:w}),toPlan=(x,y)=>[OW-y,x];
+const PAD=300; // extra floor below the Entrance so the bottom HUD doesn't cover the start
+const W=OH,HT=OW+PAD,CELL=25,GW=W/CELL,GH=HT/CELL,DIV=[500,1500,2500,3500,4500];
+const SPAWNS=(o=>{for(const k in o)o[k]=o[k].map(q=>tp(q[0],q[1]));return o})({1:[[1440,90],[1440,810],[620,90],[620,810],[1050,450],[1250,60],[1250,840],[850,450]],
 2:[[1600,80],[1600,820],[2440,820],[2000,80],[2300,450],[1650,450],[2440,300]],
 3:[[3440,80],[3440,820],[2600,80],[2600,820],[3000,90],[3000,810],[3400,450],[3000,340]],
-4:[[3620,80],[3620,820],[4420,80],[4420,820]]};
-const TERMINAL={x:2430,y:110};
-function roomOf(x,y){if(y>900)return 2;return x<520?0:x<1520?1:x<2520?2:x<3520?3:x<4520?4:5}
+4:[[3620,80],[3620,820],[4420,80],[4420,820]]});
+const TERMINAL=(([x,y])=>({x,y}))(tp(2430,110));
+const CPS=[tp(250,450),tp(2600,450),tp(3620,450)]; // checkpoints: entrance, seg 3, arena
+function roomOf(sx,sy){const[x,y]=toPlan(sx,sy);if(y>900)return 2;return x<520?0:x<1520?1:x<2520?2:x<3520?3:x<4520?4:5}
 function buildWorld(){
- const walls=[],R=(x,y,w,h,k)=>walls.push({x,y,w,h,k:k||'wall'});
- R(-40,-40,W+80,40);R(-40,0,40,900);R(W,0,40,900);
- R(-40,900,1940,40);R(2100,900,W-2060,40);
+ const walls=[],R=(x,y,w,h,k)=>walls.push(Object.assign(tr(x,y,w,h),{k:k||'wall'}));
+ R(-40-PAD,-40,OW+80+PAD,40);R(-40-PAD,0,40,900);R(OW,0,40,900);
+ R(-40-PAD,900,1940+PAD,40);R(2100,900,OW-2060,40);
  R(1660,940,40,360);R(2300,940,40,360);R(1660,1260,680,40);
  for(const x of DIV){R(x,0,40,380);R(x,520,40,380)}
  for(const x of[740,940,1140,1340]){R(x,110,50,230,'shelf');R(x,560,50,230,'shelf')}
  for(const[x,y]of[[1750,190],[2150,190],[1750,600],[2150,600],[1950,395]])R(x,y,110,110,'shelf');
  R(2700,200,600,50,'shelf');R(2700,650,600,50,'shelf');R(2850,425,300,50,'shelf');
  for(const[x,y]of[[3800,250],[4200,250],[3800,580],[4200,580]])R(x,y,70,70,'shelf');
- const vends=[['ammo',1765],['health',1965],['buff',2165]].map(([kind,x])=>({x,y:1205,w:70,h:55,k:'vend',kind,b:'RED',stock:CFG.punchStock}));
+ const vends=[['ammo',1765],['health',1965],['buff',2165]].map(([kind,x])=>(Object.assign((r=>({x:r.x+r.w-70,y:r.y+(r.h-55)/2,w:70,h:55}))(tr(x,1205,70,55)),{k:'vend',kind,b:'RED',stock:CFG.punchStock}))); // keep the machine face 70 wide, back against the wall
  for(const v of vends)walls.push(v);
- const doors=DIV.map((x,i)=>({x,y:380,w:40,h:140,k:'door',i,open:i===0}));
+ const doors=DIV.map((x,i)=>Object.assign(tr(x,380,40,140),{k:'door',i,open:i===0}));
  return{walls,vends,doors};
 }
 function buildMerch(rng){
- const m=[],add=(x,y)=>{const q=rng(),s=q<.5?'S':q<.85?'M':'L';m.push({x,y,s,b:BR[rng()*4|0]})};
+ const m=[],add=(px,py)=>{const[x,y]=tp(px,py),q=rng(),s=q<.5?'S':q<.85?'M':'L';m.push({x,y,s,b:BR[rng()*4|0]})};
  for(const x of[740,940,1140,1340])for(const y0 of[110,560])for(let i=0;i<4;i++){add(x-16,y0+30+i*56);add(x+66,y0+30+i*56)}
  for(const[x,y]of[[1750,190],[2150,190],[1750,600],[2150,600],[1950,395]]){add(x+55,y-16);add(x+55,y+126);add(x-16,y+55);add(x+126,y+55)}
  for(const[x,y,w]of[[2700,200,600],[2700,650,600],[2850,425,300]])for(let i=40;i<w;i+=70){add(x+i,y-16);add(x+i,y+66)}
@@ -735,13 +741,13 @@ function newRun(opts){
  const rng=mulberry32(EDITION);
  G={rng,t:0,over:null,tickN:0,tickT:CFG.tickSec,aprT:CFG.aprSec,room:0,flowT:0,flow:null,
   mk:{},head:{b:'GRN',txt:'BOXY BROS ANNOUNCE "FLAGSHIP DEFENSE INITIATIVE" // SHAREHOLDERS SUPPORTIVE',n:0},heads:[],
-  p:{x:250,y:450,r:12,hp:100,max:100,cash:CFG.startCash,ammo:(opts.gun||GUN_DEFAULT).ammo,prov:opts.prov||'GRN',lastHit:-99,recov:0,lastBill:0,sd:false,
+  p:{x:CPS[0][0],y:CPS[0][1],r:12,hp:100,max:100,cash:CFG.startCash,ammo:(opts.gun||GUN_DEFAULT).ammo,prov:opts.prov||'GRN',lastHit:-99,recov:0,lastBill:0,sd:false,
      fireCd:0,meleeCd:0,dashCd:0,sprint:false,stepT:0,hold:null,bag:[],sel:0,buff:0,aimx:1,aimy:0,inv:0,moving:false,fodT:0,air:0,airT:1,hopCd:0,zapCd:0},
   cards:['GLD','RED','BLU','GRN'].map(b=>({b,limit:CFG.cardLimit,bal:0,light:0,lv:1,xp:0})),
   gun:migrateGun(cloneGun(opts.gun||GUN_DEFAULT)),gs:{cd:0,charge:0,cycle:0,burst:0,lastFire:-9,strip:0,fanCool:0},chains:[],fragP:[],pops:[],pxp:[],loose:0,pullN:0,capS:{hits:0,store:0,t:0},frags:[],rc:[],ban:null,ghosts:[],
   perks:{},banned:new Set(),draft:null,draftQ:[],picks:[],drops:[],rebq:[],newsQ:[],runId:Math.random(),wh:{GLD:[],RED:[],BLU:[],GRN:[]},whT:0,coll:{a:0,card:0,ci:0,t:0},
   en:[],debris:[],corpses:[],hitstop:0,shake:0,shots:[],eshots:[],thrown:[],fl:[],fx:[],spend:[],kills:[],
-  combo:{n:0,t:0,tier:-1,best:-1},bonus:0,wallet:null,cp:{x:250,y:450},
+  combo:{n:0,t:0,tier:-1,best:-1},bonus:0,wallet:null,cp:{x:CPS[0][0],y:CPS[0][1]},
   seg:{1:mkSeg(),2:mkSeg(),3:mkSeg()},arena:{entered:false,dead:false,addT:12},
   gate:{started:false,t:CFG.gateWindow,paid:false,open:false},
   dir:{state:'Dormant',ap:'Kill',tier:1,budget:CFG.budgetStart,loan:0,pool:0,w:{Kill:50,Drain:35},cyc:3,snap:{},log:[],t0:0,dmgMul:1,payMul:1,spent:0,hc:0,temps:0},
@@ -753,7 +759,7 @@ function newRun(opts){
    {b:'GRN',dir:-1,type:'marked',txt:'GROWTH AUDIT FILED FROM STORE TERMINAL // TASK FORCE FORMED'}]};
  for(const b of BR)G.mk[b]={w:BRAND[b].base,prev:BRAND[b].base,vol:BRAND[b].vol,mom:0,liq:BRAND[b].liq,bull:false,bear:false,floor:0,skip:false,hist:[BRAND[b].base]};
  G.world=buildWorld();G.merch=buildMerch(rng);
- G.merch.push({x:1420,y:450,s:'M',b:'GLD',ev:G.events[0]},{x:3000,y:560,s:'M',b:'BLU',ev:G.events[2]});
+ {const a=tp(1420,450),c=tp(3000,560);G.merch.push({x:a[0],y:a[1],s:'M',b:'GLD',ev:G.events[0]},{x:c[0],y:c[1],s:'M',b:'BLU',ev:G.events[2]})}
  G.shelves=G.world.walls.filter(r=>r.k==='shelf');for(const r of G.shelves){r.hx=r.x;r.hy=r.y;r.vx=r.vy=r.rat=0;r.m=CFG.shelfMass*r.w*r.h/2500}
  for(const it of G.merch){let b=null,bd=30;for(const r of G.shelves){const d=rectDist(it.x,it.y,r);if(d<bd){bd=d;b=r}}it.sh=b}
  G.shelfMoved=0;G.bakeT=0;
@@ -1147,7 +1153,7 @@ function buyVend(v){const p=G.p;if(v.stock<=0){float(p.x,p.y-26,'SOLD OUT','#e53
  else if(v.kind==='health'){p.hp=Math.min(p.max,p.hp+CFG.healItem);float(p.x,p.y-26,'+'+CFG.healItem+' HP','#2baa4a')}
  else{p.buff=CFG.buffDur;float(p.x,p.y-26,'OVERTIME: +40% FIRE RATE',BRAND[v.b].col)}}
 function bagUsed(){return G.p.bag.reduce((s,i)=>s+SIZE[i.s].slots,0)}
-function gateZone(){const p=G.p;return!G.gate.open&&p.x>2360&&p.x<2500&&p.y>320&&p.y<580}
+function gateZone(){const[x,y]=toPlan(G.p.x,G.p.y);return!G.gate.open&&x>2360&&x<2500&&y>320&&y<580}
 function gateFee(){return CFG.gateFee*(G.dir.tier===3?1.5:1)}
 function use(){const p=G.p;
  if(gateZone()){const fee=gateFee();if(p.cash>=fee){p.cash-=fee;spent(fee);G.dir.pool+=fee;G.gate.paid=true;openGate();
@@ -1358,10 +1364,11 @@ function droneBoom(e,live){if(e.boomed)return;e.boomed=true;e.dead=true;const p=
  if(hyp(p.x-e.x,p.y-e.y)<R+p.r)hurtPlayer(CFG.droneDmg,e);
  if(!G.over)blast(e.x,e.y,R,CFG.droneDmg*(live?.4:.8),e.b,false)}
 // SHOOTING TARGETS: one per brand along the entrance's back wall. They never move, attack, pay or die: at 0 HP they reset.
-function spawnTargets(){BR.forEach((b,i)=>{const x=80,y=250+i*100,t=spawn('target',x,y,{seg:0,b,born:0,hx:x,hy:y,hp:CFG.hp_target||ET.target.hp});t.max=t.hp})}
-function startBoss(){const A=G.arena;G.en=G.en.filter(e=>e.seg!==4);G.eshots.length=0;A.entered=true;A.addT=15;G.cp={x:3620,y:450};
+function spawnTargets(){BR.forEach((b,i)=>{const x=800,y=4250+i*100, // a column on the Entrance's right wall, clear of the bottom HUD
+ t=spawn('target',x,y,{seg:0,b,born:0,hx:x,hy:y,hp:CFG.hp_target||ET.target.hp});t.max=t.hp})}
+function startBoss(){const A=G.arena;G.en=G.en.filter(e=>e.seg!==4);G.eshots.length=0;A.entered=true;A.addT=15;G.cp={x:CPS[2][0],y:CPS[2][1]};
  const k=1+G.dir.pool/CFG.poolScale;
- spawn('big',4300,330,{boss:true,seg:4,scripted:true,hp:CFG.hp_big*k,st:'chase',pay:CFG.pay_boss});spawn('lil',4300,570,{boss:true,seg:4,scripted:true,hp:CFG.hp_lil*k,pay:CFG.pay_boss});
+ {const B=tp(4300,330),L=tp(4300,570);spawn('big',B[0],B[1],{boss:true,seg:4,scripted:true,hp:CFG.hp_big*k,st:'chase',pay:CFG.pay_boss});spawn('lil',L[0],L[1],{boss:true,seg:4,scripted:true,hp:CFG.hp_lil*k,pay:CFG.pay_boss})}
  for(const e of G.en)if(e.boss)e.max=e.hp;
  setDoor(3,false)}
 
@@ -1398,8 +1405,8 @@ function onRoom(k){const prev=G.room;G.room=k;const D=G.dir,s=G.seg[k];
  if(s&&!s.entered){s.entered=true;s.tEnter=G.t;
   if(D.state==='Dormant'){D.state='Observing';D.t0=G.t;D.cycT=D.cyc;dlog('Director wakes. Opening stance: Kill')}
   spawnWave(k);
-  if(k===2){const ev=G.events[3];const c=spawn('courier',1620,840,{seg:2,ev,marked:true});c.field=bfs(TERMINAL.x,TERMINAL.y)}
-  if(k===3)G.cp={x:2600,y:450}}
+  if(k===2){const ev=G.events[3];const cq=tp(1620,840),c=spawn('courier',cq[0],cq[1],{seg:2,ev,marked:true});c.field=bfs(TERMINAL.x,TERMINAL.y)}
+  if(k===3)G.cp={x:CPS[1][0],y:CPS[1][1]}}
  if(k===4&&!G.arena.entered){startBoss();dlog('Boss arena. BossUpgradePool '+$$(D.pool)+' -> boss HP x'+(1+D.pool/CFG.poolScale).toFixed(2))}
  if(k===5)end('win')}
 
@@ -1439,7 +1446,7 @@ function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed
  if(G.gate.started&&!G.gate.open){G.gate.t-=dt;if(G.gate.t<=0){openGate();dlog('PayWindow expired: gate opens, no fee, no upgrade')}}
  for(const k of[1,2,3]){const s=G.seg[k];if(!s.entered||s.cleared)continue;const left=G.en.filter(e=>!e.dead&&e.scripted&&e.seg===k).length;
   if(s.wave<SEG_OPEN[k].length){if(left<=2){spawnWave(k);dlog('SEG '+k+' wave '+s.wave+' of '+SEG_OPEN[k].length)}}
-  else if(!left){s.cleared=true;s.tClear=G.t-s.tEnter;dlog('SEG '+k+' cleared in '+s.tClear.toFixed(0)+'s (expected '+CFG.segExpected+'s)');s.clearT=2.5;banner('GRN','ROOM '+k+' CLEAR // '+(k<3?'DOOR OPEN':'ARENA OPEN'),'Wave enemies down in '+s.tClear.toFixed(0)+'s. The Director stops sending reinforcements here; anything still standing is a straggler.');{const d=G.world.doors[k];if(d)for(let i=0;i<7;i++)pxBurst('sparkle',d.x+d.w/2,d.y+i*d.h/6,'GRN')}if(k===1)setDoor(1,true);if(k===3)setDoor(3,true)}}
+  else if(!left){s.cleared=true;s.tClear=G.t-s.tEnter;dlog('SEG '+k+' cleared in '+s.tClear.toFixed(0)+'s (expected '+CFG.segExpected+'s)');s.clearT=2.5;banner('GRN','ROOM '+k+' CLEAR // '+(k<3?'DOOR OPEN':'ARENA OPEN'),'Wave enemies down in '+s.tClear.toFixed(0)+'s. The Director stops sending reinforcements here; anything still standing is a straggler.');{const d=G.world.doors[k];if(d)for(let i=0;i<7;i++)pxBurst('sparkle',d.x+i*d.w/6,d.y+d.h/2,'GRN')}if(k===1)setDoor(1,true);if(k===3)setDoor(3,true)}}
  // flow field + director
  G.flowT-=dt;if(G.flowT<=0){G.flowT=.25;G.flow=bfs(p.x,p.y)}
  const D=G.dir;if(D.state!=='Dormant'&&!G.arena.entered){D.budget=Math.min(CFG.budgetCap,D.budget+CFG.budgetRate*dt)}
@@ -1548,12 +1555,12 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  cx.fillStyle='#0d0d0d';cx.fillRect(0,0,vw,vh);cx.save();cx.translate(-camX,-camY);
  // floors
  const fl=['#d9d5cb','#ece8df','#e4dfd2','#ece8df','#e2d6d6','#bdb9b0'];
- for(let i=0;i<6;i++){const x0=i===0?0:DIV[i-1]+40,x1=i===5?W:DIV[i];cx.fillStyle=fl[i];cx.fillRect(x0,0,x1-x0,900);
-  cx.fillStyle='rgba(13,13,13,.07)';cx.font='900 64px "Archivo Black",sans-serif';cx.fillText(SEG_NAME[i],x0+24,70+(i%2)*780)}
- for(const x of DIV){cx.fillStyle='#cfcabd';cx.fillRect(x,380,40,140)}
- cx.fillStyle='#f3c9c5';cx.fillRect(1700,900,600,360);cx.fillStyle='rgba(229,51,42,.25)';cx.font='900 54px "Archivo Black",sans-serif';cx.fillText('FIRE // BRAND SPACE',1722,1010);
+ for(let i=0;i<6;i++){const x0=i===0?-PAD:DIV[i-1]+40,x1=i===5?OW:DIV[i],r=tr(x0,0,x1-x0,900);cx.fillStyle=fl[i];cx.fillRect(r.x,r.y,r.w,r.h);
+  cx.fillStyle='rgba(13,13,13,.07)';cx.font='900 54px "Archivo Black",sans-serif';cx.fillText(SEG_NAME[i],r.x+24,r.y+r.h-28)} // name sits at each room's entry edge
+ for(const x of DIV){const r=tr(x,380,40,140);cx.fillStyle='#cfcabd';cx.fillRect(r.x,r.y,r.w,r.h)}
+ {const r=tr(1700,900,600,360);cx.fillStyle='#f3c9c5';cx.fillRect(r.x,r.y,r.w,r.h);cx.fillStyle='rgba(229,51,42,.25)';cx.font='900 28px "Archivo Black",sans-serif';cx.fillText('FIRE //',r.x+56,r.y+66);cx.fillText('BRAND SPACE',r.x+56,r.y+100)}
  // checkpoints + terminal
- for(const q of[[250,450],[2600,450],[3620,450]]){const on=G.cp.x===q[0];cx.strokeStyle=on?'#ff2fb0':'#888';cx.lineWidth=4;cx.setLineDash([10,6]);cx.strokeRect(q[0]-26,q[1]-26,52,52);cx.setLineDash([])}
+ for(const q of CPS){const on=G.cp.x===q[0]&&G.cp.y===q[1];cx.strokeStyle=on?'#ff2fb0':'#888';cx.lineWidth=4;cx.setLineDash([10,6]);cx.strokeRect(q[0]-26,q[1]-26,52,52);cx.setLineDash([])}
  const ge=G.events[3];cx.fillStyle=ge.fired?'#777':BRAND.GRN.col;cx.strokeStyle='#0d0d0d';cx.lineWidth=3;cx.fillRect(TERMINAL.x-18,TERMINAL.y-34,36,26);cx.strokeRect(TERMINAL.x-18,TERMINAL.y-34,36,26);
  // solids
  for(const r of G.world.walls){if(r.k==='wall'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h)}
@@ -1561,7 +1568,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
    if(r.x!==r.hx||r.y!==r.hy){cx.strokeStyle='rgba(13,13,13,.18)';cx.lineWidth=2;cx.setLineDash([6,6]);cx.strokeRect(r.hx,r.hy,r.w,r.h);cx.setLineDash([])}
    cx.fillStyle='#55524c';cx.fillRect(r.x+ox,r.y+oy,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x+2+ox,r.y+2+oy,r.w-4,r.h-4)}
   else{cx.fillStyle=r.stock>0?BRAND[r.b].acc:'#444';cx.fillRect(r.x+6,r.y+6,r.w,r.h);cx.fillStyle=r.stock>0?BRAND[r.b].col:'#777';cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x,r.y,r.w,r.h);cx.fillStyle='#0d0d0d';cx.font='700 11px "Space Mono",monospace';cx.textAlign='center';cx.fillText(r.kind.toUpperCase(),r.x+r.w/2,r.y+22);cx.fillText(r.stock>0?$$(vendPrice(r))+' x'+r.stock:'SOLD OUT',r.x+r.w/2,r.y+40);cx.textAlign='left'}}
- for(const d of G.world.doors){if(d.open)continue;const gate=d.i===2;cx.fillStyle=gate?'#ff2fb0':'#f5b800';cx.fillRect(d.x,d.y,d.w,d.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;for(let y=d.y;y<d.y+d.h;y+=20){cx.beginPath();cx.moveTo(d.x,y+20);cx.lineTo(d.x+d.w,y);cx.stroke()}cx.strokeRect(d.x,d.y,d.w,d.h);
+ for(const d of G.world.doors){if(d.open)continue;const gate=d.i===2;cx.fillStyle=gate?'#ff2fb0':'#f5b800';cx.fillRect(d.x,d.y,d.w,d.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.save();cx.beginPath();cx.rect(d.x,d.y,d.w,d.h);cx.clip();for(let x=d.x-d.h;x<d.x+d.w;x+=20){cx.beginPath();cx.moveTo(x,d.y+d.h);cx.lineTo(x+d.h,d.y);cx.stroke()}cx.restore();cx.strokeRect(d.x,d.y,d.w,d.h);
   if(gate&&G.gate.started){cx.fillStyle='#0d0d0d';cx.font='900 22px "Archivo Black",sans-serif';cx.textAlign='right';cx.fillText(Math.ceil(G.gate.t)+'s',d.x-10,d.y-10);cx.textAlign='left'}}
  // merch
  const pulse=.5+.5*Math.sin(G.t*6);
@@ -1798,7 +1805,7 @@ function hud(){const p=G.p,D=G.dir;
  const TK=el('tick');if(hud.tk!==G.tickN||!TK.firstChild){TK.innerHTML=tk;hud.tk=G.tickN}
  else BR.forEach((b,i)=>{const m=G.mk[b],t=TK.children[i];t.querySelector('.w').textContent=$$(rp(b))+' '+(m.w>m.prev+.002?'▲':m.w<m.prev-.002?'▼':'■');t.querySelector('.d').textContent=dtx(b)});
  TK.querySelectorAll('canvas').forEach(c=>sparkW(c,c.dataset.b));
- {const bt=TK.getBoundingClientRect().bottom;hud.tickBottom=bt;const dg=el('dbg');if(dg)dg.style.top=Math.round(bt+8+52)+'px';}
+ {const bt=TK.getBoundingClientRect().bottom;hud.tickBottom=bt;if(hud.tbSet!==Math.round(bt)){hud.tbSet=Math.round(bt);document.documentElement.style.setProperty('--tb',hud.tbSet+'px')}const dg=el('dbg');if(dg)dg.style.top=Math.round(bt+8+52)+'px';}
  newsTick();
  el('sd').style.display=p.sd?'block':'none';
  const c=G.combo,pm=G.mk[p.prov].w;let floor$=0,proc$=0;for(const d of G.drops)floor$+=d.v;for(const q of G.rebq)proc$+=q.v;
@@ -1834,7 +1841,7 @@ function hud(){const p=G.p,D=G.dir;
  const P=el('prompt');P.style.display=pr&&!G.draft?'block':'none';P.innerHTML=pr;
  const w=el('wallet');w.style.display=G.wallet?'block':'none';if(G.wallet)w.style.bottom=(el('bl').offsetHeight+18)+'px';
  // minimap (BLU 100%)
- const mp=el('map');{mp.style.display='block';const m=mp.getContext('2d'),k=300/W;m.fillStyle='#ece8df';m.fillRect(0,0,300,84);m.fillStyle='#0d0d0d';for(const r of G.solids)m.fillRect(r.x*k,r.y*k,Math.max(1,r.w*k),Math.max(1,r.h*k));m.fillStyle='#e5332a';for(const e of G.en)if(e.vis)m.fillRect(e.x*k-1.5,e.y*k-1.5,3,3);m.fillStyle='#ff2fb0';m.fillRect(p.x*k-2.5,p.y*k-2.5,5,5)}
+ const mp=el('map');{mp.style.display='block';const m=mp.getContext('2d'),k=Math.min(300/W,84/HT);m.fillStyle='#ece8df';m.fillRect(0,0,300,84);m.fillStyle='#0d0d0d';for(const r of G.solids)m.fillRect(r.x*k,r.y*k,Math.max(1,r.w*k),Math.max(1,r.h*k));m.fillStyle='#e5332a';for(const e of G.en)if(e.vis)m.fillRect(e.x*k-1.5,e.y*k-1.5,3,3);m.fillStyle='#ff2fb0';m.fillRect(p.x*k-2.5,p.y*k-2.5,5,5)}
 }
 const PLAN={GLD:'BLESSED CARE',RED:'FRONTLINE COVER',BLU:'PLAN ▮▮▮▮',GRN:'WELLNESS+'};
 function healRate(){const p=G.p,s=stance(p.prov,p.ammo),mod=s==='Positive'?.85:s==='Negative'?1.15:1;return{r:G.mk[p.prov].w*mod*(1-.15*pk('copay')),s,mod}}
@@ -2097,6 +2104,7 @@ function showStart(){paused=true;
  const priceBody=`<table class="web">${price}</table><p style="margin:6px 0 0;opacity:.75">Opening prices at baseline Worth. Everything moves with the live market: a round is one share (Worth x $${CFG.pricePerWorth}${CFG.ammoMarkup!==1?' x '+CFG.ammoMarkup:''}), heals bill your provider's Worth per HP (+/-15% by stance), abilities bill the selected card at the ability brand's Worth x $${CFG.abilityK}. Only ${chip('RED')} has a brand space with machines in this slice. Market events: ${BR.map(b=>chip(b)+' '+EV[b]).join(' &nbsp; ')}; triggers are not disclosed, follow the brand-colored signals in the store.</p>`;
  const notesBody=`<div class="mpn"><b class="hd">New in this pass: the wallet</b><ul><li>Tickers show each brand's round price as the big number (no Worth %), and the one-minute change in dollars.</li><li>Your cards sit in a wallet that slides in from the right edge; each one peeks out showing owed, power and its bar.</li><li>The card you're using is inserted in the reader above your cash, at full size. Switching (1-4) pops the new card out of the wallet, drops the old one out of the reader and back into its pocket, and slots the new one in.</li><li>The gun can't fire during a swap (0.5 s, in Tune). A charge in progress is lost.</li><li>Putting the card in the WALLET to repay takes it out of the reader and leaves it popped up in the wallet.</li></ul>
 <b class="hd">Ammo price strip</b><ul><li>Under your cash: the selected ammo and what one pull costs, with tag surcharges included (the small line splits ammo from tags, and shows the round count when a pull fires more than one). The rest of the gun readout (stances, parts, combo, bag, ability timers) is in the debug view.</li></ul>
+<b class="hd">Vertical layout</b><ul><li>The store now runs bottom to top: you start in the Entrance at the bottom and push upward through Seg 1, Seg 2, Seg 3 and the Arena at the top. Rooms, shelves, doors, spawns, checkpoints and the Seg 2 gate are the same, just rotated, so the FIRE brand space now sits on the right side of Seg 2. W moves you toward the next room. Each room's name is painted at its entry edge. There's extra floor below the Entrance so the bottom HUD doesn't cover the start, and the practice targets stand in a column along the Entrance's right wall.</li><li>The four brand stock tiles now sit in one row under the news ticker, which runs the full width of the screen. The room progress panel, DEBUG button and debug panels hang below that row.</li></ul>
 <b class="hd">Debug panels</b><ul><li>Today's Market Events and the minimap are hidden by default and open with the AI Director under the DEBUG button (or T).</li></ul>
 <b class="hd">News ticker</b><ul><li>Headlines and market news (Bull, Bear, Floor, Recovery, market events, prevented events) only appear in the top news bar now; they no longer pop up mid-screen. Each item scrolls across three times, then the next one plays. The latest item rests in the bar once the queue is empty. ROOM CLEAR still pops up, since it's not news. Scroll speed is in Tune.</li></ul>
 <b class="hd">Ticker column</b><ul><li>The four brand tickers stack down the left edge. Each one shows its round price as the big number, a line chart of the last minute (dotted line = a minute ago, square = now), and the price change over that minute.</li></ul>
