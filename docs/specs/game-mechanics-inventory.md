@@ -131,6 +131,8 @@ Rows 5.8 and 5.9 likely overlap: WALLET games replace reloading, which may make 
 | # | Mechanic | What it does | Status | Call |
 | --- | --- | --- | --- | --- |
 | 6.1 | HAND OF THE MARKET | Melee weapon; prototyped and confirmed working. Its role in the economy (free damage? brand interaction?) is not written down | Built |  |
+| 6.2 | Neighbor kickback | Melee hits shove up to 4 enemies within 2.5 m of the struck enemy (30% knockback, no damage, triggers a near-miss reaction roll). See `melee-spec.md` | Designed |  |
+| 6.3 | Brand strikes | Default plus RED Rapid Deployment (quick jabs), BLU Wire Transfer (long lunge), GRN Diversification (wide arc), GLD Tithe (overhead slam); each reshapes the kickback. See `melee-spec.md` | Designed |  |
 
 ## 7. Enemies, AI Director and spawning
 

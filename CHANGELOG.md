@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-23
+- Added `docs/specs/melee-spec.md`: HAND OF THE MARKET melee hits now shove nearby enemies (neighbor kickback), and there are four brand strikes alongside the default: RED Rapid Deployment (short and quick), BLU Wire Transfer (fast and long), GRN Diversification (wide and arcing), GLD Tithe (heavy overhead slam). Mechanics Inventory rows 6.2–6.3 and the README docs table updated.
 - Store Slice: removed the gun view from the bottom HUD; the panel now holds only the card reader, cash and ammo price per pull.
 - Store Slice (`index.html`): the level now runs vertically. You start in the Entrance at the bottom and move up through Seg 1-3 to the Arena at the top. The layout is the same plan rotated 90° (`tp`/`tr`/`toPlan` helpers), so the FIRE brand space now sits on the right of Seg 2.
 - Store Slice: 300 px of extra floor below the Entrance so the bottom HUD doesn't cover the start; practice targets moved to a column on the Entrance's right wall.

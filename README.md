@@ -43,6 +43,7 @@ Newest first.
 | `docs/design/design-reference-v2.md` | **Design Reference**: glossary, macro loop, day generation, relationship web, market math, economy, loans, Fence & Hoard, brand headlines. Single source for market states. |
 | `docs/design/ai-director-design-doc.md` | AI Director v0.2: decision loop, approaches and escalation, budget, pay-to-pass, segment modification |
 | `docs/specs/market-spec.md` | Market Spec: tested tick order, nudges, thresholds, shares and simulation results |
+| `docs/specs/melee-spec.md` | Melee Spec: HAND OF THE MARKET neighbor kickback and the four brand strikes |
 | `docs/specs/credit-card-spec.md` | Credit Card Spec: card power, abilities, payment-failure ladder, BLU HUD unlocks |
 | `docs/specs/game-mechanics-inventory.md` | Every mechanic (~110) by system with status, for review |
 | `docs/specs/level-design-guide.md` | Level Design Guide: Pop Brutalism districts, color ladder, lo-fi treatment, UE5 notes |
