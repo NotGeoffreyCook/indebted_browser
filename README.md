@@ -20,6 +20,7 @@ Newest first.
 
 | Folder | What it is |
 |---|---|
+| `brand-wings/` | Hub-and-wings store level built on the Store Slice: same Entrance start, a central hub, and four 4-room brand wings (GLD, RED, BLU, GRN), each with its own pay gate, brand machines and arena |
 | `ed/` | InDebtEd ED |
 | `gameplay-slice/` | InDebtEd Gameplay Slice |
 | `test-environment/` | InDebtEd Test Environment |

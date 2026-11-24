@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-24
+- Added `prototypes/brand-wings/`: a new level built on the Store Slice (`index.html` is unchanged). You start in the same Entrance; its north door opens into a central HUB, and four linear brand wings hang off it (BLU west, RED east, GLD and GRN north), playable in any order.
+- Every wing runs R1 entry -> R2 signature room -> pay gate -> R3 gauntlet (checkpoint + that brand's ammo / health / buff machines) -> R4 arena. Clearing R1 opens R2; R3 clear opens the arena; the arena door locks until the bosses are down.
+- Rooms: RED Loading Dock, Conveyor Lanes (belts push you sideways), Foundry Aisle (corridor with flanker bays), Crucible (pit and pillars). GLD Atrium (stepped diamond, relic on the altar), Procession (pews), Tithe Hall (V-pockets), Sanctum (octagon round a dais). GRN Produce Market, Greenhouse Stacks (two cubes swap on a timer), Fulfillment Maze (courier terminal), Canopy (cube rings). BLU Lobby (relic on the mezzanine), Server Hall (racks you can zap or hop through), Beta Floor (panels swap every 9 s with a warning flash), Keynote Stage.
+- Wing enemies take the wing's brand (scripted waves always, Director spawns 70%, Temps 75%). One Director budget across the store, spent only in the wing you are in; RED leans Kill, BLU leans Drain (Taunt and Trick are not built yet).
+- Placeholder: every arena uses the BOXY BROS pair in the wing's brand, which means four boss fights in one day against the one-Target-per-day design.
+- Exit is the Street door on the Entrance's left wall: with all four arenas cleared it's the Settlement; leaving earlier ends the run and forfeits the loot bag.
+- New tunables: `beltSpd`, `panelEvery`, `panelWarn`. Minimap is taller (300 x 180) to fit the wider store.
+
 ## 2026-11-23
 - Added `docs/specs/melee-spec.md`: HAND OF THE MARKET melee hits now shove nearby enemies (neighbor kickback), and there are four brand strikes alongside the default: RED Rapid Deployment (short and quick), BLU Wire Transfer (fast and long), GRN Diversification (wide and arcing), GLD Tithe (heavy overhead slam). Mechanics Inventory rows 6.2–6.3 and the README docs table updated.
 - Store Slice: removed the gun view from the bottom HUD; the panel now holds only the card reader, cash and ammo price per pull.
