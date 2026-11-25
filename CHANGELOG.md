@@ -7,6 +7,7 @@
 - Walls get a thin concrete rim and BLU's switched-off Beta panels a light outline, so both still read on the dark brand floors.
 - Performance: tiles are baked into 320 px chunk canvases and only chunks whose look changes are re-baked (visible first, a few per frame). Measured in headless Chrome at 1440 × 900: about +0.5 ms per frame over flat floors; baking every chunk takes about 80 ms in total, spread over play as chunks come into view.
 - New tunables (Floor mosaics): `floorMosaic` (0 = old flat room colours), `mosVacAt`, `mosSpill`.
+- Noise pass: new `mosDetail` tunable, default **1 = quiet**. The fill now carries each tile's value; only tiles inside a mosaic hold an ad, printed 15% off the fill with one header bar and two lines (no borders or photo blocks); every other tile is plain vinyl; grout drops to 20%. Hub spill is a solid, tinted patch with a ragged edge instead of dithered speckle. `0` = flat tones only, `2` = the first busy pass.
 
 ## 2026-11-24
 - Added `prototypes/brand-wings/`: a new level built on the Store Slice (`index.html` is unchanged). You start in the same Entrance; its north door opens into a central HUB, and four linear brand wings hang off it (BLU west, RED east, GLD and GRN north), playable in any order.

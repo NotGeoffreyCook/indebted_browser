@@ -400,6 +400,7 @@ const CFG_DEF=[
 ['floorMosaic','Floor mosaics: 0 = flat room colours, 1 = ad-tile mosaics',1,'I'],
 ['mosVacAt','Brand tiles start going vacant below this Worth',0.4,'I'],
 ['mosSpill','Brand tiles spill into the Hub at Worth 1 (tiles)',6,'I'],
+['mosDetail','Floor detail: 0 = flat tones, 1 = quiet (ads only in the mosaics, low contrast), 2 = busy (every tile printed)',1,'I'],
 ['Debug'],
 ];
 const CFG={};
@@ -758,6 +759,8 @@ const TERMINAL=(([x,y])=>({x,y}))(wp('GRN',2*STEP+720,-350));
    room 1 and arena carry the brand logo, the Hub carries Ed's cracked smiley mask.
    Market link: below mosVacAt Worth a brand's tiles go vacant (back to public paper) and at Floor the whole wing empties;
    brand tiles spill out of each Hub door, farther the higher the brand's Worth.
+   Detail (mosDetail): 1 = quiet default (fill carries value, ads only in mosaic tiles at low contrast, soft grout),
+   0 = flat tones, 2 = busy (every tile printed at full ink, the first pass).
    Perf: tiles are baked once into 320 px chunk canvases (16 x 16 tiles). Only chunks whose look changes are re-baked,
    visible ones first, a few per frame. Drawing the floor is then one drawImage per visible chunk. */
 const MOS_T=20,MOS_CH=16,MOS_PAPER='#ece8df',MOS_INK='#0d0d0d';
@@ -781,7 +784,7 @@ function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=mosEdGrid();
  for(const rm of ROOMS){if(rm.id==='STREET')continue;const r=rm.rect,nx=Math.ceil(r.w/MOS_T),ny=Math.ceil(r.h/MOS_T),tiles=new Array(nx*ny);
   const logo=rm.b&&(rm.k===1||rm.k===4)?MOS_LOGO[rm.b]:rm.id==='HUB'?ed:null,inv=!rm.b,lx=Math.floor((nx-40)/2),ly=rm.id==='HUB'?0:Math.floor((ny-40)/2);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const gx=Math.floor(r.x/MOS_T)+i,gy=Math.floor(r.y/MOS_T)+j,rr=mh(gx,gy,1),t={gx,gy,b:rm.b||null,ci:0,sp:null,sd:99};
-   const u=i-lx,v=j-ly;if(logo&&u>=0&&u<40&&v>=0&&v<40){const val=+logo[v*40+u];t.ci=inv?4-val:val}else t.ci=rm.b?(rr<.7?0:1):(rr<.68?0:rr<.95?1:2);
+   const u=i-lx,v=j-ly;if(logo&&u>=0&&u<40&&v>=0&&v<40){const val=+logo[v*40+u];t.ci=inv?4-val:val;t.m=true}else t.ci=rm.b?(rr<.7?0:1):(rr<.68?0:rr<.95?1:2);
    if(rm.id==='HUB'){const wx=r.x+i*MOS_T+MOS_T/2,wy=r.y+j*MOS_T+MOS_T/2;for(const b of WORDER){const o=MOS_SPILL[b],al=(wx-o.x)*o.dx+(wy-o.y)*o.dy,ac=Math.abs((wx-o.x)*o.dy-(wy-o.y)*o.dx);
     if(al<0)continue;const d=Math.hypot(al,Math.max(0,ac-DOORW/2)*1.25)/MOS_T;if(d<t.sd){t.sd=d;t.sp=b}}}
    tiles[j*nx+i]=t}
@@ -791,10 +794,20 @@ function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=mosEdGrid();
    ch.x=r.x+ci*MOS_T;ch.y=r.y+cj*MOS_T;ch.w=(ch.i1-ch.i0)*MOS_T;ch.h=(ch.j1-ch.j0)*MOS_T;R.chunks.push(ch);MOS.chunks.push(ch)}}}
 function mosVac(b){const m=G.mk[b];if(!m)return 0;if(m.floor>0)return 1;const a=CFG.mosVacAt,w=m.w;return w>=a?0:w<=.05?1:Math.pow((a-w)/(a-.05),1.4)}
 function mosSpillR(b){const m=G.mk[b];return!m||m.floor>0?0:1+CFG.mosSpill*clamp(m.w,0,1)}
-function mosTile(g,px,py,t,R){const T=MOS_T,rm=R.rm;let z=t.b,ci=t.ci,base,ink;
- if(z){if(mh(t.gx,t.gy,11)<mosVac(z)){z=null;ci=0}}
- else if(t.sp){const sr=mosSpillR(t.sp);if(t.sd<=sr&&mh(t.gx,t.gy,5)<1-t.sd/(sr+1.5)){z=t.sp;ci=mh(t.gx,t.gy,9)<.7?0:1}}
+const MOS_COV=[.06,.2,.4,.62,.88],MOS_HX={};
+function mosRGB(c){return MOS_HX[c]||(MOS_HX[c]=[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)))}
+function mosMix(a,b,k){const A=mosRGB(a),B=mosRGB(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,'0')).join('')}
+function mosTile(g,px,py,t,R){const T=MOS_T,rm=R.rm;let z=t.b,ci=t.ci,base,ink,pic=!!t.m,spl=false;
+ if(z){if(mh(t.gx,t.gy,11)<mosVac(z)){z=null;ci=0;pic=false}}
+ else if(t.sp){const sr=mosSpillR(t.sp),solid=CFG.mosDetail<2; // quiet/flat: a solid patch with a ragged edge row, not dithered speckle
+  if(t.sd<=sr&&(solid?t.sd<=sr-1||mh(t.gx,t.gy,5)<.5:mh(t.gx,t.gy,5)<1-t.sd/(sr+1.5))){z=t.sp;ci=mh(t.gx,t.gy,9)<.7?0:1;pic=false;spl=true}}
  if(z){const P=MOS_RAMP[z];base=P[rm.b&&rm.k%2===0?1:0];ink=P[4]}else{base=rm.b?MOS_PAPER:rm.fl;ink=MOS_INK}
+ const D=CFG.mosDetail;
+ if(D<2){ // flat / quiet: the fill carries the value; only mosaic tiles hold an ad, printed 15% off the fill; plain vinyl elsewhere; soft grout
+  const cov=MOS_COV[ci],v=pic?mosMix(base,ink,cov):spl?mosMix(base,ink,.3):base; /* spill tinted so it reads as brand floor, not shadow */g.fillStyle=v;g.fillRect(px,py,T,T);
+  if(D===1&&pic){g.fillStyle=mosMix(v,cov<.5?ink:base,.15);g.fillRect(px+3,py+3,Math.round((T-6)*(ci>=2?1:.7)),ci>=2?4:2);
+   for(let k=0;k<2;k++)g.fillRect(px+3,py+10+k*3,Math.max(2,Math.round((T-6)*(.5+.5*mh(t.gx,t.gy,20+k)))),1)}
+  g.fillStyle=z?'rgba(0,0,0,.2)':'rgba(13,13,13,.08)';g.fillRect(px,py,T,1);g.fillRect(px,py,1,T);return}
  g.fillStyle=base;g.fillRect(px,py,T,T);g.fillStyle=ink;let fg=ink;
  if(ci===4){g.fillRect(px+1,py+1,T-2,T-2);fg=base}else if(ci>=1){const bw=ci===3?2:1;g.fillRect(px+1,py+1,T-2,bw);g.fillRect(px+1,py+T-1-bw,T-2,bw);g.fillRect(px+1,py+1,bw,T-2);g.fillRect(px+T-1-bw,py+1,bw,T-2)}
  if(ci>=2&&ci<4){g.fillRect(px+3,py+3,T-6,4)}else{g.fillStyle=fg;g.fillRect(px+3,py+3,Math.round((T-6)*(ci?.85:.5)),ci?2:1)}
@@ -803,7 +816,7 @@ function mosTile(g,px,py,t,R){const T=MOS_T,rm=R.rm;let z=t.b,ci=t.ci,base,ink;
  g.fillStyle=z?'rgba(0,0,0,.55)':'rgba(13,13,13,.18)';g.fillRect(px,py,T,1);g.fillRect(px,py,1,T)}
 function mosBake(ch){const R=ch.R;if(!ch.c){ch.c=document.createElement('canvas');ch.c.width=ch.w;ch.c.height=ch.h}const g=ch.c.getContext('2d');
  for(let j=ch.j0;j<ch.j1;j++)for(let i=ch.i0;i<ch.i1;i++)mosTile(g,(i-ch.i0)*MOS_T,(j-ch.j0)*MOS_T,R.tiles[j*R.nx+i],R);ch.dirty=false}
-function mosUpdate(camX,camY,vw,vh){if(!MOS)mosBuild();
+function mosUpdate(camX,camY,vw,vh){if(!MOS)mosBuild();if(MOS.detail!==CFG.mosDetail){if(MOS.detail!==undefined)for(const ch of MOS.chunks)ch.dirty=true;MOS.detail=CFG.mosDetail}
  for(const b of WORDER){const s=Math.round(mosVac(b)*40)+'|'+Math.round(mosSpillR(b)*2);if(MOS.sig[b]!==s){if(MOS.sig[b]!==undefined)for(const ch of MOS.chunks)if(ch.brands.has(b))ch.dirty=true;MOS.sig[b]=s}}
  let vis=0,off=0;for(const ch of MOS.chunks){if(!ch.dirty&&ch.c)continue;const inView=!(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY);
   if(!ch.c&&!inView)continue; // first bake happens when a chunk first comes into view
