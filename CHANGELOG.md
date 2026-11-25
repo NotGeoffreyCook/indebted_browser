@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-25
+- Store Slice (`index.html`): first art pass toward **Graphic Realism** (art_direction_v1 in the Production Management project). Rendering only; no mechanics, values or seeded rolls changed.
+  - Floors are neutral concrete with pour joints; walls are dark concrete with a lit top edge instead of flat black.
+  - One hard cast shadow, down and to the right, under walls, shelves, machines, merchandise, enemies and Ed. Enemies keep their accent offset on top of it (accent in the shadow zone).
+  - Shelves are painted metal with white price tags along the aisle edge.
+  - FIRE brand space: pink floor replaced by concrete with a painted RED zone line, and the label is now a physical sign with a black offset backing plate.
+  - Brand signage and brand machines brighten and dim with live Worth (`signLit`: 0.3 + 0.7 x Worth) and go dark at Floor.
+  - Each pull drops a thermal receipt on the floor to the left of the chamber (capped at 160; uses `Math.random`, not the day seed).
+  - Minimap uses the concrete palette. All values live in the new `ART` constant.
+- Open conflict: `docs/specs/level-design-guide.md` says every district surface takes its brand hue with no grey; art_direction_v1 proposes a mostly neutral world with brand color reserved for things that matter. Needs a decision before the brand-wings level gets the same pass.
+
 ## 2026-11-24
 - Added `prototypes/brand-wings/`: a new level built on the Store Slice (`index.html` is unchanged). You start in the same Entrance; its north door opens into a central HUB, and four linear brand wings hang off it (BLU west, RED east, GLD and GRN north), playable in any order.
 - Every wing runs R1 entry -> R2 signature room -> pay gate -> R3 gauntlet (checkpoint + that brand's ammo / health / buff machines) -> R4 arena. Clearing R1 opens R2; R3 clear opens the arena; the arena door locks until the bosses are down.
