@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-25 (branch `floor-mosaics`)
+- Brand Wings: floors are now **ad-tile mosaics**. Every 20 px floor tile is a rented ad; colour follows location. The Entrance and Hub are public newsprint black and white; each wing uses only its brand's tone-board 950–600 (600 ink on 950/900 vinyl, alternating room to room), so step 500 stays reserved for things you can shoot, punch or pick up.
+- Ink coverage per tile (five value bins) makes the tiles add up to a picture: each wing's room 1 and arena carry the brand logo (sampled from `assets/brand/`), and the Hub carries Ed's cracked smiley mask.
+- Market link: below `mosVacAt` Worth a brand's tiles go vacant and fall back to public paper; at Floor the whole wing empties until Recovery. Brand tiles spill out of each Hub door, farther the higher that brand's Worth (`mosSpill`).
+- Walls get a thin concrete rim and BLU's switched-off Beta panels a light outline, so both still read on the dark brand floors.
+- Performance: tiles are baked into 320 px chunk canvases and only chunks whose look changes are re-baked (visible first, a few per frame). Measured in headless Chrome at 1440 × 900: about +0.5 ms per frame over flat floors; baking every chunk takes about 80 ms in total, spread over play as chunks come into view.
+- New tunables (Floor mosaics): `floorMosaic` (0 = old flat room colours), `mosVacAt`, `mosSpill`.
+
 ## 2026-11-24
 - Added `prototypes/brand-wings/`: a new level built on the Store Slice (`index.html` is unchanged). You start in the same Entrance; its north door opens into a central HUB, and four linear brand wings hang off it (BLU west, RED east, GLD and GRN north), playable in any order.
 - Every wing runs R1 entry -> R2 signature room -> pay gate -> R3 gauntlet (checkpoint + that brand's ammo / health / buff machines) -> R4 arena. Clearing R1 opens R2; R3 clear opens the arena; the arena door locks until the bosses are down.

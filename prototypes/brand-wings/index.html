@@ -396,6 +396,10 @@ const CFG_DEF=[
 ['punchStock','Stock per machine',3,'I'],
 ['healItem','Health item restores (HP)',50,'I'],
 ['buffDur','Buff duration (s)',20,'I'],
+['Floor mosaics'],
+['floorMosaic','Floor mosaics: 0 = flat room colours, 1 = ad-tile mosaics',1,'I'],
+['mosVacAt','Brand tiles start going vacant below this Worth',0.4,'I'],
+['mosSpill','Brand tiles spill into the Hub at Worth 1 (tiles)',6,'I'],
 ['Debug'],
 ];
 const CFG={};
@@ -747,6 +751,67 @@ const SEG_ROOMS=ROOMS.map((r,i)=>r.k>=1&&r.k<=3?i:-1).filter(i=>i>=0);
 const CPS=[[4300,4520],[HUB.x+HUB.w/2,HUB.y+HUB.h/2]]; // checkpoints: entrance start, hub, then each wing's R3 and arena entries
 const CP_OF={};for(const b of WORDER){CP_OF[b+3]=CPS.length;CPS.push(wp(b,2*STEP+70,0));CP_OF[b+4]=CPS.length;CPS.push(wp(b,3*STEP+90,0))}
 const TERMINAL=(([x,y])=>({x,y}))(wp('GRN',2*STEP+720,-350));
+/* ================= FLOOR MOSAICS (branch floor-mosaics, 2026-11-25) =================
+   Every floor tile is a rented ad. Colour follows location: the Entrance and Hub are public newsprint black and white;
+   a brand wing uses only that brand's tone-board 950-600 (600 ink on 950/900 vinyl), so 500 stays reserved for things
+   you can shoot, punch or pick up. Ink coverage sets each tile's value, so tiles add up to a picture: every wing's
+   room 1 and arena carry the brand logo, the Hub carries Ed's cracked smiley mask.
+   Market link: below mosVacAt Worth a brand's tiles go vacant (back to public paper) and at Floor the whole wing empties;
+   brand tiles spill out of each Hub door, farther the higher the brand's Worth.
+   Perf: tiles are baked once into 320 px chunk canvases (16 x 16 tiles). Only chunks whose look changes are re-baked,
+   visible ones first, a few per frame. Drawing the floor is then one drawImage per visible chunk. */
+const MOS_T=20,MOS_CH=16,MOS_PAPER='#ece8df',MOS_INK='#0d0d0d';
+const MOS_RAMP={GLD:['#0D0900','#1A1200','#3D2C00','#6B4C00','#A87800'],RED:['#0D0100','#1A0300','#3D0700','#6B0D00','#A81800'],
+ BLU:['#00050D','#000D1A','#001E3D','#00366B','#0058A8'],GRN:['#010D04','#031A08','#073D12','#0F6B20','#1FA835']};
+const MOS_LOGO={"GLD": "4444441144444410344444301444444443244444444441144444410344444301444444443244444344441144444410344444301444444444444444304441144444410344444301444444444444444302441144444410344444301444444433444444302241144444410344444301444444433122444432221144444410344444301444444433133224444322144444410344444301444444433133332244442244444410344444301444344443133333202444324444410344444301444323444433333202144430444410344444301444333234444333202223443044410344444301444333332344443202222444224410344444301444333333123444422222344423410344444301444333333133234444322344433310344444301444333333133332344443344443330344444301444433333133333203444444443333344444301444443333133333202134444443333344444301444444433133333202221344443333334444301444234444233333202222213443333333444301444331344443333202222331033333333344301444333313444433202222344333333333314301444333333034444302222344443333333312301444444443131344442222344443333333302201444444444233313444422344443333333202221444444444333333134444344443333333202222444444433433343200344444443333333202222244444332133344422213444443333333202222224444433133344444222134443333333202222222344433133344444442220343333333202222222234443133344444444421223333333202222222223444133324443134442233333333102222222221244433333143223444333333333102222222221024444333202222444433333333102222222221013344443202222244433333333102222222221011214444312222244443333333102222222221011143244444322344443333333102222222221011114433444444444443333333102222222221011111444224444444443333333002222222221011111144302134444433333332002222222221011111114302222111233333332002222222221011111111", "BLU": "0111000000000000112121000001111111100000111100000000000033333100001222212221111111110000000000004444430000122221222111111111000000000000443344000012222122211111111100000000000044344300001222212221111111110000000000004444420000122221222111111111000000000000443344000012222122211111111100000000000044334410001222212221111111110000000000004444440000122221222111111111000000000000333331000012222122211111111100000000000023323100001222212221111111110000000000002332310000111111222111111111000000000000233231000000000122211111111100000000000023323100000000012221111111110000000000002332310000000001222111111111122210000000233231000000000122211111111112221000000034423100000000012221111111111222100000003442310000000001222111111111122210000000344231000000000122211111111112221000000034423100000000012221111111111222100000003442310000000001222111111111122210000000344231000000000122211111111112221000000034444300000000012221111111111222100000003444440000000001222111111111122210000000222221000000000111111111111112221000000023323100000000000000111111111222100000002332310000000000000011111111122210000000233231000000000000001111111112221111100023323100000000000000111111111222122221002332310000000000000011111111122212222100333343000000000000001111111112221222210044334400000000000000111111111222122221004433440000000000000011111111122212222100443344000000000000001111111112221222210044334400000000000000111111111222122221004433440000000000000011111111122212222100444443000000000000001111111112221222210034444200000000000000111111111222122221002333310000000000000011110000011101111000112121000000000000000000", "GRN": "2222222233333222222200000000000000000000222223444444443222220000444444443100000022224444333344443222000044444444442000002224443222222234442200004410000134410000224432222222222244220000441000000342000023442222222222222222000044100000034300002442222222222222222200004410000003430000344222222222222222220000441000001442000034322222222222222222000044211123443000004432222222222222222200004444444443100000443222222222444444430000443444332000000034322222222344444443000044124410000000003442222222222222244300004410343000000000244222222222222224420000441004430000000023442222222222223442000044100144200000002244422222222223442200004410002441000000222444322222223443220000441000034410000022224444333334443222000044100000343000002222234444444442222200004410000014430000222222223333322222220000000000000000000044444444440000000000111111111111111111114444444444000000000022232222222222234222444444444400000000002224322222222223422244444444440000000000222443222222222342224444444444000000000022244432222222234222444444444400000000002224444322222223422244444444440000000000222443442222222342224444444444000000000022244234422222234222444444444400000000002224422344222223422244444444440000000000222442224442222342221111111111444444444422244222244322234222000000000044444444442224422222443223422200000000004444444444222442222224432342220000000000444444444422244222222244234222000000000044444444442224422222223444422200000000004444444444222442222222234442220000000000444444444422244222222222344222000000000044444444442224422222222224422200000000004444444444222442222222222242220000000000444444444422222222222222222222", "RED": "1111111111111111111111111111111111111111100000000000000000000000000000000000000110333333333333333333333333333333333333011122222222333332222222222333222222222301111111111123332111111111123311111111120112222222211233322222222223332222222211011444444444223344444444444333444444444201144444444442334444444444433344444444441114444444444333444444444443334444444444211444433444443344443333333333444433444431144433333444334444333333333344433334444114443222344422344422222222234442222344411444300004441034440000000002444100024441144430000444203444000000000244410002444114443000044420344400000000024441000244411444322214442234441111122223444222224441144431112444334444111112333344433332444114443111344433444411111233334443333244411444433344433344444444433333444333324441144444444431334444444443333344433332444114444444444133444444444333334443333244411444444444433344444444433333444333324441144433334444334444333333333344433332444114443333344433444433333333334443333244411444333334443334443333333333444333224441144430000444203444000000000244410002444114443000044420344400000000024441000244411444300004442034440000000002444100034441144431111444313444111111111344411113444114443333344433444411111112334441111444411444333334443344443333333333444333344431144433333444334444444444433344444444442114443333344433444444444443334444444444011444333334443344444444444333444444444301113333333333333333333333333333333333330110333333333333333333333333333333333333011033333333333333333333333333333333333301103333333333333333333333333333333333330110111111111111111111111111111111111111011111111111111111111111111111111111111111"}; // 40 x 40 value bins (0 dark .. 4 bright) sampled from assets/brand logos
+const MOS_SPILL={GLD:{x:3800,y:HUB.y,dx:0,dy:1},GRN:{x:4800,y:HUB.y,dx:0,dy:1},BLU:{x:HUB.x,y:HUB.y+HUB.h/2,dx:1,dy:0},RED:{x:HUB.x+HUB.w,y:HUB.y+HUB.h/2,dx:-1,dy:0}};
+let MOS=null;
+function mh(x,y,k){let h=(x*374761393+y*668265263+k*2147483647)|0;h=(h^(h>>>13))*1274126177|0;h^=h>>>16;return(h>>>0)/4294967296}
+function mosEdGrid(){const N=40,S=240,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+ g.fillStyle='#fff';g.fillRect(0,0,S,S);g.fillStyle='#c9c9c9';g.beginPath();g.arc(S/2,S/2,S*.43,0,7);g.fill();
+ g.fillStyle='#8a8a8a';g.beginPath();g.arc(S/2+18,S/2+14,S*.41,-.2,2.6);g.arc(S/2,S/2,S*.43,2.6,-.2,true);g.fill();
+ g.lineWidth=16;g.strokeStyle='#000';g.beginPath();g.arc(S/2,S/2,S*.43,0,7);g.stroke();g.fillStyle='#000';
+ g.beginPath();g.ellipse(S*.36,S*.4,14,24,0,0,7);g.fill();g.beginPath();g.ellipse(S*.64,S*.4,14,24,0,0,7);g.fill();
+ g.lineWidth=15;g.lineCap='round';g.beginPath();g.arc(S/2,S*.5,S*.24,.25,Math.PI-.25);g.stroke();
+ g.lineWidth=7;g.beginPath();g.moveTo(S*.36,S*.47);g.lineTo(S*.33,S*.56);g.lineTo(S*.37,S*.63);g.lineTo(S*.34,S*.74);g.stroke();
+ g.beginPath();g.moveTo(S*.64,S*.3);g.lineTo(S*.69,S*.22);g.lineTo(S*.66,S*.14);g.stroke();g.beginPath();g.moveTo(S*.36,S*.3);g.lineTo(S*.31,S*.23);g.stroke();
+ const s=document.createElement('canvas');s.width=s.height=N;const q=s.getContext('2d');q.drawImage(c,0,0,N,N);const d=q.getImageData(0,0,N,N).data;let o='';
+ for(let i=0;i<N*N;i++){const v=d[i*4];o+=(v>=40)+(v>=95)+(v>=160)+(v>=225)}return o}
+function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=mosEdGrid();
+ for(const rm of ROOMS){if(rm.id==='STREET')continue;const r=rm.rect,nx=Math.ceil(r.w/MOS_T),ny=Math.ceil(r.h/MOS_T),tiles=new Array(nx*ny);
+  const logo=rm.b&&(rm.k===1||rm.k===4)?MOS_LOGO[rm.b]:rm.id==='HUB'?ed:null,inv=!rm.b,lx=Math.floor((nx-40)/2),ly=rm.id==='HUB'?0:Math.floor((ny-40)/2);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const gx=Math.floor(r.x/MOS_T)+i,gy=Math.floor(r.y/MOS_T)+j,rr=mh(gx,gy,1),t={gx,gy,b:rm.b||null,ci:0,sp:null,sd:99};
+   const u=i-lx,v=j-ly;if(logo&&u>=0&&u<40&&v>=0&&v<40){const val=+logo[v*40+u];t.ci=inv?4-val:val}else t.ci=rm.b?(rr<.7?0:1):(rr<.68?0:rr<.95?1:2);
+   if(rm.id==='HUB'){const wx=r.x+i*MOS_T+MOS_T/2,wy=r.y+j*MOS_T+MOS_T/2;for(const b of WORDER){const o=MOS_SPILL[b],al=(wx-o.x)*o.dx+(wy-o.y)*o.dy,ac=Math.abs((wx-o.x)*o.dy-(wy-o.y)*o.dx);
+    if(al<0)continue;const d=Math.hypot(al,Math.max(0,ac-DOORW/2)*1.25)/MOS_T;if(d<t.sd){t.sd=d;t.sp=b}}}
+   tiles[j*nx+i]=t}
+  const R={rm,nx,ny,tiles,chunks:[]};MOS.rooms.set(rm,R);
+  for(let cj=0;cj<ny;cj+=MOS_CH)for(let ci=0;ci<nx;ci+=MOS_CH){const ch={R,i0:ci,j0:cj,i1:Math.min(nx,ci+MOS_CH),j1:Math.min(ny,cj+MOS_CH),c:null,dirty:true,brands:new Set()};
+   for(let j=ch.j0;j<ch.j1;j++)for(let i=ch.i0;i<ch.i1;i++){const t=tiles[j*nx+i];if(t.b)ch.brands.add(t.b);if(t.sp&&t.sd<CFG.mosSpill+3)ch.brands.add(t.sp)}
+   ch.x=r.x+ci*MOS_T;ch.y=r.y+cj*MOS_T;ch.w=(ch.i1-ch.i0)*MOS_T;ch.h=(ch.j1-ch.j0)*MOS_T;R.chunks.push(ch);MOS.chunks.push(ch)}}}
+function mosVac(b){const m=G.mk[b];if(!m)return 0;if(m.floor>0)return 1;const a=CFG.mosVacAt,w=m.w;return w>=a?0:w<=.05?1:Math.pow((a-w)/(a-.05),1.4)}
+function mosSpillR(b){const m=G.mk[b];return!m||m.floor>0?0:1+CFG.mosSpill*clamp(m.w,0,1)}
+function mosTile(g,px,py,t,R){const T=MOS_T,rm=R.rm;let z=t.b,ci=t.ci,base,ink;
+ if(z){if(mh(t.gx,t.gy,11)<mosVac(z)){z=null;ci=0}}
+ else if(t.sp){const sr=mosSpillR(t.sp);if(t.sd<=sr&&mh(t.gx,t.gy,5)<1-t.sd/(sr+1.5)){z=t.sp;ci=mh(t.gx,t.gy,9)<.7?0:1}}
+ if(z){const P=MOS_RAMP[z];base=P[rm.b&&rm.k%2===0?1:0];ink=P[4]}else{base=rm.b?MOS_PAPER:rm.fl;ink=MOS_INK}
+ g.fillStyle=base;g.fillRect(px,py,T,T);g.fillStyle=ink;let fg=ink;
+ if(ci===4){g.fillRect(px+1,py+1,T-2,T-2);fg=base}else if(ci>=1){const bw=ci===3?2:1;g.fillRect(px+1,py+1,T-2,bw);g.fillRect(px+1,py+T-1-bw,T-2,bw);g.fillRect(px+1,py+1,bw,T-2);g.fillRect(px+T-1-bw,py+1,bw,T-2)}
+ if(ci>=2&&ci<4){g.fillRect(px+3,py+3,T-6,4)}else{g.fillStyle=fg;g.fillRect(px+3,py+3,Math.round((T-6)*(ci?.85:.5)),ci?2:1)}
+ g.fillStyle=fg;let lx=px+3,lw=T-6;if(ci===3){g.fillRect(px+3,py+9,6,7);g.fillStyle=base;g.fillRect(px+5,py+10,2,2);g.fillRect(px+4,py+13,4,3);g.fillStyle=fg;lx=px+11;lw=T-14}
+ const n=[1,2,3,3,3][ci];for(let k=0;k<n;k++)g.fillRect(lx,py+9+k*3,Math.max(2,Math.round(lw*(.5+.5*mh(t.gx,t.gy,20+k)))),1);
+ g.fillStyle=z?'rgba(0,0,0,.55)':'rgba(13,13,13,.18)';g.fillRect(px,py,T,1);g.fillRect(px,py,1,T)}
+function mosBake(ch){const R=ch.R;if(!ch.c){ch.c=document.createElement('canvas');ch.c.width=ch.w;ch.c.height=ch.h}const g=ch.c.getContext('2d');
+ for(let j=ch.j0;j<ch.j1;j++)for(let i=ch.i0;i<ch.i1;i++)mosTile(g,(i-ch.i0)*MOS_T,(j-ch.j0)*MOS_T,R.tiles[j*R.nx+i],R);ch.dirty=false}
+function mosUpdate(camX,camY,vw,vh){if(!MOS)mosBuild();
+ for(const b of WORDER){const s=Math.round(mosVac(b)*40)+'|'+Math.round(mosSpillR(b)*2);if(MOS.sig[b]!==s){if(MOS.sig[b]!==undefined)for(const ch of MOS.chunks)if(ch.brands.has(b))ch.dirty=true;MOS.sig[b]=s}}
+ let vis=0,off=0;for(const ch of MOS.chunks){if(!ch.dirty&&ch.c)continue;const inView=!(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY);
+  if(!ch.c&&!inView)continue; // first bake happens when a chunk first comes into view
+  if(inView?vis++<8:off++<2)mosBake(ch)}}
+function mosDraw(g,rm,camX,camY,vw,vh){const R=MOS&&MOS.rooms.get(rm);if(!R)return false;const sm=g.imageSmoothingEnabled;g.imageSmoothingEnabled=false;
+ for(const ch of R.chunks){if(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY)continue;if(!ch.c)mosBake(ch);g.drawImage(ch.c,ch.x,ch.y)}
+ g.imageSmoothingEnabled=sm;return true}
+
 function roomOf(sx,sy){for(let i=0;i<ROOMS.length;i++){const r=ROOMS[i].rect;if(sx>r.x-20&&sx<r.x+r.w+20&&sy>r.y-20&&sy<r.y+r.h+20)return i}return-1}
 function wingOf(i){const r=ROOMS[i];return r&&r.b||null}
 function inRect(x,y,r,m){m=m||0;return x>r.x-m&&x<r.x+r.w+m&&y>r.y-m&&y<r.y+r.h+m}
@@ -1658,8 +1723,10 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  cx.fillStyle='#0d0d0d';cx.fillRect(0,0,vw,vh);cx.save();cx.translate(-camX,-camY);
  // floors
  // floors: each wing is its brand's colour, alternating two shades room to room; hub and entrance stay paper
- for(const rm of ROOMS){const r=rm.rect;if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;cx.fillStyle=rm.fl;cx.fillRect(r.x,r.y,r.w,r.h);
-  cx.fillStyle='rgba(13,13,13,.08)';cx.font='900 40px "Archivo Black",sans-serif';if(rm.b){cx.fillText(rm.b+' '+(rm.k<4?rm.k:'ARENA'),r.x+24,r.y+58);cx.font='900 30px "Archivo Black",sans-serif';cx.fillText(ROOM_NAME[rm.b][rm.k-1],r.x+24,r.y+94)}else cx.fillText(rm.name,r.x+24,r.y+58)}
+ // floor mosaics: baked ad-tile chunks (see FLOOR MOSAICS); falls back to the flat room colour when floorMosaic is 0
+ const mosOn=CFG.floorMosaic>0;if(mosOn)mosUpdate(camX,camY,vw,vh);
+ for(const rm of ROOMS){const r=rm.rect;if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(!(mosOn&&mosDraw(cx,rm,camX,camY,vw,vh))){cx.fillStyle=rm.fl;cx.fillRect(r.x,r.y,r.w,r.h)}
+  cx.fillStyle=mosOn&&rm.b?'rgba(236,232,223,.07)':'rgba(13,13,13,.08)';cx.font='900 40px "Archivo Black",sans-serif';if(rm.b){cx.fillText(rm.b+' '+(rm.k<4?rm.k:'ARENA'),r.x+24,r.y+58);cx.font='900 30px "Archivo Black",sans-serif';cx.fillText(ROOM_NAME[rm.b][rm.k-1],r.x+24,r.y+94)}else cx.fillText(rm.name,r.x+24,r.y+58)}
  // thresholds: a black band with the wing's colour line (transitions between districts are always black)
  for(const g of G.world.gaps){cx.fillStyle='#1b1b1b';cx.fillRect(g.x,g.y,g.w,g.h);cx.fillStyle=g.b?BRAND[g.b].col:g.exit?'#ff2fb0':'#ece8df';if(g.w>g.h)cx.fillRect(g.x,g.y+g.h/2-3,g.w,6);else cx.fillRect(g.x+g.w/2-3,g.y,6,g.h)}
  // hub signage: one sign per wing door
@@ -1676,9 +1743,9 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  const ge=G.events[3];cx.fillStyle=ge.fired?'#777':BRAND.GRN.col;cx.strokeStyle='#0d0d0d';cx.lineWidth=3;cx.fillRect(TERMINAL.x-18,TERMINAL.y-34,36,26);cx.strokeRect(TERMINAL.x-18,TERMINAL.y-34,36,26);
  // solids
  const warn=G.panelT<CFG.panelWarn&&Math.floor(G.t*8)%2===0;
- for(const r of G.world.walls){if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(r.k==='wall'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h)}
+ for(const r of G.world.walls){if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(r.k==='wall'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h);if(mosOn){cx.strokeStyle='#5d5a55';cx.lineWidth=2;cx.strokeRect(r.x+1,r.y+1,r.w-2,r.h-2)}}
   else if(r.k==='pit'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle=BRAND[r.b].col;cx.lineWidth=4;cx.setLineDash([12,8]);cx.strokeRect(r.x+8,r.y+8,r.w-16,r.h-16);cx.setLineDash([])}
-  else if(r.k==='panel'){if(r.off){cx.strokeStyle=warn?BRAND[r.b].acc:'rgba(13,13,13,.25)';cx.lineWidth=warn?5:2;cx.setLineDash([8,8]);cx.strokeRect(r.x,r.y,r.w,r.h);cx.setLineDash([])}
+  else if(r.k==='panel'){if(r.off){cx.strokeStyle=warn?BRAND[r.b].acc:mosOn?'rgba(236,232,223,.4)':'rgba(13,13,13,.25)';cx.lineWidth=warn?5:2;cx.setLineDash([8,8]);cx.strokeRect(r.x,r.y,r.w,r.h);cx.setLineDash([])}
    else{cx.fillStyle=warn?BRAND[r.b].acc:BRAND[r.b].col;cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x+2,r.y+2,r.w-4,r.h-4)}}
   else if(r.k==='shelf'){const j=r.rat>0?r.rat*14:0,ox=(Math.random()-.5)*j,oy=(Math.random()-.5)*j;
    if(r.x!==r.hx||r.y!==r.hy){cx.strokeStyle='rgba(13,13,13,.18)';cx.lineWidth=2;cx.setLineDash([6,6]);cx.strokeRect(r.hx,r.hy,r.w,r.h);cx.setLineDash([])}
