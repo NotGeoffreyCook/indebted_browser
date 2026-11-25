@@ -759,7 +759,7 @@ const TERMINAL=(([x,y])=>({x,y}))(wp('GRN',2*STEP+720,-350));
    Every floor tile is a rented ad. Colour follows location: the Entrance and Hub are public newsprint black and white;
    a brand wing uses only that brand's tone-board 950-600 (600 ink on 950/900 vinyl), so 500 stays reserved for things
    you can shoot, punch or pick up. Ink coverage sets each tile's value, so tiles add up to a picture: every wing's
-   room 1 and arena carry the brand logo, the Hub carries Ed's cracked smiley mask.
+   room 1 and arena carry the brand logo, the Hub carries IDE with a smile under it.
    Market link: below mosVacAt Worth a brand's tiles go vacant (back to public paper) and at Floor the whole wing empties;
    brand tiles spill out of each Hub door, farther the higher the brand's Worth.
    Detail (mosDetail): 1 = quiet default (fill carries value, ads only in mosaic tiles at low contrast, soft grout),
@@ -773,17 +773,15 @@ const MOS_LOGO={"GLD": "44444411444444103444443014444444432444444444411444444103
 const MOS_SPILL={GLD:{x:3800,y:HUB.y,dx:0,dy:1},GRN:{x:4800,y:HUB.y,dx:0,dy:1},BLU:{x:HUB.x,y:HUB.y+HUB.h/2,dx:1,dy:0},RED:{x:HUB.x+HUB.w,y:HUB.y+HUB.h/2,dx:-1,dy:0}};
 let MOS=null;
 function mh(x,y,k){let h=(x*374761393+y*668265263+k*2147483647)|0;h=(h^(h>>>13))*1274126177|0;h^=h>>>16;return(h>>>0)/4294967296}
-function mosEdGrid(){const N=40,S=240,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
- g.fillStyle='#fff';g.fillRect(0,0,S,S);g.fillStyle='#c9c9c9';g.beginPath();g.arc(S/2,S/2,S*.43,0,7);g.fill();
- g.fillStyle='#8a8a8a';g.beginPath();g.arc(S/2+18,S/2+14,S*.41,-.2,2.6);g.arc(S/2,S/2,S*.43,2.6,-.2,true);g.fill();
- g.lineWidth=16;g.strokeStyle='#000';g.beginPath();g.arc(S/2,S/2,S*.43,0,7);g.stroke();g.fillStyle='#000';
- g.beginPath();g.ellipse(S*.36,S*.4,14,24,0,0,7);g.fill();g.beginPath();g.ellipse(S*.64,S*.4,14,24,0,0,7);g.fill();
- g.lineWidth=15;g.lineCap='round';g.beginPath();g.arc(S/2,S*.5,S*.24,.25,Math.PI-.25);g.stroke();
- g.lineWidth=7;g.beginPath();g.moveTo(S*.36,S*.47);g.lineTo(S*.33,S*.56);g.lineTo(S*.37,S*.63);g.lineTo(S*.34,S*.74);g.stroke();
- g.beginPath();g.moveTo(S*.64,S*.3);g.lineTo(S*.69,S*.22);g.lineTo(S*.66,S*.14);g.stroke();g.beginPath();g.moveTo(S*.36,S*.3);g.lineTo(S*.31,S*.23);g.stroke();
- const s=document.createElement('canvas');s.width=s.height=N;const q=s.getContext('2d');q.drawImage(c,0,0,N,N);const d=q.getImageData(0,0,N,N).data;let o='';
- for(let i=0;i<N*N;i++){const v=d[i*4];o+=(v>=40)+(v>=95)+(v>=160)+(v>=225)}return o}
-function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=mosEdGrid();
+function ideGrid(){ // 40 x 40 value bins (4 = bright, 0 = dark): blocky IDE letters with a smile under them, 1-tile mid-grey drop shadow
+ const N=40,g=new Array(N*N).fill(4),rect=(x,y,w,h)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(x+i<N&&y+j<N)g[(y+j)*N+x+i]=0},T=4,H=15;
+ rect(4,T,9,3);rect(4,T+H-3,9,3);rect(7,T,3,H); // I
+ rect(16,T,3,H);rect(16,T,7,3);rect(16,T+H-3,7,3);rect(22,T+1,2,3);rect(22,T+H-4,2,3);rect(23,T+3,3,H-6); // D
+ rect(29,T,3,H);rect(29,T,8,3);rect(29,T+6,6,3);rect(29,T+H-3,8,3); // E
+ for(let y=26;y<N;y++)for(let x=0;x<N;x++){const d=Math.hypot(x+.5-20,y+.5-19);if(d>=13.5&&d<=16.8)g[y*N+x]=0} // smile
+ const s=g.slice();for(let y=0;y<N-1;y++)for(let x=0;x<N-1;x++)if(g[y*N+x]===0&&s[(y+1)*N+x+1]===4)s[(y+1)*N+x+1]=2;
+ return s.join('')}
+function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=ideGrid();
  for(const rm of ROOMS){if(rm.id==='STREET')continue;const r=rm.rect,nx=Math.ceil(r.w/MOS_T),ny=Math.ceil(r.h/MOS_T),tiles=new Array(nx*ny);
   const logo=rm.b&&(rm.k===1||rm.k===4)?MOS_LOGO[rm.b]:rm.id==='HUB'?ed:null,inv=!rm.b,lx=Math.floor((nx-40)/2),ly=rm.id==='HUB'?0:Math.floor((ny-40)/2);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const gx=Math.floor(r.x/MOS_T)+i,gy=Math.floor(r.y/MOS_T)+j,rr=mh(gx,gy,1),t={gx,gy,b:rm.b||null,ci:0,sp:null,sd:99};
