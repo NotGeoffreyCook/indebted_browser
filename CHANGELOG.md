@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-11-25 (branch `floor-mosaics`)
+- **Enemy blood** in the enemy brand's contrast colour (GLD purple, RED coolant cyan, BLU arc orange, GRN bloom magenta). Every hit throws a few small speckles along the shot (more for bigger hits, `bloodHit` caps it); a death leaves a large pixel splotch with a darker core plus a ring of drops (`bloodDeath` sets its size). Drops stamp into stain canvases made only where fights happen, so stains last the whole run cheaply; landed blood is darkened so fresh drops read brighter. Drones and practice targets don't bleed. Toggle with `bloodOn`.
 - Brand Wings: floors are now **ad-tile mosaics**. Every 20 px floor tile is a rented ad; colour follows location. The Entrance and Hub are public newsprint black and white; each wing uses only its brand's tone-board 950–600 (600 ink on 950/900 vinyl, alternating room to room), so step 500 stays reserved for things you can shoot, punch or pick up.
 - Ink coverage per tile (five value bins) makes the tiles add up to a picture: each wing's room 1 and arena carry the brand logo (sampled from `assets/brand/`), and the Hub carries Ed's cracked smiley mask.
 - Market link: below `mosVacAt` Worth a brand's tiles go vacant and fall back to public paper; at Floor the whole wing empties until Recovery. Brand tiles spill out of each Hub door, farther the higher that brand's Worth (`mosSpill`).

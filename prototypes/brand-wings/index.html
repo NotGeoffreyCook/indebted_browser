@@ -400,6 +400,9 @@ const CFG_DEF=[
 ['floorMosaic','Floor mosaics: 0 = flat room colours, 1 = ad-tile mosaics',1,'I'],
 ['mosVacAt','Brand tiles start going vacant below this Worth',0.4,'I'],
 ['mosSpill','Brand tiles spill into the Hub at Worth 1 (tiles)',6,'I'],
+['bloodOn','Enemy blood in their brand contrast colour (0 / 1)',1,'I'],
+['bloodHit','Blood speckles per hit (most)',5,'I'],
+['bloodDeath','Death splotch radius (x enemy radius)',2.2,'I'],
 ['mosDetail','Floor detail: 0 = flat tones, 1 = quiet (ads only in the mosaics, low contrast), 2 = busy (every tile printed)',1,'I'],
 ['Debug'],
 ];
@@ -825,6 +828,34 @@ function mosDraw(g,rm,camX,camY,vw,vh){const R=MOS&&MOS.rooms.get(rm);if(!R)retu
  for(const ch of R.chunks){if(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY)continue;if(!ch.c)mosBake(ch);g.drawImage(ch.c,ch.x,ch.y)}
  g.imageSmoothingEnabled=sm;return true}
 
+/* ================= BLOOD (branch floor-mosaics, 2026-11-25) =================
+   Enemies bleed their brand's contrast colour (accent): GLD purple, RED coolant cyan, BLU arc orange, GRN bloom magenta.
+   Every hit throws small speckles along the shot; a death leaves a large splotch plus a ring of drops. Drops fly as
+   particles, then stamp into 320 px stain canvases made lazily where fights happen, so stains last the whole run for
+   one drawImage per visible stain chunk. Landed blood is darkened 20% (pool cores 40%) so fresh drops read brighter
+   than old stains. Cosmetic randomness uses Math.random, never G.rng, so the day seed stays deterministic.
+   Drones and practice targets don't bleed. */
+const BLOOD_CH=320;
+function bloodCol(b,k){return mosMix(BRAND[b].acc,'#0d0d0d',k)}
+function bleed(e,src,d){if(!CFG.bloodOn||e.type==='drone'||e.type==='target'||d<.5)return;
+ let dx=src.dx,dy=src.dy;if(dx==null){const p=G.p,l=Math.hypot(e.x-p.x,e.y-p.y)||1;dx=(e.x-p.x)/l;dy=(e.y-p.y)/l}
+ const n=Math.max(1,Math.min(CFG.bloodHit,Math.round(1+d/8))),a0=Math.atan2(dy,dx);
+ for(let i=0;i<n;i++){const a=a0+(Math.random()-.5)*1.1,sp=140+Math.random()*220;G.blood.push({x:e.x+dx*e.r*.6,y:e.y+dy*e.r*.6,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,t:.12+Math.random()*.22,s:Math.random()<.3?4:2,b:e.b})}
+ if(G.blood.length>400)G.blood.splice(0,G.blood.length-400)}
+function splat(e){if(!CFG.bloodOn||e.type==='drone'||e.type==='target')return;const R=e.r*CFG.bloodDeath*(e.boss?1.4:1);stainBlob(e.x,e.y,R,e.b);
+ for(let i=0;i<12;i++){const a=Math.random()*7,sp=120+Math.random()*260;G.blood.push({x:e.x,y:e.y,vx:Math.cos(a)*sp+(e.kx||0)*.3,vy:Math.sin(a)*sp+(e.ky||0)*.3,t:.1+Math.random()*.3,s:Math.random()<.5?4:2,b:e.b})}}
+function bloodStep(dt){if(!G.blood||!G.blood.length)return;for(const q of G.blood){q.x+=q.vx*dt;q.y+=q.vy*dt;const k=Math.exp(-4*dt);q.vx*=k;q.vy*=k;q.t-=dt;if(q.t<=0){stainDot(q.x,q.y,q.s,q.b);q.done=true}}G.blood=G.blood.filter(q=>!q.done)}
+function stainCtx(kx,ky){if(HEADLESS)return null;const k=kx+','+ky;let c=G.stain.get(k);if(!c){c=document.createElement('canvas');c.width=c.height=BLOOD_CH;c.kx=kx;c.ky=ky;G.stain.set(k,c)}return c.getContext('2d')}
+function stainDraw(x0,y0,x1,y1,fn){for(let ky=Math.floor(y0/BLOOD_CH);ky<=Math.floor(y1/BLOOD_CH);ky++)for(let kx=Math.floor(x0/BLOOD_CH);kx<=Math.floor(x1/BLOOD_CH);kx++){const g=stainCtx(kx,ky);if(!g)return;g.save();g.translate(-kx*BLOOD_CH,-ky*BLOOD_CH);fn(g);g.restore()}}
+function stainDot(x,y,s,b){x=Math.round(x/2)*2;y=Math.round(y/2)*2;stainDraw(x,y,x+s,y+s,g=>{g.fillStyle=bloodCol(b,.2);g.fillRect(x,y,s,s)})}
+function stainBlob(x,y,R,b){const P=2,M=R*1.6,lobes=[];for(let i=0;i<5;i++){const a=Math.random()*7,d=R*(.3+Math.random()*.5);lobes.push([x+Math.cos(a)*d,y+Math.sin(a)*d,R*(.35+Math.random()*.3)])}
+ stainDraw(x-M,y-M,x+M,y+M,g=>{const rim=bloodCol(b,.2),core=bloodCol(b,.4);
+  for(let yy=-M;yy<=M;yy+=P)for(let xx=-M;xx<=M;xx+=P){const px=x+xx,py=y+yy;let f=Math.hypot(xx,yy)/R;for(const l of lobes)f=Math.min(f,Math.hypot(px-l[0],py-l[1])/l[2]);
+   if(f<1){g.fillStyle=f<.55?core:rim;g.fillRect(Math.round(px/P)*P,Math.round(py/P)*P,P,P)}}})}
+function drawStains(g,camX,camY,vw,vh){if(!G.stain||!G.stain.size)return;const sm=g.imageSmoothingEnabled;g.imageSmoothingEnabled=false;
+ for(const c of G.stain.values()){const x=c.kx*BLOOD_CH,y=c.ky*BLOOD_CH;if(x>camX+vw||x+BLOOD_CH<camX||y>camY+vh||y+BLOOD_CH<camY)continue;g.drawImage(c,x,y)}g.imageSmoothingEnabled=sm}
+function drawBlood(g){if(!G.blood)return;for(const q of G.blood){g.fillStyle=BRAND[q.b].acc;g.fillRect(Math.round(q.x),Math.round(q.y),q.s,q.s)}}
+
 function roomOf(sx,sy){for(let i=0;i<ROOMS.length;i++){const r=ROOMS[i].rect;if(sx>r.x-20&&sx<r.x+r.w+20&&sy>r.y-20&&sy<r.y+r.h+20)return i}return-1}
 function wingOf(i){const r=ROOMS[i];return r&&r.b||null}
 function inRect(x,y,r,m){m=m||0;return x>r.x-m&&x<r.x+r.w+m&&y>r.y-m&&y<r.y+r.h+m}
@@ -916,7 +947,7 @@ function newRun(opts){
   cards:['GLD','RED','BLU','GRN'].map(b=>({b,limit:CFG.cardLimit,bal:0,light:0,lv:1,xp:0})),
   gun:migrateGun(cloneGun(opts.gun||GUN_DEFAULT)),gs:{cd:0,charge:0,cycle:0,burst:0,lastFire:-9,strip:0,fanCool:0},chains:[],fragP:[],pops:[],pxp:[],loose:0,pullN:0,capS:{hits:0,store:0,t:0},frags:[],rc:[],ban:null,ghosts:[],
   perks:{},banned:new Set(),draft:null,draftQ:[],picks:[],drops:[],rebq:[],newsQ:[],runId:Math.random(),wh:{GLD:[],RED:[],BLU:[],GRN:[]},whT:0,coll:{a:0,card:0,ci:0,t:0},
-  en:[],debris:[],corpses:[],hitstop:0,shake:0,shots:[],eshots:[],thrown:[],fl:[],fx:[],spend:[],kills:[],
+  en:[],debris:[],corpses:[],blood:[],stain:new Map(),hitstop:0,shake:0,shots:[],eshots:[],thrown:[],fl:[],fx:[],spend:[],kills:[],
   combo:{n:0,t:0,tier:-1,best:-1},bonus:0,wallet:null,cp:{x:CPS[0][0],y:CPS[0][1]},
   seg:Object.fromEntries(SEG_ROOMS.map(i=>[i,mkSeg()])),arenas:Object.fromEntries(WORDER.map(b=>[b,{entered:false,dead:false,addT:12}])),fight:null,
   gates:Object.fromEntries(WORDER.map(b=>[b,{started:false,t:CFG.gateWindow,paid:false,open:false}])),panelT:CFG.panelEvery,panelSet:0,
@@ -1169,7 +1200,7 @@ function updPhysics(dt){const f=Math.exp(-CFG.kbFric*dt);updShelves(dt);
  G.corpses=G.corpses.filter(k=>k.t>0);
  for(const d of G.debris){d.rot+=d.spin*dt;d.spin*=Math.exp(-3*dt);const n=slideO(d,dt,.3);if(n)bounce(d,n,.4);const sp=hyp(d.vx,d.vy);if(sp>300)smashAlong(d.x,d.y,5);
   const fd=Math.exp(-4*dt);d.vx*=fd;d.vy*=fd;if(sp<18){d.done=true;G.merch.push({x:d.x,y:d.y,s:d.s,b:d.b,pl:true,rot:d.rot})}}
- G.debris=G.debris.filter(d=>!d.done)}
+ G.debris=G.debris.filter(d=>!d.done);bloodStep(dt)}
 // Flavor only: the Roll / dive reaction. A hit enemy rolls (or dives, for Ranged) sideways. The shot already landed for full damage; nothing is refunded or charged.
 function canDodge(e){return!(e.type==='drone'||e.type==='target'||e.dead||e.boss||e.st==='charge'||e.st==='tele'||e.type==='fodder'||e.type==='tank'||e.roll||e.stun>0||(e.dodgeT||0)>G.t||e.born>0)}
 function maybeDodge(e,dx,dy){if(!canDodge(e))return;if(dx==null){const a=Math.random()*7;dx=Math.cos(a);dy=Math.sin(a)}
@@ -1271,7 +1302,7 @@ function hitEnemy(e,pr){const s=stance(pr.b,e.b);let d=shotDmg(pr)*stanceMul(s);
  G.st.hits++;physHit(e,pr);pxBurst('hit',e.x-(pr.dx||0)*e.r,e.y-(pr.dy||0)*e.r,pr.b,{a:Math.atan2(-(pr.dy||0),-(pr.dx||0)),n:pr.dm<.5?3:6});damageEnemy(e,d,{b:pr.b,cost:pr.cost,s,dx:pr.dx,dy:pr.dy});react(e,'hit',pr);
  const n=pk('arc');if(n){const near=G.en.filter(o=>o!==e&&!o.dead&&o.born<=0&&hyp(o.x-e.x,o.y-e.y)<130).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y)).slice(0,n);
   for(const o of near){G.fx.push({k:'arc',x:e.x,y:e.y,x2:o.x,y2:o.y,t:.12});damageEnemy(o,d*.35,{b:pr.b,s:stance(pr.b,o.b)})}}}
-function damageEnemy(e,d,src){if(e.dead)return;src=src||{};if(e.radUntil>G.t)d*=1.1;if(e.stunUntil>G.t)d*=1.25;e.dmgTaken=(e.dmgTaken||0)+d;if(e.p0){if(e.plates>0){d*=1-CFG.plateArmor;e.ph-=d;if(e.ph<=0){let dx=src.dx,dy=src.dy;if(dx==null){const a=G.rng()*7;dx=Math.cos(a);dy=Math.sin(a)}popPlate(e,dx,dy)}}else d*=CFG.coreMult}e.hp-=d;e.flash=.08;if(e.type!=='fodder'&&d>=.5){const bb=src.b||G.p.ammo;if(e.fl&&e.fl.b===bb&&e.fl.t>.85&&G.fl.includes(e.fl)){e.fl.v+=d;e.fl.txt=String(Math.round(e.fl.v));e.fl.x=e.x;e.fl.t=1}else{e.fl={x:e.x+(Math.random()-.5)*16,y:e.y-e.r-22,v:d,txt:String(Math.round(d)),col:BRAND[bb].col,b:bb,t:1,dmg:true};G.fl.push(e.fl)}}if(e.hp<=0)kill(e,src||{})}
+function damageEnemy(e,d,src){if(e.dead)return;src=src||{};if(e.radUntil>G.t)d*=1.1;if(e.stunUntil>G.t)d*=1.25;e.dmgTaken=(e.dmgTaken||0)+d;if(e.p0){if(e.plates>0){d*=1-CFG.plateArmor;e.ph-=d;if(e.ph<=0){let dx=src.dx,dy=src.dy;if(dx==null){const a=G.rng()*7;dx=Math.cos(a);dy=Math.sin(a)}popPlate(e,dx,dy)}}else d*=CFG.coreMult}e.hp-=d;bleed(e,src,d);e.flash=.08;if(e.type!=='fodder'&&d>=.5){const bb=src.b||G.p.ammo;if(e.fl&&e.fl.b===bb&&e.fl.t>.85&&G.fl.includes(e.fl)){e.fl.v+=d;e.fl.txt=String(Math.round(e.fl.v));e.fl.x=e.x;e.fl.t=1}else{e.fl={x:e.x+(Math.random()-.5)*16,y:e.y-e.r-22,v:d,txt:String(Math.round(d)),col:BRAND[bb].col,b:bb,t:1,dmg:true};G.fl.push(e.fl)}}if(e.hp<=0)kill(e,src||{})}
 function comboTier(n){return n>=35?4:n>=20?3:n>=10?2:n>=5?1:n>=1?0:-1}
 // REBATES: enemies drop rebate slips, not cash. Value = base x (enemy brand Worth / its baseline Worth), so at baseline it matches the old payout
 // and it rises and falls with that brand's share price. Picking one up pays down the card you're holding; whatever's left goes to BANK cash.
@@ -1282,7 +1313,7 @@ function postRebate(v,i){const c=G.cards[i],C=G.coll,toCard=Math.min(v,Math.max(
  if(rest>0){addCash(rest);G.st.reb$cash+=rest;C.a+=rest}
  G.st.earn+=v;G.st.drop$+=v;G.bonus+=v}
 function kill(e,src){if(e.type==='target'){e.hp=e.max;e.down=G.t+.6;pxBurst('kill',e.x,e.y,e.b,{n:10,r:e.r});float(e.x,e.y-e.r-30,'RESET',BRAND[e.b].col);return}
- if(e.type==='drone'){droneBoom(e,false);G.st.kills.drone=(G.st.kills.drone||0)+1;return}e.dead=true;if(e.scripted&&G.seg[e.seg])G.seg[e.seg].killed++;pxBurst('kill',e.x,e.y,e.b,{n:e.boss?40:e.type==='fodder'?6:16,r:e.r});if(e.div){const pay=CFG.divRate*(e.dmgTaken||0)*liveW('GRN');addCash(pay);G.st.earn+=pay;pxBurst('coins',e.x,e.y,'GRN',{n:14});G.pops.push({x:e.x,y:e.y-26,ab:'DV',b:'GRN',label:'DIVIDEND +'+$$(pay),t:1.3,T:1.3,off:0})}
+ if(e.type==='drone'){droneBoom(e,false);G.st.kills.drone=(G.st.kills.drone||0)+1;return}e.dead=true;splat(e);if(e.scripted&&G.seg[e.seg])G.seg[e.seg].killed++;pxBurst('kill',e.x,e.y,e.b,{n:e.boss?40:e.type==='fodder'?6:16,r:e.r});if(e.div){const pay=CFG.divRate*(e.dmgTaken||0)*liveW('GRN');addCash(pay);G.st.earn+=pay;pxBurst('coins',e.x,e.y,'GRN',{n:14});G.pops.push({x:e.x,y:e.y-26,ab:'DV',b:'GRN',label:'DIVIDEND +'+$$(pay),t:1.3,T:1.3,off:0})}
  G.corpses.push({x:e.x,y:e.y,vx:e.kx,vy:e.ky,r:e.r,type:e.type,b:e.b,rot:e.rot,spin:e.spin+(G.rng()-.5)*4,t:e.type==='fodder'?2.5:CFG.corpseLife,m:MASS[e.type]||1});if(G.corpses.length>40)G.corpses.shift();
  while(e.plates>0)popPlate(e,e.kx||G.rng()-.5,e.ky||G.rng()-.5,true);
  const p=G.p,c=G.combo,fod=e.type==='fodder',wgt=fod?CFG.fodderCombo:1;
@@ -1740,6 +1771,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  const mosOn=CFG.floorMosaic>0;if(mosOn)mosUpdate(camX,camY,vw,vh);
  for(const rm of ROOMS){const r=rm.rect;if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(!(mosOn&&mosDraw(cx,rm,camX,camY,vw,vh))){cx.fillStyle=rm.fl;cx.fillRect(r.x,r.y,r.w,r.h)}
   cx.fillStyle=mosOn&&rm.b?'rgba(236,232,223,.07)':'rgba(13,13,13,.08)';cx.font='900 40px "Archivo Black",sans-serif';if(rm.b){cx.fillText(rm.b+' '+(rm.k<4?rm.k:'ARENA'),r.x+24,r.y+58);cx.font='900 30px "Archivo Black",sans-serif';cx.fillText(ROOM_NAME[rm.b][rm.k-1],r.x+24,r.y+94)}else cx.fillText(rm.name,r.x+24,r.y+58)}
+ drawStains(cx,camX,camY,vw,vh); // blood stains sit on the floor, under walls and props
  // thresholds: a black band with the wing's colour line (transitions between districts are always black)
  for(const g of G.world.gaps){cx.fillStyle='#1b1b1b';cx.fillRect(g.x,g.y,g.w,g.h);cx.fillStyle=g.b?BRAND[g.b].col:g.exit?'#ff2fb0':'#ece8df';if(g.w>g.h)cx.fillRect(g.x,g.y+g.h/2-3,g.w,6);else cx.fillRect(g.x+g.w/2-3,g.y,6,g.h)}
  // hub signage: one sign per wing door
@@ -1780,7 +1812,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  // corpses and flying plates
  for(const k of G.corpses){cx.globalAlpha=Math.min(1,k.t/1.5)*.9;cx.save();cx.translate(k.x,k.y);cx.rotate(k.rot);shape(k.type,0,0,k.r);cx.fillStyle='#8d8a83';cx.fill();cx.strokeStyle='#0d0d0d';cx.lineWidth=k.type==='fodder'?2:3;cx.stroke();
   if(k.type!=='fodder'){const q=k.r*.35;cx.lineWidth=2.5;cx.beginPath();for(const s of[-1,1]){cx.moveTo(s*q-4,-4);cx.lineTo(s*q+4,4);cx.moveTo(s*q+4,-4);cx.lineTo(s*q-4,4)}cx.stroke()}cx.restore()}cx.globalAlpha=1;
- for(const d of G.debris)plateShape(d.x,d.y,d.rot,d.b,d.s);
+ for(const d of G.debris)plateShape(d.x,d.y,d.rot,d.b,d.s);drawBlood(cx);
  // enemies
  for(const e of G.en){if(!e.vis)continue;
   if(e.type==='buffer'&&e.vis){cx.strokeStyle='rgba(255,47,176,.55)';cx.lineWidth=3;cx.setLineDash([8,8]);cx.beginPath();cx.arc(e.x,e.y,CFG.auraRadius,0,7);cx.stroke();cx.setLineDash([])}
