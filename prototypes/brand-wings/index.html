@@ -218,6 +218,50 @@ kbd{border:2px solid var(--ink);background:#fff;color:var(--ink);padding:0 4px;f
 .mp .mpx .mb{padding:10px 12px 12px;border-top:3px solid var(--ink)}
 .mp .mpn ul{margin:4px 0 10px;padding-left:18px}
 @media(max-width:700px){.mp .mtiles{grid-template-columns:repeat(2,1fr)}.mp .you{flex-direction:column;align-items:stretch}.mp .mast h1{font-size:32px}}
+
+/* ===== LANDSCAPE PHONE (2026-11-25): any window 540 px tall or less. The HUD folds into a thin top strip
+   (news ticker left, stock tiles right) and a thin bottom strip (HP · card reader + cash + ammo · cards 1-4).
+   Secondary readouts are hidden here (insurance rates, sparklines, 1-minute deltas, perks line, wallet art, gun debug). */
+@media (max-height:540px){
+ #top{top:4px;left:4px;right:calc(52% + 8px)}
+ #head{padding:1px 6px;font-size:10px;border-width:2px;box-shadow:2px 2px 0 var(--ink)}#head .chip{font-size:10px!important;padding:0 4px;margin-right:6px!important;box-shadow:none!important}
+ #tick{top:4px;left:auto;right:4px;width:52%;gap:5px}
+ .tile{padding:1px 5px;min-width:0;border-width:2px;box-shadow:2px 2px 0 var(--acc,var(--ink))!important}
+ .tile .tr{gap:4px;white-space:nowrap;overflow:hidden}.tile b{font-size:11px}.tile .w{font-size:11px}
+ .tile canvas,.tile small,.tile .d{display:none!important}
+ #dbg{font-size:0;padding:1px 5px;border-width:2px;box-shadow:2px 2px 0 var(--ink)}#dbg::after{content:'DBG [T]';font-size:9px}
+ .box{border-width:2px;box-shadow:3px 3px 0 var(--ink)}
+ /* bottom left: HP */
+ #bl{left:4px;bottom:4px;padding:3px}#vitals{width:138px}
+ #ins{border-width:2px}#ins .ih,#ins .ir~.ir{display:none!important}
+ #ins .ir{padding:1px 4px 0}#ins .ihp{font-size:20px}#ins .ihp small,#ins .ihp small.lb{font-size:9px}#ins .ist{font-size:8px;padding:0 3px}
+ #ins .ibar{height:6px;margin:1px 4px 3px;border-width:2px}
+ /* bottom middle: card reader, cash, ammo side by side */
+ #bm{left:max(calc(50% - 160px),150px);transform:none;bottom:4px;padding:3px}
+ #gcol{flex-direction:row;width:auto;gap:4px;align-items:stretch}
+ #cslot{width:184px;height:auto;min-height:40px;border-width:2px}
+ .card.big{left:3px;right:3px;top:2px;padding:1px 6px 3px;border-width:2px;border-radius:6px;font-size:9px}.card.big .ch{gap:4px;letter-spacing:-.2px}.card.big .dt{display:none}.card.big .lt{display:none}
+ .card.big.down{transform:translateY(44px)}
+ #cslot .rd{bottom:1px;height:3px;border-top-width:1px}#cslot .rl{top:13px;font-size:9px}
+ #gi{padding:2px 4px;border-width:2px;display:flex;flex-direction:column;justify-content:space-between;gap:2px;min-width:132px}
+ #gi .cashbig{margin:0;padding:0 5px;border-width:2px;box-shadow:2px 2px 0 #FF3DCB}#gi .cashbig.neg{box-shadow:2px 2px 0 #7FF3FF}#gi .cashbig b{font-size:17px}#gi .cashbig .cl{font-size:8px}#gi .cashbig .cl small{font-size:8px}
+ #gi .am{padding:0 5px;gap:4px;border-width:2px}#gi .am .chip{font-size:9px;padding:0 3px}#gi .am .al{font-size:8px}#gi .am .al small{display:none}#gi .am b{font-size:12px}#gi .am b small{font-size:8px}
+ #gi .gdbg{display:none!important}
+ /* bottom right: cards 1-4 as a 2 x 2 grid; the card in the reader is dimmed instead of slid away */
+ #br{right:4px;bottom:4px;width:auto}#br .cards{margin:0}
+ .wal{height:auto;display:grid;grid-template-columns:repeat(2,78px);gap:3px}
+ .wpk{height:auto;margin:0}.wfront,#wpk{display:none!important}
+ .card.w{position:relative;left:0;top:0;width:auto;height:auto;padding:1px 4px 2px;border-width:2px;border-radius:5px;transform:none!important;opacity:1;box-shadow:2px 2px 0 var(--ink)!important}
+ .card.w.gone{opacity:.35}.card.w.pop{outline:2px solid #fff}
+ .card.w .ch{font-size:9px;gap:4px}.card.w .pr{display:none}.card.w .cb,.card.w .xb{width:auto}.card.w .cb{height:4px;margin-top:1px}.card.w .xb{height:2px;margin-top:1px}
+ /* things that float over play */
+ #prompt{bottom:62px;padding:3px 8px;font-size:11px}
+ #wallet{left:4px;bottom:62px;transform:scale(.6);transform-origin:bottom left}
+ /* narrow landscape phones (iPhone SE and similar): smaller reader, narrower card grid */
+ @media (max-width:760px){#cslot{width:150px}.card.big .ow{display:none}#gi{min-width:120px}#gi .cashbig b{font-size:15px}.wal{grid-template-columns:repeat(2,64px)}.card.w .ch{font-size:8px}#vitals{width:124px}#ins .ist{display:none}}
+ #ban .bt{font-size:12px;padding:3px 8px}#ban .bs{padding:3px 8px;font-size:11px}
+ #sd{padding:3px 10px;font-size:12px}
+}
 </style>
 </head>
 <body>
@@ -2210,7 +2254,7 @@ function cardVis(){const p=G.p;if(!el('wc0'))return;const T=p.swapT>0?p.swapT:0,
 function hud(){const p=G.p,D=G.dir;
  let h='',tk='';const rp=b=>roundPrice(b),d60=b=>{const a=G.wh[b];return a.length?rp(b)*(1-a[0]/G.mk[b].w):0},dtx=b=>{const v=d60(b);return(v>=0?'+':'-')+'$'+Math.abs(v).toFixed(2)+' / 1m'};
  for(const b of BR){const m=G.mk[b],ar=m.w>m.prev+.002?'▲':m.w<m.prev-.002?'▼':'■';
-  tk+=`<div class="tile" style="background:${BRAND[b].col};box-shadow:4px 4px 0 ${BRAND[b].acc}"><div class="tr"><b>${b}</b> <span class="w">${$$(rp(b))} ${ar}</span><span class="d">${dtx(b)}</span></div><canvas width="224" height="30" data-b="${b}"></canvas><small>PER ROUND · MOM ${m.mom>0?'+':''}${m.mom}${m.floor>0?' · FLOOR':m.bull?' · BULL':m.bear?' · BEAR':''}</small></div>`}
+  tk+=`<div class="tile" style="background:${BRAND[b].col};--acc:${BRAND[b].acc};box-shadow:4px 4px 0 ${BRAND[b].acc}"><div class="tr"><b>${b}</b> <span class="w">${$$(rp(b))} ${ar}</span><span class="d">${dtx(b)}</span></div><canvas width="224" height="30" data-b="${b}"></canvas><small>PER ROUND · MOM ${m.mom>0?'+':''}${m.mom}${m.floor>0?' · FLOOR':m.bull?' · BULL':m.bear?' · BEAR':''}</small></div>`}
  const TK=el('tick');if(hud.tk!==G.tickN||!TK.firstChild){TK.innerHTML=tk;hud.tk=G.tickN}
  else BR.forEach((b,i)=>{const m=G.mk[b],t=TK.children[i];t.querySelector('.w').textContent=$$(rp(b))+' '+(m.w>m.prev+.002?'▲':m.w<m.prev-.002?'▼':'■');t.querySelector('.d').textContent=dtx(b)});
  TK.querySelectorAll('canvas').forEach(c=>sparkW(c,c.dataset.b));

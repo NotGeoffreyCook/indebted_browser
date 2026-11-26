@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-25 (branch `chamber-triggers`): landscape phone HUD
+- Brand Wings: any window 540 px tall or less gets a compact HUD. Top strip (~24 px): news ticker on the left, the four stock tiles on the right as single-line price chips. Bottom strip (~50-65 px): HP and bar on the left, card reader + cash + ammo price side by side in the middle, cards 1-4 as a 2 x 2 grid on the right (the card in the reader is dimmed).
+- Hidden on phones: insurance rate rows, stock sparklines and 1-minute deltas, the perks line, the wallet illustration, gun debug rows. The DEBUG button reads DBG [T].
+- WALLET mini game is scaled to 60% and sits above the bottom strip; the prompt and banners are smaller. Below 760 px wide (iPhone SE) the reader and card grid narrow further.
+- Desktop layout unchanged.
+
 ## 2026-11-25 (branch `chamber-triggers`): controller support
 - **Gamepads** (Backbone and any standard Xbox-layout controller) via the Gamepad API. Twin-stick: left stick moves, right stick aims (the last aim holds when centred). RT fires, LT is the chamber trigger (the WALLET game's button while the wallet is up), RB punch, LB next card, D-pad up/right/down/left = cards 1-4, A dash, B hop, X use, Y WALLET, L3 sprint, R3 zap, Menu pause/resume, View debug.
 - Menus: A presses the screen's main button (start, resume, end screens); B closes the Tag Bench. Draft: X / A / B pick 1 / 2 / 3, Y rerolls. Moving the mouse hands aiming back to it.
