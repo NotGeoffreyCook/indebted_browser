@@ -20,7 +20,7 @@ Newest first.
 
 | Folder | What it is |
 |---|---|
-| `brand-wings/` | Hub-and-wings store level built on the Store Slice: same Entrance start, a central hub, and four 4-room brand wings (GLD, RED, BLU, GRN), each with its own pay gate, brand machines and arena |
+| `brand-wings/` | Hub-and-wings store level built on the Store Slice: same Entrance start, a central hub, and four 4-room brand wings (GLD, RED, BLU, GRN), each with its own pay gate, brand machines and arena. Has ad-tile floor mosaics tied to the market, brand-coloured enemy blood, and gun audio from the [Round Foundry](https://claude.ai/artifact/8rHE8riRRzJBGAPc8kXxbN) synth bench |
 | `ed/` | InDebtEd ED |
 | `gameplay-slice/` | InDebtEd Gameplay Slice |
 | `test-environment/` | InDebtEd Test Environment |

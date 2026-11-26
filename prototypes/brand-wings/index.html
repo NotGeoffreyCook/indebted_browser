@@ -396,6 +396,18 @@ const CFG_DEF=[
 ['punchStock','Stock per machine',3,'I'],
 ['healItem','Health item restores (HP)',50,'I'],
 ['buffDur','Buff duration (s)',20,'I'],
+['Floor mosaics'],
+['floorMosaic','Floor mosaics: 0 = flat room colours, 1 = ad-tile mosaics',1,'I'],
+['mosVacAt','Brand tiles start going vacant below this Worth',0.4,'I'],
+['mosSpill','Brand tiles spill into the Hub at Worth 1 (tiles)',6,'I'],
+['bloodOn','Enemy blood in their brand contrast colour (0 / 1)',1,'I'],
+['bloodHit','Blood speckles per hit (most)',5,'I'],
+['bloodDeath','Death splotch radius (x enemy radius)',2.2,'I'],
+['mosDetail','Floor detail: 0 = flat tones, 1 = quiet (ads only in the mosaics, low contrast), 2 = busy (every tile printed)',1,'I'],
+['Gun audio (Round Foundry)'],
+['sfxOn','Gun audio on (0 / 1)',1,'I'],
+['sfxVol','Gun audio volume',.5,'I'],
+['sfxReceipt','Receipt printer layer (0 / 1)',1,'I'],
 ['Debug'],
 ];
 const CFG={};
@@ -747,6 +759,105 @@ const SEG_ROOMS=ROOMS.map((r,i)=>r.k>=1&&r.k<=3?i:-1).filter(i=>i>=0);
 const CPS=[[4300,4520],[HUB.x+HUB.w/2,HUB.y+HUB.h/2]]; // checkpoints: entrance start, hub, then each wing's R3 and arena entries
 const CP_OF={};for(const b of WORDER){CP_OF[b+3]=CPS.length;CPS.push(wp(b,2*STEP+70,0));CP_OF[b+4]=CPS.length;CPS.push(wp(b,3*STEP+90,0))}
 const TERMINAL=(([x,y])=>({x,y}))(wp('GRN',2*STEP+720,-350));
+/* ================= FLOOR MOSAICS (branch floor-mosaics, 2026-11-25) =================
+   Every floor tile is a rented ad. Colour follows location: the Entrance and Hub are public newsprint black and white;
+   a brand wing uses only that brand's tone-board 950-600 (600 ink on 950/900 vinyl), so 500 stays reserved for things
+   you can shoot, punch or pick up. Ink coverage sets each tile's value, so tiles add up to a picture: every wing's
+   room 1 and arena carry the brand logo, the Hub carries IDE with a smile under it.
+   Market link: below mosVacAt Worth a brand's tiles go vacant (back to public paper) and at Floor the whole wing empties;
+   brand tiles spill out of each Hub door, farther the higher the brand's Worth.
+   Detail (mosDetail): 1 = quiet default (fill carries value, ads only in mosaic tiles at low contrast, soft grout),
+   0 = flat tones, 2 = busy (every tile printed at full ink, the first pass).
+   Perf: tiles are baked once into 320 px chunk canvases (16 x 16 tiles). Only chunks whose look changes are re-baked,
+   visible ones first, a few per frame. Drawing the floor is then one drawImage per visible chunk. */
+const MOS_T=20,MOS_CH=16,MOS_PAPER='#ece8df',MOS_INK='#0d0d0d';
+const MOS_RAMP={GLD:['#0D0900','#1A1200','#3D2C00','#6B4C00','#A87800'],RED:['#0D0100','#1A0300','#3D0700','#6B0D00','#A81800'],
+ BLU:['#00050D','#000D1A','#001E3D','#00366B','#0058A8'],GRN:['#010D04','#031A08','#073D12','#0F6B20','#1FA835']};
+const MOS_LOGO={"GLD": "4444441144444410344444301444444443244444444441144444410344444301444444443244444344441144444410344444301444444444444444304441144444410344444301444444444444444302441144444410344444301444444433444444302241144444410344444301444444433122444432221144444410344444301444444433133224444322144444410344444301444444433133332244442244444410344444301444344443133333202444324444410344444301444323444433333202144430444410344444301444333234444333202223443044410344444301444333332344443202222444224410344444301444333333123444422222344423410344444301444333333133234444322344433310344444301444333333133332344443344443330344444301444433333133333203444444443333344444301444443333133333202134444443333344444301444444433133333202221344443333334444301444234444233333202222213443333333444301444331344443333202222331033333333344301444333313444433202222344333333333314301444333333034444302222344443333333312301444444443131344442222344443333333302201444444444233313444422344443333333202221444444444333333134444344443333333202222444444433433343200344444443333333202222244444332133344422213444443333333202222224444433133344444222134443333333202222222344433133344444442220343333333202222222234443133344444444421223333333202222222223444133324443134442233333333102222222221244433333143223444333333333102222222221024444333202222444433333333102222222221013344443202222244433333333102222222221011214444312222244443333333102222222221011143244444322344443333333102222222221011114433444444444443333333102222222221011111444224444444443333333002222222221011111144302134444433333332002222222221011111114302222111233333332002222222221011111111", "BLU": "0111000000000000112121000001111111100000111100000000000033333100001222212221111111110000000000004444430000122221222111111111000000000000443344000012222122211111111100000000000044344300001222212221111111110000000000004444420000122221222111111111000000000000443344000012222122211111111100000000000044334410001222212221111111110000000000004444440000122221222111111111000000000000333331000012222122211111111100000000000023323100001222212221111111110000000000002332310000111111222111111111000000000000233231000000000122211111111100000000000023323100000000012221111111110000000000002332310000000001222111111111122210000000233231000000000122211111111112221000000034423100000000012221111111111222100000003442310000000001222111111111122210000000344231000000000122211111111112221000000034423100000000012221111111111222100000003442310000000001222111111111122210000000344231000000000122211111111112221000000034444300000000012221111111111222100000003444440000000001222111111111122210000000222221000000000111111111111112221000000023323100000000000000111111111222100000002332310000000000000011111111122210000000233231000000000000001111111112221111100023323100000000000000111111111222122221002332310000000000000011111111122212222100333343000000000000001111111112221222210044334400000000000000111111111222122221004433440000000000000011111111122212222100443344000000000000001111111112221222210044334400000000000000111111111222122221004433440000000000000011111111122212222100444443000000000000001111111112221222210034444200000000000000111111111222122221002333310000000000000011110000011101111000112121000000000000000000", "GRN": "2222222233333222222200000000000000000000222223444444443222220000444444443100000022224444333344443222000044444444442000002224443222222234442200004410000134410000224432222222222244220000441000000342000023442222222222222222000044100000034300002442222222222222222200004410000003430000344222222222222222220000441000001442000034322222222222222222000044211123443000004432222222222222222200004444444443100000443222222222444444430000443444332000000034322222222344444443000044124410000000003442222222222222244300004410343000000000244222222222222224420000441004430000000023442222222222223442000044100144200000002244422222222223442200004410002441000000222444322222223443220000441000034410000022224444333334443222000044100000343000002222234444444442222200004410000014430000222222223333322222220000000000000000000044444444440000000000111111111111111111114444444444000000000022232222222222234222444444444400000000002224322222222223422244444444440000000000222443222222222342224444444444000000000022244432222222234222444444444400000000002224444322222223422244444444440000000000222443442222222342224444444444000000000022244234422222234222444444444400000000002224422344222223422244444444440000000000222442224442222342221111111111444444444422244222244322234222000000000044444444442224422222443223422200000000004444444444222442222224432342220000000000444444444422244222222244234222000000000044444444442224422222223444422200000000004444444444222442222222234442220000000000444444444422244222222222344222000000000044444444442224422222222224422200000000004444444444222442222222222242220000000000444444444422222222222222222222", "RED": "1111111111111111111111111111111111111111100000000000000000000000000000000000000110333333333333333333333333333333333333011122222222333332222222222333222222222301111111111123332111111111123311111111120112222222211233322222222223332222222211011444444444223344444444444333444444444201144444444442334444444444433344444444441114444444444333444444444443334444444444211444433444443344443333333333444433444431144433333444334444333333333344433334444114443222344422344422222222234442222344411444300004441034440000000002444100024441144430000444203444000000000244410002444114443000044420344400000000024441000244411444322214442234441111122223444222224441144431112444334444111112333344433332444114443111344433444411111233334443333244411444433344433344444444433333444333324441144444444431334444444443333344433332444114444444444133444444444333334443333244411444444444433344444444433333444333324441144433334444334444333333333344433332444114443333344433444433333333334443333244411444333334443334443333333333444333224441144430000444203444000000000244410002444114443000044420344400000000024441000244411444300004442034440000000002444100034441144431111444313444111111111344411113444114443333344433444411111112334441111444411444333334443344443333333333444333344431144433333444334444444444433344444444442114443333344433444444444443334444444444011444333334443344444444444333444444444301113333333333333333333333333333333333330110333333333333333333333333333333333333011033333333333333333333333333333333333301103333333333333333333333333333333333330110111111111111111111111111111111111111011111111111111111111111111111111111111111"}; // 40 x 40 value bins (0 dark .. 4 bright) sampled from assets/brand logos
+const MOS_SPILL={GLD:{x:3800,y:HUB.y,dx:0,dy:1},GRN:{x:4800,y:HUB.y,dx:0,dy:1},BLU:{x:HUB.x,y:HUB.y+HUB.h/2,dx:1,dy:0},RED:{x:HUB.x+HUB.w,y:HUB.y+HUB.h/2,dx:-1,dy:0}};
+let MOS=null;
+function mh(x,y,k){let h=(x*374761393+y*668265263+k*2147483647)|0;h=(h^(h>>>13))*1274126177|0;h^=h>>>16;return(h>>>0)/4294967296}
+function ideGrid(){ // 40 x 40 value bins (4 = bright, 0 = dark): blocky IDE letters with a smile under them, 1-tile mid-grey drop shadow
+ const N=40,g=new Array(N*N).fill(4),rect=(x,y,w,h)=>{for(let j=0;j<h;j++)for(let i=0;i<w;i++)if(x+i<N&&y+j<N)g[(y+j)*N+x+i]=0},T=4,H=15;
+ rect(4,T,9,3);rect(4,T+H-3,9,3);rect(7,T,3,H); // I
+ rect(16,T,3,H);rect(16,T,7,3);rect(16,T+H-3,7,3);rect(22,T+1,2,3);rect(22,T+H-4,2,3);rect(23,T+3,3,H-6); // D
+ rect(29,T,3,H);rect(29,T,8,3);rect(29,T+6,6,3);rect(29,T+H-3,8,3); // E
+ for(let y=26;y<N;y++)for(let x=0;x<N;x++){const d=Math.hypot(x+.5-20,y+.5-19);if(d>=13.5&&d<=16.8)g[y*N+x]=0} // smile
+ const s=g.slice();for(let y=0;y<N-1;y++)for(let x=0;x<N-1;x++)if(g[y*N+x]===0&&s[(y+1)*N+x+1]===4)s[(y+1)*N+x+1]=2;
+ return s.join('')}
+function mosBuild(){MOS={rooms:new Map(),chunks:[],sig:{}};const ed=ideGrid();
+ for(const rm of ROOMS){if(rm.id==='STREET')continue;const r=rm.rect,nx=Math.ceil(r.w/MOS_T),ny=Math.ceil(r.h/MOS_T),tiles=new Array(nx*ny);
+  const logo=rm.b&&(rm.k===1||rm.k===4)?MOS_LOGO[rm.b]:rm.id==='HUB'?ed:null,inv=!rm.b,lx=Math.floor((nx-40)/2),ly=rm.id==='HUB'?0:Math.floor((ny-40)/2);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const gx=Math.floor(r.x/MOS_T)+i,gy=Math.floor(r.y/MOS_T)+j,rr=mh(gx,gy,1),t={gx,gy,b:rm.b||null,ci:0,sp:null,sd:99};
+   const u=i-lx,v=j-ly;if(logo&&u>=0&&u<40&&v>=0&&v<40){const val=+logo[v*40+u];t.ci=inv?4-val:val;t.m=true}else t.ci=rm.b?(rr<.7?0:1):(rr<.68?0:rr<.95?1:2);
+   if(rm.id==='HUB'){const wx=r.x+i*MOS_T+MOS_T/2,wy=r.y+j*MOS_T+MOS_T/2;for(const b of WORDER){const o=MOS_SPILL[b],al=(wx-o.x)*o.dx+(wy-o.y)*o.dy,ac=Math.abs((wx-o.x)*o.dy-(wy-o.y)*o.dx);
+    if(al<0)continue;const d=Math.hypot(al,Math.max(0,ac-DOORW/2)*1.25)/MOS_T;if(d<t.sd){t.sd=d;t.sp=b}}}
+   tiles[j*nx+i]=t}
+  const R={rm,nx,ny,tiles,chunks:[]};MOS.rooms.set(rm,R);
+  for(let cj=0;cj<ny;cj+=MOS_CH)for(let ci=0;ci<nx;ci+=MOS_CH){const ch={R,i0:ci,j0:cj,i1:Math.min(nx,ci+MOS_CH),j1:Math.min(ny,cj+MOS_CH),c:null,dirty:true,brands:new Set()};
+   for(let j=ch.j0;j<ch.j1;j++)for(let i=ch.i0;i<ch.i1;i++){const t=tiles[j*nx+i];if(t.b)ch.brands.add(t.b);if(t.sp&&t.sd<CFG.mosSpill+3)ch.brands.add(t.sp)}
+   ch.x=r.x+ci*MOS_T;ch.y=r.y+cj*MOS_T;ch.w=(ch.i1-ch.i0)*MOS_T;ch.h=(ch.j1-ch.j0)*MOS_T;R.chunks.push(ch);MOS.chunks.push(ch)}}}
+function mosVac(b){const m=G.mk[b];if(!m)return 0;if(m.floor>0)return 1;const a=CFG.mosVacAt,w=m.w;return w>=a?0:w<=.05?1:Math.pow((a-w)/(a-.05),1.4)}
+function mosSpillR(b){const m=G.mk[b];return!m||m.floor>0?0:1+CFG.mosSpill*clamp(m.w,0,1)}
+const MOS_COV=[.06,.2,.4,.62,.88],MOS_HX={};
+function mosRGB(c){return MOS_HX[c]||(MOS_HX[c]=[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)))}
+function mosMix(a,b,k){const A=mosRGB(a),B=mosRGB(b);return'#'+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,'0')).join('')}
+function mosTile(g,px,py,t,R){const T=MOS_T,rm=R.rm;let z=t.b,ci=t.ci,base,ink,pic=!!t.m,spl=false;
+ if(z){if(mh(t.gx,t.gy,11)<mosVac(z)){z=null;ci=0;pic=false}}
+ else if(t.sp){const sr=mosSpillR(t.sp),solid=CFG.mosDetail<2; // quiet/flat: a solid patch with a ragged edge row, not dithered speckle
+  if(t.sd<=sr&&(solid?t.sd<=sr-1||mh(t.gx,t.gy,5)<.5:mh(t.gx,t.gy,5)<1-t.sd/(sr+1.5))){z=t.sp;ci=mh(t.gx,t.gy,9)<.7?0:1;pic=false;spl=true}}
+ if(z){const P=MOS_RAMP[z];base=P[rm.b&&rm.k%2===0?1:0];ink=P[4]}else{base=rm.b?MOS_PAPER:rm.fl;ink=MOS_INK}
+ const D=CFG.mosDetail;
+ if(D<2){ // flat / quiet: the fill carries the value; only mosaic tiles hold an ad, printed 15% off the fill; plain vinyl elsewhere; soft grout
+  const cov=MOS_COV[ci],v=pic?mosMix(base,ink,cov):spl?mosMix(base,ink,.3):base; /* spill tinted so it reads as brand floor, not shadow */g.fillStyle=v;g.fillRect(px,py,T,T);
+  if(D===1&&pic){g.fillStyle=mosMix(v,cov<.5?ink:base,.15);g.fillRect(px+3,py+3,Math.round((T-6)*(ci>=2?1:.7)),ci>=2?4:2);
+   for(let k=0;k<2;k++)g.fillRect(px+3,py+10+k*3,Math.max(2,Math.round((T-6)*(.5+.5*mh(t.gx,t.gy,20+k)))),1)}
+  g.fillStyle=z?'rgba(0,0,0,.2)':'rgba(13,13,13,.08)';g.fillRect(px,py,T,1);g.fillRect(px,py,1,T);return}
+ g.fillStyle=base;g.fillRect(px,py,T,T);g.fillStyle=ink;let fg=ink;
+ if(ci===4){g.fillRect(px+1,py+1,T-2,T-2);fg=base}else if(ci>=1){const bw=ci===3?2:1;g.fillRect(px+1,py+1,T-2,bw);g.fillRect(px+1,py+T-1-bw,T-2,bw);g.fillRect(px+1,py+1,bw,T-2);g.fillRect(px+T-1-bw,py+1,bw,T-2)}
+ if(ci>=2&&ci<4){g.fillRect(px+3,py+3,T-6,4)}else{g.fillStyle=fg;g.fillRect(px+3,py+3,Math.round((T-6)*(ci?.85:.5)),ci?2:1)}
+ g.fillStyle=fg;let lx=px+3,lw=T-6;if(ci===3){g.fillRect(px+3,py+9,6,7);g.fillStyle=base;g.fillRect(px+5,py+10,2,2);g.fillRect(px+4,py+13,4,3);g.fillStyle=fg;lx=px+11;lw=T-14}
+ const n=[1,2,3,3,3][ci];for(let k=0;k<n;k++)g.fillRect(lx,py+9+k*3,Math.max(2,Math.round(lw*(.5+.5*mh(t.gx,t.gy,20+k)))),1);
+ g.fillStyle=z?'rgba(0,0,0,.55)':'rgba(13,13,13,.18)';g.fillRect(px,py,T,1);g.fillRect(px,py,1,T)}
+function mosBake(ch){const R=ch.R;if(!ch.c){ch.c=document.createElement('canvas');ch.c.width=ch.w;ch.c.height=ch.h}const g=ch.c.getContext('2d');
+ for(let j=ch.j0;j<ch.j1;j++)for(let i=ch.i0;i<ch.i1;i++)mosTile(g,(i-ch.i0)*MOS_T,(j-ch.j0)*MOS_T,R.tiles[j*R.nx+i],R);ch.dirty=false}
+function mosUpdate(camX,camY,vw,vh){if(!MOS)mosBuild();if(MOS.detail!==CFG.mosDetail){if(MOS.detail!==undefined)for(const ch of MOS.chunks)ch.dirty=true;MOS.detail=CFG.mosDetail}
+ for(const b of WORDER){const s=Math.round(mosVac(b)*40)+'|'+Math.round(mosSpillR(b)*2);if(MOS.sig[b]!==s){if(MOS.sig[b]!==undefined)for(const ch of MOS.chunks)if(ch.brands.has(b))ch.dirty=true;MOS.sig[b]=s}}
+ let vis=0,off=0;for(const ch of MOS.chunks){if(!ch.dirty&&ch.c)continue;const inView=!(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY);
+  if(!ch.c&&!inView)continue; // first bake happens when a chunk first comes into view
+  if(inView?vis++<8:off++<2)mosBake(ch)}}
+function mosDraw(g,rm,camX,camY,vw,vh){const R=MOS&&MOS.rooms.get(rm);if(!R)return false;const sm=g.imageSmoothingEnabled;g.imageSmoothingEnabled=false;
+ for(const ch of R.chunks){if(ch.x>camX+vw||ch.x+ch.w<camX||ch.y>camY+vh||ch.y+ch.h<camY)continue;if(!ch.c)mosBake(ch);g.drawImage(ch.c,ch.x,ch.y)}
+ g.imageSmoothingEnabled=sm;return true}
+
+/* ================= BLOOD (branch floor-mosaics, 2026-11-25) =================
+   Enemies bleed their brand's contrast colour (accent): GLD purple, RED coolant cyan, BLU arc orange, GRN bloom magenta.
+   Every hit throws small speckles along the shot; a death leaves a large splotch plus a ring of drops. Drops fly as
+   particles, then stamp into 320 px stain canvases made lazily where fights happen, so stains last the whole run for
+   one drawImage per visible stain chunk. Landed blood is darkened 20% (pool cores 40%) so fresh drops read brighter
+   than old stains. Cosmetic randomness uses Math.random, never G.rng, so the day seed stays deterministic.
+   Drones and practice targets don't bleed. */
+const BLOOD_CH=320;
+function bloodCol(b,k){return mosMix(BRAND[b].acc,'#0d0d0d',k)}
+function bleed(e,src,d){if(!CFG.bloodOn||e.type==='drone'||e.type==='target'||d<.5)return;
+ let dx=src.dx,dy=src.dy;if(dx==null){const p=G.p,l=Math.hypot(e.x-p.x,e.y-p.y)||1;dx=(e.x-p.x)/l;dy=(e.y-p.y)/l}
+ const n=Math.max(1,Math.min(CFG.bloodHit,Math.round(1+d/8))),a0=Math.atan2(dy,dx);
+ for(let i=0;i<n;i++){const a=a0+(Math.random()-.5)*1.1,sp=140+Math.random()*220;G.blood.push({x:e.x+dx*e.r*.6,y:e.y+dy*e.r*.6,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,t:.12+Math.random()*.22,s:Math.random()<.3?4:2,b:e.b})}
+ if(G.blood.length>400)G.blood.splice(0,G.blood.length-400)}
+function splat(e){if(!CFG.bloodOn||e.type==='drone'||e.type==='target')return;const R=e.r*CFG.bloodDeath*(e.boss?1.4:1);stainBlob(e.x,e.y,R,e.b);
+ for(let i=0;i<12;i++){const a=Math.random()*7,sp=120+Math.random()*260;G.blood.push({x:e.x,y:e.y,vx:Math.cos(a)*sp+(e.kx||0)*.3,vy:Math.sin(a)*sp+(e.ky||0)*.3,t:.1+Math.random()*.3,s:Math.random()<.5?4:2,b:e.b})}}
+function bloodStep(dt){if(!G.blood||!G.blood.length)return;for(const q of G.blood){q.x+=q.vx*dt;q.y+=q.vy*dt;const k=Math.exp(-4*dt);q.vx*=k;q.vy*=k;q.t-=dt;if(q.t<=0){stainDot(q.x,q.y,q.s,q.b);q.done=true}}G.blood=G.blood.filter(q=>!q.done)}
+function stainCtx(kx,ky){if(HEADLESS)return null;const k=kx+','+ky;let c=G.stain.get(k);if(!c){c=document.createElement('canvas');c.width=c.height=BLOOD_CH;c.kx=kx;c.ky=ky;G.stain.set(k,c)}return c.getContext('2d')}
+function stainDraw(x0,y0,x1,y1,fn){for(let ky=Math.floor(y0/BLOOD_CH);ky<=Math.floor(y1/BLOOD_CH);ky++)for(let kx=Math.floor(x0/BLOOD_CH);kx<=Math.floor(x1/BLOOD_CH);kx++){const g=stainCtx(kx,ky);if(!g)return;g.save();g.translate(-kx*BLOOD_CH,-ky*BLOOD_CH);fn(g);g.restore()}}
+function stainDot(x,y,s,b){x=Math.round(x/2)*2;y=Math.round(y/2)*2;stainDraw(x,y,x+s,y+s,g=>{g.fillStyle=bloodCol(b,.2);g.fillRect(x,y,s,s)})}
+function stainBlob(x,y,R,b){const P=2,M=R*1.6,lobes=[];for(let i=0;i<5;i++){const a=Math.random()*7,d=R*(.3+Math.random()*.5);lobes.push([x+Math.cos(a)*d,y+Math.sin(a)*d,R*(.35+Math.random()*.3)])}
+ stainDraw(x-M,y-M,x+M,y+M,g=>{const rim=bloodCol(b,.2),core=bloodCol(b,.4);
+  for(let yy=-M;yy<=M;yy+=P)for(let xx=-M;xx<=M;xx+=P){const px=x+xx,py=y+yy;let f=Math.hypot(xx,yy)/R;for(const l of lobes)f=Math.min(f,Math.hypot(px-l[0],py-l[1])/l[2]);
+   if(f<1){g.fillStyle=f<.55?core:rim;g.fillRect(Math.round(px/P)*P,Math.round(py/P)*P,P,P)}}})}
+function drawStains(g,camX,camY,vw,vh){if(!G.stain||!G.stain.size)return;const sm=g.imageSmoothingEnabled;g.imageSmoothingEnabled=false;
+ for(const c of G.stain.values()){const x=c.kx*BLOOD_CH,y=c.ky*BLOOD_CH;if(x>camX+vw||x+BLOOD_CH<camX||y>camY+vh||y+BLOOD_CH<camY)continue;g.drawImage(c,x,y)}g.imageSmoothingEnabled=sm}
+function drawBlood(g){if(!G.blood)return;for(const q of G.blood){g.fillStyle=BRAND[q.b].acc;g.fillRect(Math.round(q.x),Math.round(q.y),q.s,q.s)}}
+
 function roomOf(sx,sy){for(let i=0;i<ROOMS.length;i++){const r=ROOMS[i].rect;if(sx>r.x-20&&sx<r.x+r.w+20&&sy>r.y-20&&sy<r.y+r.h+20)return i}return-1}
 function wingOf(i){const r=ROOMS[i];return r&&r.b||null}
 function inRect(x,y,r,m){m=m||0;return x>r.x-m&&x<r.x+r.w+m&&y>r.y-m&&y<r.y+r.h+m}
@@ -838,7 +949,7 @@ function newRun(opts){
   cards:['GLD','RED','BLU','GRN'].map(b=>({b,limit:CFG.cardLimit,bal:0,light:0,lv:1,xp:0})),
   gun:migrateGun(cloneGun(opts.gun||GUN_DEFAULT)),gs:{cd:0,charge:0,cycle:0,burst:0,lastFire:-9,strip:0,fanCool:0},chains:[],fragP:[],pops:[],pxp:[],loose:0,pullN:0,capS:{hits:0,store:0,t:0},frags:[],rc:[],ban:null,ghosts:[],
   perks:{},banned:new Set(),draft:null,draftQ:[],picks:[],drops:[],rebq:[],newsQ:[],runId:Math.random(),wh:{GLD:[],RED:[],BLU:[],GRN:[]},whT:0,coll:{a:0,card:0,ci:0,t:0},
-  en:[],debris:[],corpses:[],hitstop:0,shake:0,shots:[],eshots:[],thrown:[],fl:[],fx:[],spend:[],kills:[],
+  en:[],debris:[],corpses:[],blood:[],stain:new Map(),hitstop:0,shake:0,shots:[],eshots:[],thrown:[],fl:[],fx:[],spend:[],kills:[],
   combo:{n:0,t:0,tier:-1,best:-1},bonus:0,wallet:null,cp:{x:CPS[0][0],y:CPS[0][1]},
   seg:Object.fromEntries(SEG_ROOMS.map(i=>[i,mkSeg()])),arenas:Object.fromEntries(WORDER.map(b=>[b,{entered:false,dead:false,addT:12}])),fight:null,
   gates:Object.fromEntries(WORDER.map(b=>[b,{started:false,t:CFG.gateWindow,paid:false,open:false}])),panelT:CFG.panelEvery,panelSet:0,
@@ -963,26 +1074,116 @@ function frameDamage(full,level){const f=G.gun.frame;return f==='GLD'?34:f==='BL
 function shotDmg(s){return(s.fd==null?CFG.maxDamage*G.mk[s.b].w:s.fd)*s.dm*s.pm*(1+.12*pk('gilded'))}
 function spawnShot(x,y,a,spd,tags,dur,b,depth,o){if(G.shots.length>=MAX_SHOTS)return;
  G.shots.push(Object.assign({x,y,x0:x,y0:y,dx:Math.cos(a),dy:Math.sin(a),spd,tags,dur,b,depth,age:0,range:0,ign:[],dm:1,fd:null,beam:false,cost:0,pierce:0,pm:1},o))}
+/* ================= GUN AUDIO (ported from the Round Foundry, 2026-11-25) =================
+   Every pull plays the gun's stack in firing order, each layer voiced by the brand of the part that makes it:
+   card terminal (card brand), frame, chamber, barrel, ammo in flight (ammo brand), receipt printer (chamber brand).
+   Impact (ammo brand) plays when a round lands; loaded tags colour the bus (GLD shine, RED drive, BLU pitch jitter,
+   GRN bloom echo) and ring out after the first impact of each pull, 0.25 s apart, in slot order.
+   Negative Foundry offsets are clamped to 0 here because the game can't play before the trigger; the BLU Charge
+   frame's whine plays while you charge instead, and is cut if you release early.
+   Visual-only rules don't change: audio uses Math.random, so seeded runs play out the same. Off in HEADLESS. */
+const SFX={AC:null,master:null,noise:null,J:0,lastImp:0,lastPull:-1,chg:null};
+const SFX_LV={card:.5,frame:.7,chamber:.6,barrel:.9,ammo:.5,impact:.7,receipt:.4};
+const SFX_OFF={card:{GLD:0,RED:0,BLU:0,GRN:0},frame:{GLD:0,RED:0,BLU:0,GRN:0},chamber:{GLD:40,RED:330,BLU:0,GRN:15},barrel:{GLD:0,RED:0,BLU:0,GRN:0},ammo:{GLD:10,RED:10,BLU:10,GRN:10},receipt:{GLD:120,RED:120,BLU:120,GRN:120}};
+function sfxOK(){if(HEADLESS||!CFG.sfxOn)return false;const A=SFX;
+ if(!A.AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;A.AC=new C();A.master=A.AC.createGain();const comp=A.AC.createDynamicsCompressor();comp.threshold.value=-10;comp.ratio.value=4;A.master.connect(comp);comp.connect(A.AC.destination);
+  A.noise=A.AC.createBuffer(1,A.AC.sampleRate*2,A.AC.sampleRate);const d=A.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+ if(A.AC.state!=='running')A.AC.resume();A.master.gain.value=CFG.sfxVol;return true}
+const SX={
+ g(t,pk,a,d,dest){const n=SFX.AC.createGain();n.gain.setValueAtTime(.0001,t);n.gain.exponentialRampToValueAtTime(Math.max(pk,.0002),t+a);n.gain.exponentialRampToValueAtTime(.0001,t+a+Math.max(d,.003));n.connect(dest);return n},
+ gain(v,dest){const n=SFX.AC.createGain();n.gain.value=v;n.connect(dest);return n},
+ osc(type,f0,f1,t,dur,dest,gl){const o=SFX.AC.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+(gl||dur));o.detune.value=(Math.random()*2-1)*SFX.J;o.connect(dest);o.start(t);o.stop(t+dur+.05);return o},
+ nz(t,dur,dest){const s=SFX.AC.createBufferSource();s.buffer=SFX.noise;s.connect(dest);s.start(t,Math.random());s.stop(t+dur+.02);return s},
+ filt(type,f,q,dest){const b=SFX.AC.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;b.connect(dest);return b},
+ fm(o,t,dur,rate,depth){const l=SFX.AC.createOscillator();l.frequency.value=rate;const lg=SFX.AC.createGain();lg.gain.value=depth;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur)},
+ dop(o,f,t,F){o.frequency.setValueAtTime(f*1.08,t);o.frequency.linearRampToValueAtTime(f,t+F*.6);o.frequency.linearRampToValueAtTime(f*.82,t+F)},
+ curve(k){const n=1024,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(1+k)*x/(1+k*Math.abs(x))}return c}};
+const SREC={
+ card(b,t,P,F,dec){const{osc,g,filt,fm}=SX;
+  if(dec){[0,.11].forEach(k=>osc('square',220*P.p,0,t+k,.08,g(t+k,.35,.003,.08*P.d,filt('lowpass',1800,.7,P.o))));return}
+  const sp={GLD:['sine',1318,1760],RED:['square',880,1175],BLU:['sine',1046,1568],GRN:['triangle',988,1318]}[b];
+  [0,.07].forEach((k,i)=>{const o=osc(sp[0],sp[1+i]*P.p,0,t+k,.09*P.d+.02,g(t+k,b==='RED'?.16:.35,.003,.08*P.d,P.o));if(b==='BLU')fm(o,t+k,.15,35,70)})},
+ frame(b,t,P){const{osc,g,filt,fm,nz,gain}=SX;
+  if(b==='GLD'){[0,.04].forEach(k=>nz(t+k,.03,filt('bandpass',3600*P.p,4,g(t+k,.7,.001,.018*P.d,P.o))));const h=t+.07;
+   osc('sine',1900*P.p,1750*P.p,h,.3*P.d,g(h,.3,.002,.22*P.d,P.o));osc('sine',2870*P.p,0,h,.2*P.d,g(h,.12,.002,.14*P.d,P.o));nz(h,.02,filt('highpass',2000,.7,g(h,.6,.001,.015,P.o)));return}
+  if(b==='RED'){const b1=filt('bandpass',500*P.p,3,g(t,.9,.006,.09*P.d,P.o));b1.frequency.exponentialRampToValueAtTime(1700*P.p,t+.09);nz(t,.12,b1);const t2=t+.16*P.d;
+   nz(t2,.06,filt('bandpass',1300*P.p,5,g(t2,1,.002,.05*P.d,P.o)));osc('square',150*P.p,85*P.p,t2,.08,g(t2,.25,.002,.06*P.d,filt('lowpass',900,.7,P.o)));return}
+  if(b==='GRN'){osc('sine',170*P.p,60*P.p,t,.1,g(t,.8,.002,.07*P.d,P.o));[.02,.055].forEach(k=>nz(t+k,.02,filt('highpass',3800*P.p,1,g(t+k,.45,.001,.012*P.d,P.o))));return}
+  // BLU torque-bow charge whine; returns its envelope so an early release can cut it
+  const len=P.len||.45*P.d,gg=SFX.AC.createGain();gg.gain.setValueAtTime(.0001,t);gg.gain.exponentialRampToValueAtTime(.3,t+len);gg.gain.exponentialRampToValueAtTime(.0001,t+len+.04);
+  const lp=filt('lowpass',500,4,P.o);lp.frequency.exponentialRampToValueAtTime(5000,t+len);gg.connect(lp);
+  fm(osc('sawtooth',160*P.p,1500*P.p,t,len+.05,gg,len),t,len+.05,24,30);osc('square',80*P.p,600*P.p,t,len+.05,gain(.5,gg),len);return gg},
+ chamber(b,t,P){const{osc,g,filt,nz}=SX;
+  if(b==='GLD'){[0,.028,.056].forEach(k=>{const tt=t+k*P.d;nz(tt,.015,filt('bandpass',5200*P.p,7,g(tt,.8,.001,.01,P.o)));osc('sine',3300*P.p,0,tt,.03,g(tt,.1,.001,.02,P.o))});return}
+  if(b==='RED'){osc('square',95*P.p,55*P.p,t,.15*P.d,g(t,.5,.002,.12*P.d,filt('lowpass',700,.7,P.o)));nz(t,.08,filt('lowpass',1000*P.p,.7,g(t,.6,.001,.06*P.d,P.o)));return}
+  if(b==='GRN'){let k=0;for(let i=0;i<5;i++){const tt=t+k;nz(tt,.012,filt('bandpass',2400*P.p*(.85+Math.random()*.3),3,g(tt,.35,.001,.008,P.o)));k+=(.016+Math.random()*.014)*P.d}return}
+  const len=.18*P.d,am=SFX.AC.createGain();am.gain.value=.5;am.connect(g(t,.35,.01,len,filt('lowpass',1200,1,P.o)));
+  osc('sawtooth',120*P.p,0,t,len+.02,am);osc('sawtooth',181*P.p,0,t,len+.02,am);const lg=SFX.AC.createGain();lg.gain.value=.5;lg.connect(am.gain);osc('square',42,0,t,len+.02,lg)},
+ barrel(b,t,P){const{osc,g,filt,nz}=SX;const sc={GLD:[.8,.9],RED:[1,1],BLU:[.4,.6],GRN:[.7,.5]}[b];
+  osc('sine',160*P.p,42*P.p,t,.28*P.d,g(t,sc[0],.002,.24*P.d,P.o),.12);nz(t,.15*P.d,filt('lowpass',6500*P.p,.7,g(t,sc[1],.001,.11*P.d,P.o)));
+  if(b==='GLD'){[1,2.76,5.4].forEach((m,i)=>osc('sine',880*P.p*m,0,t+.005,.9*P.d,g(t+.005,.16/(i+1),.002,.75*P.d,P.o)));return}
+  if(b==='RED'){osc('sine',72*P.p,34*P.p,t,.7*P.d,g(t,.8,.004,.6*P.d,P.o));nz(t,.5*P.d,filt('lowpass',1100*P.p,.7,g(t,.7,.003,.4*P.d,P.o)));return}
+  if(b==='BLU'){osc('square',2600*P.p,90*P.p,t,.14,g(t,.4,.001,.12*P.d,P.o),.1);nz(t,.07,filt('highpass',3200*P.p,.7,g(t,.5,.001,.05*P.d,P.o)));return}
+  nz(t,.1,filt('bandpass',900*P.p,2,g(t,1,.001,.07*P.d,P.o)));osc('triangle',320*P.p,120*P.p,t,.14,g(t,.5,.002,.1*P.d,P.o))},
+ ammo(b,t,P,F){const{osc,filt,nz,gain,fm,dop}=SX;
+  const sw=pk=>{const n=SFX.AC.createGain();n.gain.setValueAtTime(.0001,t);n.gain.exponentialRampToValueAtTime(pk,t+F*.6);n.gain.exponentialRampToValueAtTime(.0001,t+F+.04*P.d);n.connect(P.o);return n};
+  if(b==='GLD'){const e=sw(.2);[2400,2413,3600].forEach((f,i)=>{const o=osc('sine',f*P.p,0,t,F+.1,i===2?gain(.4,e):e);dop(o,f*P.p,t,F);fm(o,t,F+.1,7,18)})}
+  else if(b==='RED'){const e=sw(.6),lp=filt('lowpass',900*P.p,1,e);lp.frequency.linearRampToValueAtTime(450*P.p,t+F);nz(t,F+.1,lp);dop(osc('sawtooth',75*P.p,0,t,F+.1,filt('lowpass',400,.7,e)),75*P.p,t,F)}
+  else if(b==='BLU'){const e=sw(.18),o=osc('square',600*P.p,0,t,F+.1,filt('bandpass',1500*P.p,1.5,e));for(let k=0;k<F;k+=.025)o.frequency.setValueAtTime(600*P.p*(.6+Math.random()),t+k)}
+  else{const e=sw(.3),o=osc('triangle',420*P.p,0,t,F+.1,e);dop(o,420*P.p,t,F);fm(o,t,F+.1,9,70);const o2=osc('triangle',630*P.p,0,t,F+.1,gain(.5,e));dop(o2,630*P.p,t,F);fm(o2,t,F+.1,6.5,50)}},
+ impact(b,t,P){const{osc,g,filt,nz}=SX;
+  if(b==='GLD'){osc('sine',2300*P.p,0,t,.2,g(t,.35,.001,.15*P.d,P.o));nz(t,.04,filt('highpass',2500,.7,g(t,.4,.001,.03*P.d,P.o)))}
+  else if(b==='RED'){osc('sine',130*P.p,48*P.p,t,.18,g(t,.9,.002,.14*P.d,P.o));nz(t,.1,filt('lowpass',1400*P.p,.7,g(t,.8,.001,.08*P.d,P.o)))}
+  else if(b==='BLU'){nz(t,.05,filt('highpass',4000*P.p,.7,g(t,.6,.001,.035*P.d,P.o)));osc('square',1800*P.p,400*P.p,t,.06,g(t,.25,.001,.05*P.d,P.o),.05)}
+  else{const bp=filt('bandpass',1800*P.p,2,g(t,.8,.002,.12*P.d,P.o));bp.frequency.exponentialRampToValueAtTime(300*P.p,t+.12);nz(t,.14,bp);osc('triangle',220*P.p,90*P.p,t,.12,g(t,.4,.002,.1*P.d,P.o))}},
+ receipt(b,t,P){const{g,filt,nz}=SX;const sp={GLD:[3200,.011,0],RED:[1700,.017,0],BLU:[2600,.013,1],GRN:[1500,.013,0]}[b],len=.35*P.d;
+  const bp=filt('bandpass',sp[0]*P.p,2,b==='GRN'?filt('lowpass',1800,.7,P.o):P.o);
+  let k=0;while(k<len){const tt=t+k;nz(tt,.008,g(tt,b==='RED'?.5:.3,.001,.005,bp));k+=sp[2]?sp[1]*(.4+Math.random()*1.6):sp[1]}
+  const te=t+len+.04,hp=filt('bandpass',2200,1,g(te,.35,.01,.06,P.o));hp.frequency.exponentialRampToValueAtTime(5000,te+.07);nz(te,.09,hp)}};
+function sfxTag(b,t,P){const{osc,g,filt,nz}=SX;
+ if(b==='GLD')[1320,1980,2640].forEach((f,i)=>osc('sine',f*P.p,0,t,.6*P.d,g(t,.22/(i+1),.002,.5*P.d,P.o)));
+ else if(b==='RED'){nz(t,.2,filt('lowpass',2200*P.p,.7,g(t,.8,.002,.16*P.d,P.o)));osc('sine',95*P.p,38*P.p,t,.25,g(t,.6,.002,.2*P.d,P.o))}
+ else if(b==='BLU'){const o=osc('square',300*P.p,2400*P.p,t,.12,g(t,.25,.001,.1*P.d,filt('bandpass',1800,1,P.o)),.08);for(let k=0;k<.1;k+=.015)o.detune.setValueAtTime((Math.random()*2-1)*600,t+k);nz(t,.04,filt('highpass',5000,.7,g(t,.3,.001,.03,P.o)))}
+ else{const bp=filt('bandpass',400*P.p,4,g(t,.5,.01,.25*P.d,P.o));bp.frequency.exponentialRampToValueAtTime(1600*P.p,t+.2);osc('triangle',200*P.p,600*P.p,t,.3,bp,.18);nz(t,.2,bp)}}
+function sfxBus(tb){const A=SFX.AC,c={GLD:0,RED:0,BLU:0,GRN:0};(tb||[]).forEach(b=>c[b]++);SFX.J=c.BLU*60;
+ const inp=A.createGain();let node=inp;const kill=[];
+ if(c.RED){const sh=A.createWaveShaper();sh.curve=SX.curve(c.RED*12);sh.oversample='2x';node.connect(sh);const mk=A.createGain();mk.gain.value=1/(1+c.RED*.25);sh.connect(mk);node=mk;kill.push(sh)}
+ const hs=A.createBiquadFilter();hs.type='highshelf';hs.frequency.value=3500;hs.gain.value=c.GLD*3;node.connect(hs);hs.connect(SFX.master);kill.push(hs);
+ if(c.GRN){const dl=A.createDelay(1);dl.delayTime.value=.11;const fb=A.createGain();fb.gain.value=Math.min(.3+.08*c.GRN,.7);const lp=SX.filt('lowpass',2200,.7,fb);hs.connect(dl);dl.connect(lp);fb.connect(dl);lp.connect(SX.gain(.15*c.GRN,SFX.master));kill.push(dl,fb)}
+ setTimeout(()=>kill.forEach(n=>{try{n.disconnect()}catch(e){}}),4000);return inp}
+function sfxP(id,out,extra){const lv=SFX.AC.createGain();lv.gain.value=SFX_LV[id];const lp=SX.filt('lowpass',300*2**(.75*6),.5,out);lv.connect(lp);return Object.assign({p:1,d:1,o:lv},extra)}
+const tagBrands=R=>(R&&R.seq||[]).map(x=>TAGS[x.tag]&&TAGS[x.tag].brand).filter(Boolean);
+// one pull: card, frame, chamber, barrel, ammo in flight, receipt
+function sfxFire(g,ammo,cardB,R,skipFrame){if(!sfxOK())return;const t0=SFX.AC.currentTime+.02,out=sfxBus(tagBrands(R)),F=Math.min(.6,Math.max(.08,12/PARTS.barrel[g.barrel].speed));
+ const L=[['card',cardB],['frame',g.frame],['chamber',g.chamber],['barrel',g.barrel],['ammo',ammo],['receipt',g.chamber]];
+ for(const[id,b]of L){if(id==='frame'&&skipFrame)continue;if(id==='receipt'&&CFG.sfxReceipt<=0)continue;SREC[id](b,t0+SFX_OFF[id][b]/1000,sfxP(id,out),F)}}
+function sfxDecline(g,cardB){if(!sfxOK())return;const t=SFX.AC.currentTime+.02,out=sfxBus([]);SREC.card(cardB,t,sfxP('card',out),0,true);if(g.frame!=='BLU')SREC.frame(g.frame,t,sfxP('frame',out))}
+function sfxChargeStart(){if(!sfxOK())return;sfxChargeStop();SFX.chg=SREC.frame('BLU',SFX.AC.currentTime+.01,sfxP('frame',sfxBus([]),{len:1}))}
+function sfxChargeStop(){const c=SFX.chg;SFX.chg=null;if(!c||!SFX.AC)return;const t=SFX.AC.currentTime;try{c.gain.cancelScheduledValues(t);c.gain.setValueAtTime(Math.max(c.gain.value,.0002),t);c.gain.exponentialRampToValueAtTime(.0001,t+.05)}catch(e){}}
+// a round lands: impact layer (throttled for Full-Auto and pellets), tags ring after the first hit of each pull
+function sfxImpact(pr){if(!sfxOK())return;const A=SFX.AC,now=A.currentTime,first=pr.pull!=null&&pr.pull!==SFX.lastPull;
+ if(!first&&now-SFX.lastImp<.045)return;SFX.lastImp=now;const tb=first?tagBrands(pr.plan):[];if(first)SFX.lastPull=pr.pull;
+ const out=sfxBus(tb),P=sfxP('impact',out);SREC.impact(pr.b,now+.01,P);tb.slice(0,5).forEach((b,k)=>sfxTag(b,now+.01+.25*(k+1),P))}
 function fireGun(chargeMult,level){const p=G.p,g=G.gun,gs=G.gs,cfg=FRAME_CFG[g.frame],bar=PARTS.barrel[g.barrel],m=G.mk[p.ammo],card=G.cards[p.sel];
  if(m.liq<=0||m.floor>0){gs.cd=.5;float(p.x,p.y-26,p.ammo+' OUT OF STOCK','#e5332a');return}
  const R=buildRound(g,gs,p.ammo,chargeMult,true),M=R.mods,price=roundPrice(p.ammo)+R.tagCost,rounds=cfg.count+pk('bundle'),fd=frameDamage(chargeMult>1,level),a0=Math.atan2(p.aimy,p.aimx);
  let fired=0;const pull=++G.pullN;
- for(let i=0;i<rounds;i++){if(!charge(card,price)){if(!fired){gs.cd=.5;float(p.x,p.y-26,'DECLINED','#e5332a');G.rc.push({t:G.t,dec:true,c:card.b});if(G.rc.length>6)G.rc.shift();return}break}
+ for(let i=0;i<rounds;i++){if(!charge(card,price)){if(!fired){gs.cd=.5;sfxDecline(g,card.b);float(p.x,p.y-26,'DECLINED','#e5332a');G.rc.push({t:G.t,dec:true,c:card.b});if(G.rc.length>6)G.rc.shift();return}break}
   fired++;G.st.rounds++;G.st.ammo$+=price;nudge(p.ammo,price/CFG.roundDiv);
   let roll=1;for(let v=0;v<M.volatile;v++)roll*=.6+G.rng()*1.4;
   const raw=bar.pellets*M.pellets,slug=M.slug&&raw>1,pel=slug?1:raw;
   for(let j=0;j<pel;j++){const spread=cfg.spread+(pel>1?.07+(M.pellets>1?.05:0):0)+(i>=cfg.count?.08:0);
    spawnShot(p.x+p.aimx*16,p.y+p.aimy*16,a0+(G.rng()-.5)*2*spread,bar.speed*PXM*M.speed,null,R.dur,p.ammo,0,{dm:slug?1:1/raw,fd,beam:g.barrel==='BLU',cost:price/pel,pierce:pk('pierce')+M.pierce,pm:M.dmg*roll,plan:R,pull,slug,jacket:M.jacket})}}
- if(fired){G.rc.push({t:G.t,amt:price*fired,b:p.ammo,n:fired,c:card.b});if(G.rc.length>6)G.rc.shift();
+ if(fired){sfxFire(g,p.ammo,card.b,R,g.frame==='BLU');G.rc.push({t:G.t,amt:price*fired,b:p.ammo,n:fired,c:card.b});if(G.rc.length>6)G.rc.shift();
   const kick=CFG.recoilBase*Math.pow(price*fired/6,CFG.recoilPrice)*Math.pow(1+CFG.recoilTag*R.widths,1.3)*Math.sqrt(chargeMult||1);
   p.rx=(p.rx||0)-p.aimx*kick;p.ry=(p.ry||0)-p.aimy*kick;if(kick>120)G.shake=Math.max(G.shake||0,Math.min(8,kick/60))}
  if(R.seq.some(x=>x.fed))gs.strip=(gs.strip||0)+1;
  const fm=fanMode(g,gs);if(fm==='fan')gs.fanCool=2;else if(fm==='cool')gs.fanCool--;
  if(g.chamber==='GLD')gs.cycle++;if(g.chamber==='GRN')gs.burst++;
  gs.cd=cfg.rate/((p.buff>0?1.4:1)*(1+.1*pk('rapid')));gs.lastFire=G.t;G.fx.push({k:'muzzle',t:.05,b:g.barrel});pxBurst('muzzle',p.x+p.aimx*26,p.y+p.aimy*26,g.barrel,{a:Math.atan2(p.aimy,p.aimx)})}
-function updTrigger(dt,edge){const gs=G.gs,f=G.gun.frame;gs.cd-=dt;if(G.p.swapT>0){gs.charge=0;return}
+function updTrigger(dt,edge){const gs=G.gs,f=G.gun.frame;gs.cd-=dt;if(G.p.swapT>0){if(gs.charge>0)sfxChargeStop();gs.charge=0;return}
  if(gs.burst&&G.t-gs.lastFire>2)gs.burst=0;
- if(f==='BLU'){if(IN.fire&&gs.cd<=0)gs.charge=Math.min(1,gs.charge+dt);else if(!IN.fire&&gs.charge>0){const c=gs.charge;gs.charge=0;fireGun(c>=1?5:1,c)}}
+ if(f==='BLU'){if(IN.fire&&gs.cd<=0){if(gs.charge<=0)sfxChargeStart();gs.charge=Math.min(1,gs.charge+dt)}else if(!IN.fire&&gs.charge>0){const c=gs.charge;gs.charge=0;sfxChargeStop();fireGun(c>=1?5:1,c)}}
  else if(f==='GRN'){if(IN.fire&&gs.cd<=0)fireGun(1,0)}
  else if(edge&&gs.cd<=0)fireGun(1,0)}
 function solidAt(x,y,ign){for(const r of G.solids)if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h&&!ign.includes(r))return r;return null}
@@ -1091,7 +1292,7 @@ function updPhysics(dt){const f=Math.exp(-CFG.kbFric*dt);updShelves(dt);
  G.corpses=G.corpses.filter(k=>k.t>0);
  for(const d of G.debris){d.rot+=d.spin*dt;d.spin*=Math.exp(-3*dt);const n=slideO(d,dt,.3);if(n)bounce(d,n,.4);const sp=hyp(d.vx,d.vy);if(sp>300)smashAlong(d.x,d.y,5);
   const fd=Math.exp(-4*dt);d.vx*=fd;d.vy*=fd;if(sp<18){d.done=true;G.merch.push({x:d.x,y:d.y,s:d.s,b:d.b,pl:true,rot:d.rot})}}
- G.debris=G.debris.filter(d=>!d.done)}
+ G.debris=G.debris.filter(d=>!d.done);bloodStep(dt)}
 // Flavor only: the Roll / dive reaction. A hit enemy rolls (or dives, for Ranged) sideways. The shot already landed for full damage; nothing is refunded or charged.
 function canDodge(e){return!(e.type==='drone'||e.type==='target'||e.dead||e.boss||e.st==='charge'||e.st==='tele'||e.type==='fodder'||e.type==='tank'||e.roll||e.stun>0||(e.dodgeT||0)>G.t||e.born>0)}
 function maybeDodge(e,dx,dy){if(!canDodge(e))return;if(dx==null){const a=Math.random()*7;dx=Math.cos(a);dy=Math.sin(a)}
@@ -1190,10 +1391,10 @@ function reactSpd(e){let k=1;if(e.adrT>G.t)k*=1+CFG.adrMove*e.adr;if(e.slBack>G.
  return k}
 function hitEnemy(e,pr){const s=stance(pr.b,e.b);let d=shotDmg(pr)*stanceMul(s);
  if(pk('variance')&&G.rng()<.12*pk('variance')){d*=3;pxBurst('flash',e.x,e.y,'BLU')}
- G.st.hits++;physHit(e,pr);pxBurst('hit',e.x-(pr.dx||0)*e.r,e.y-(pr.dy||0)*e.r,pr.b,{a:Math.atan2(-(pr.dy||0),-(pr.dx||0)),n:pr.dm<.5?3:6});damageEnemy(e,d,{b:pr.b,cost:pr.cost,s,dx:pr.dx,dy:pr.dy});react(e,'hit',pr);
+ G.st.hits++;sfxImpact(pr);physHit(e,pr);pxBurst('hit',e.x-(pr.dx||0)*e.r,e.y-(pr.dy||0)*e.r,pr.b,{a:Math.atan2(-(pr.dy||0),-(pr.dx||0)),n:pr.dm<.5?3:6});damageEnemy(e,d,{b:pr.b,cost:pr.cost,s,dx:pr.dx,dy:pr.dy});react(e,'hit',pr);
  const n=pk('arc');if(n){const near=G.en.filter(o=>o!==e&&!o.dead&&o.born<=0&&hyp(o.x-e.x,o.y-e.y)<130).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y)).slice(0,n);
   for(const o of near){G.fx.push({k:'arc',x:e.x,y:e.y,x2:o.x,y2:o.y,t:.12});damageEnemy(o,d*.35,{b:pr.b,s:stance(pr.b,o.b)})}}}
-function damageEnemy(e,d,src){if(e.dead)return;src=src||{};if(e.radUntil>G.t)d*=1.1;if(e.stunUntil>G.t)d*=1.25;e.dmgTaken=(e.dmgTaken||0)+d;if(e.p0){if(e.plates>0){d*=1-CFG.plateArmor;e.ph-=d;if(e.ph<=0){let dx=src.dx,dy=src.dy;if(dx==null){const a=G.rng()*7;dx=Math.cos(a);dy=Math.sin(a)}popPlate(e,dx,dy)}}else d*=CFG.coreMult}e.hp-=d;e.flash=.08;if(e.type!=='fodder'&&d>=.5){const bb=src.b||G.p.ammo;if(e.fl&&e.fl.b===bb&&e.fl.t>.85&&G.fl.includes(e.fl)){e.fl.v+=d;e.fl.txt=String(Math.round(e.fl.v));e.fl.x=e.x;e.fl.t=1}else{e.fl={x:e.x+(Math.random()-.5)*16,y:e.y-e.r-22,v:d,txt:String(Math.round(d)),col:BRAND[bb].col,b:bb,t:1,dmg:true};G.fl.push(e.fl)}}if(e.hp<=0)kill(e,src||{})}
+function damageEnemy(e,d,src){if(e.dead)return;src=src||{};if(e.radUntil>G.t)d*=1.1;if(e.stunUntil>G.t)d*=1.25;e.dmgTaken=(e.dmgTaken||0)+d;if(e.p0){if(e.plates>0){d*=1-CFG.plateArmor;e.ph-=d;if(e.ph<=0){let dx=src.dx,dy=src.dy;if(dx==null){const a=G.rng()*7;dx=Math.cos(a);dy=Math.sin(a)}popPlate(e,dx,dy)}}else d*=CFG.coreMult}e.hp-=d;bleed(e,src,d);e.flash=.08;if(e.type!=='fodder'&&d>=.5){const bb=src.b||G.p.ammo;if(e.fl&&e.fl.b===bb&&e.fl.t>.85&&G.fl.includes(e.fl)){e.fl.v+=d;e.fl.txt=String(Math.round(e.fl.v));e.fl.x=e.x;e.fl.t=1}else{e.fl={x:e.x+(Math.random()-.5)*16,y:e.y-e.r-22,v:d,txt:String(Math.round(d)),col:BRAND[bb].col,b:bb,t:1,dmg:true};G.fl.push(e.fl)}}if(e.hp<=0)kill(e,src||{})}
 function comboTier(n){return n>=35?4:n>=20?3:n>=10?2:n>=5?1:n>=1?0:-1}
 // REBATES: enemies drop rebate slips, not cash. Value = base x (enemy brand Worth / its baseline Worth), so at baseline it matches the old payout
 // and it rises and falls with that brand's share price. Picking one up pays down the card you're holding; whatever's left goes to BANK cash.
@@ -1204,7 +1405,7 @@ function postRebate(v,i){const c=G.cards[i],C=G.coll,toCard=Math.min(v,Math.max(
  if(rest>0){addCash(rest);G.st.reb$cash+=rest;C.a+=rest}
  G.st.earn+=v;G.st.drop$+=v;G.bonus+=v}
 function kill(e,src){if(e.type==='target'){e.hp=e.max;e.down=G.t+.6;pxBurst('kill',e.x,e.y,e.b,{n:10,r:e.r});float(e.x,e.y-e.r-30,'RESET',BRAND[e.b].col);return}
- if(e.type==='drone'){droneBoom(e,false);G.st.kills.drone=(G.st.kills.drone||0)+1;return}e.dead=true;if(e.scripted&&G.seg[e.seg])G.seg[e.seg].killed++;pxBurst('kill',e.x,e.y,e.b,{n:e.boss?40:e.type==='fodder'?6:16,r:e.r});if(e.div){const pay=CFG.divRate*(e.dmgTaken||0)*liveW('GRN');addCash(pay);G.st.earn+=pay;pxBurst('coins',e.x,e.y,'GRN',{n:14});G.pops.push({x:e.x,y:e.y-26,ab:'DV',b:'GRN',label:'DIVIDEND +'+$$(pay),t:1.3,T:1.3,off:0})}
+ if(e.type==='drone'){droneBoom(e,false);G.st.kills.drone=(G.st.kills.drone||0)+1;return}e.dead=true;splat(e);if(e.scripted&&G.seg[e.seg])G.seg[e.seg].killed++;pxBurst('kill',e.x,e.y,e.b,{n:e.boss?40:e.type==='fodder'?6:16,r:e.r});if(e.div){const pay=CFG.divRate*(e.dmgTaken||0)*liveW('GRN');addCash(pay);G.st.earn+=pay;pxBurst('coins',e.x,e.y,'GRN',{n:14});G.pops.push({x:e.x,y:e.y-26,ab:'DV',b:'GRN',label:'DIVIDEND +'+$$(pay),t:1.3,T:1.3,off:0})}
  G.corpses.push({x:e.x,y:e.y,vx:e.kx,vy:e.ky,r:e.r,type:e.type,b:e.b,rot:e.rot,spin:e.spin+(G.rng()-.5)*4,t:e.type==='fodder'?2.5:CFG.corpseLife,m:MASS[e.type]||1});if(G.corpses.length>40)G.corpses.shift();
  while(e.plates>0)popPlate(e,e.kx||G.rng()-.5,e.ky||G.rng()-.5,true);
  const p=G.p,c=G.combo,fod=e.type==='fodder',wgt=fod?CFG.fodderCombo:1;
@@ -1658,8 +1859,11 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  cx.fillStyle='#0d0d0d';cx.fillRect(0,0,vw,vh);cx.save();cx.translate(-camX,-camY);
  // floors
  // floors: each wing is its brand's colour, alternating two shades room to room; hub and entrance stay paper
- for(const rm of ROOMS){const r=rm.rect;if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;cx.fillStyle=rm.fl;cx.fillRect(r.x,r.y,r.w,r.h);
-  cx.fillStyle='rgba(13,13,13,.08)';cx.font='900 40px "Archivo Black",sans-serif';if(rm.b){cx.fillText(rm.b+' '+(rm.k<4?rm.k:'ARENA'),r.x+24,r.y+58);cx.font='900 30px "Archivo Black",sans-serif';cx.fillText(ROOM_NAME[rm.b][rm.k-1],r.x+24,r.y+94)}else cx.fillText(rm.name,r.x+24,r.y+58)}
+ // floor mosaics: baked ad-tile chunks (see FLOOR MOSAICS); falls back to the flat room colour when floorMosaic is 0
+ const mosOn=CFG.floorMosaic>0;if(mosOn)mosUpdate(camX,camY,vw,vh);
+ for(const rm of ROOMS){const r=rm.rect;if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(!(mosOn&&mosDraw(cx,rm,camX,camY,vw,vh))){cx.fillStyle=rm.fl;cx.fillRect(r.x,r.y,r.w,r.h)}
+  cx.fillStyle=mosOn&&rm.b?'rgba(236,232,223,.07)':'rgba(13,13,13,.08)';cx.font='900 40px "Archivo Black",sans-serif';if(rm.b){cx.fillText(rm.b+' '+(rm.k<4?rm.k:'ARENA'),r.x+24,r.y+58);cx.font='900 30px "Archivo Black",sans-serif';cx.fillText(ROOM_NAME[rm.b][rm.k-1],r.x+24,r.y+94)}else cx.fillText(rm.name,r.x+24,r.y+58)}
+ drawStains(cx,camX,camY,vw,vh); // blood stains sit on the floor, under walls and props
  // thresholds: a black band with the wing's colour line (transitions between districts are always black)
  for(const g of G.world.gaps){cx.fillStyle='#1b1b1b';cx.fillRect(g.x,g.y,g.w,g.h);cx.fillStyle=g.b?BRAND[g.b].col:g.exit?'#ff2fb0':'#ece8df';if(g.w>g.h)cx.fillRect(g.x,g.y+g.h/2-3,g.w,6);else cx.fillRect(g.x+g.w/2-3,g.y,6,g.h)}
  // hub signage: one sign per wing door
@@ -1676,9 +1880,9 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  const ge=G.events[3];cx.fillStyle=ge.fired?'#777':BRAND.GRN.col;cx.strokeStyle='#0d0d0d';cx.lineWidth=3;cx.fillRect(TERMINAL.x-18,TERMINAL.y-34,36,26);cx.strokeRect(TERMINAL.x-18,TERMINAL.y-34,36,26);
  // solids
  const warn=G.panelT<CFG.panelWarn&&Math.floor(G.t*8)%2===0;
- for(const r of G.world.walls){if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(r.k==='wall'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h)}
+ for(const r of G.world.walls){if(r.x>camX+vw||r.x+r.w<camX||r.y>camY+vh||r.y+r.h<camY)continue;if(r.k==='wall'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h);if(mosOn){cx.strokeStyle='#5d5a55';cx.lineWidth=2;cx.strokeRect(r.x+1,r.y+1,r.w-2,r.h-2)}}
   else if(r.k==='pit'){cx.fillStyle='#0d0d0d';cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle=BRAND[r.b].col;cx.lineWidth=4;cx.setLineDash([12,8]);cx.strokeRect(r.x+8,r.y+8,r.w-16,r.h-16);cx.setLineDash([])}
-  else if(r.k==='panel'){if(r.off){cx.strokeStyle=warn?BRAND[r.b].acc:'rgba(13,13,13,.25)';cx.lineWidth=warn?5:2;cx.setLineDash([8,8]);cx.strokeRect(r.x,r.y,r.w,r.h);cx.setLineDash([])}
+  else if(r.k==='panel'){if(r.off){cx.strokeStyle=warn?BRAND[r.b].acc:mosOn?'rgba(236,232,223,.4)':'rgba(13,13,13,.25)';cx.lineWidth=warn?5:2;cx.setLineDash([8,8]);cx.strokeRect(r.x,r.y,r.w,r.h);cx.setLineDash([])}
    else{cx.fillStyle=warn?BRAND[r.b].acc:BRAND[r.b].col;cx.fillRect(r.x,r.y,r.w,r.h);cx.strokeStyle='#0d0d0d';cx.lineWidth=4;cx.strokeRect(r.x+2,r.y+2,r.w-4,r.h-4)}}
   else if(r.k==='shelf'){const j=r.rat>0?r.rat*14:0,ox=(Math.random()-.5)*j,oy=(Math.random()-.5)*j;
    if(r.x!==r.hx||r.y!==r.hy){cx.strokeStyle='rgba(13,13,13,.18)';cx.lineWidth=2;cx.setLineDash([6,6]);cx.strokeRect(r.hx,r.hy,r.w,r.h);cx.setLineDash([])}
@@ -1700,7 +1904,7 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  // corpses and flying plates
  for(const k of G.corpses){cx.globalAlpha=Math.min(1,k.t/1.5)*.9;cx.save();cx.translate(k.x,k.y);cx.rotate(k.rot);shape(k.type,0,0,k.r);cx.fillStyle='#8d8a83';cx.fill();cx.strokeStyle='#0d0d0d';cx.lineWidth=k.type==='fodder'?2:3;cx.stroke();
   if(k.type!=='fodder'){const q=k.r*.35;cx.lineWidth=2.5;cx.beginPath();for(const s of[-1,1]){cx.moveTo(s*q-4,-4);cx.lineTo(s*q+4,4);cx.moveTo(s*q+4,-4);cx.lineTo(s*q-4,4)}cx.stroke()}cx.restore()}cx.globalAlpha=1;
- for(const d of G.debris)plateShape(d.x,d.y,d.rot,d.b,d.s);
+ for(const d of G.debris)plateShape(d.x,d.y,d.rot,d.b,d.s);drawBlood(cx);
  // enemies
  for(const e of G.en){if(!e.vis)continue;
   if(e.type==='buffer'&&e.vis){cx.strokeStyle='rgba(255,47,176,.55)';cx.lineWidth=3;cx.setLineDash([8,8]);cx.beginPath();cx.arc(e.x,e.y,CFG.auraRadius,0,7);cx.stroke();cx.setLineDash([])}
