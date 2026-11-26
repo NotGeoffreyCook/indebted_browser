@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-25 (branch `chamber-triggers`): controller support
+- **Gamepads** (Backbone and any standard Xbox-layout controller) via the Gamepad API. Twin-stick: left stick moves, right stick aims (the last aim holds when centred). RT fires, LT is the chamber trigger (the WALLET game's button while the wallet is up), RB punch, LB next card, D-pad up/right/down/left = cards 1-4, A dash, B hop, X use, Y WALLET, L3 sprint, R3 zap, Menu pause/resume, View debug.
+- Menus: A presses the screen's main button (start, resume, end screens); B closes the Tag Bench. Draft: X / A / B pick 1 / 2 / 3, Y rerolls. Moving the mouse hands aiming back to it.
+- The chamber label and WALLET prompt show controller buttons (LT, Y) while the controller is in use. The Controls panel lists the layout.
+- Not done yet: the mobile view (touch layout, sizing for a phone screen) and the Tag Bench / Loadout pickers, which still need a mouse or touch.
+
 ## 2026-11-25 (branch `chamber-triggers`, trial on top of `floor-mosaics`)
 - **Controls:** **RMB is the chamber trigger**; **LMB still fires**. **F** stays melee; RMB no longer punches. With the WALLET up (R), RMB is the mini game's button as before and the chamber trigger is off; LMB still fires.
 - **Chambers are now triggerable actions on RMB** (`chTrig`, 0 = the old passive chambers).
