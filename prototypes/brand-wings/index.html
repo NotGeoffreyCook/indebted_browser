@@ -408,6 +408,15 @@ const CFG_DEF=[
 ['sfxOn','Gun audio on (0 / 1)',1,'I'],
 ['sfxVol','Gun audio volume',.5,'I'],
 ['sfxReceipt','Receipt printer layer (0 / 1)',1,'I'],
+['Chamber triggers (trial)'],
+['chTrig','Chambers are triggerable actions on X (0 = old passive chambers)',1,'I'],
+['blastMax','RED Triple: most rounds in one blast',5,'I'],
+['blastFan','RED Triple: angle between blast rounds (rad)',.12,'I'],
+['sideRange','BLU sidearm: auto-target range (px)',650,'I'],
+['sideRate','BLU sidearm: fire interval = frame rate x',1.5,'I'],
+['btDur','GRN bullet time: duration (s)',2,'I'],
+['btScale','GRN bullet time: world speed',.3,'I'],
+['btCd','GRN bullet time: cooldown after it ends (s)',10,'I'],
 ['Debug'],
 ];
 const CFG={};
@@ -539,7 +548,7 @@ function activeSeq(g,gs){const L=slotLayout(g),seq=[],cyc=[],seen={};
  L.forEach((sl,i)=>{const id=g.slots[i];if(!id||seen[id])return;seen[id]=1;const it={id,tag:g.cards[id],i};if(g.chamber==='GLD'&&sl.part==='chamber')cyc.push(it);else seq.push(it)});
  if(cyc.length){const fm=fanMode(g,gs);if(fm==='fan')cyc.forEach(x=>seq.push(x));else if(fm==='cool')cyc.filter(x=>x.tag==='Fan the Hammer').forEach(x=>seq.push(x));else seq.push(cyc[(gs.cycle||0)%cyc.length]);seq.sort((a,b)=>a.i-b.i)}
  return seq.map(s=>{if(s.tag!=='Strip Feed')return s;const stock=(g.stock||[]).filter(id=>W_(g.cards[id])===1);if(!stock.length)return Object.assign({},s,{empty:true});const id=stock[(gs.strip||0)%stock.length];return{id,tag:g.cards[id],i:s.i,fed:true}})}
-function burstDur(g,gs){return g.chamber==='GRN'?Math.floor((gs.burst||0)/(g.frame==='GRN'?5:10)):0}
+function burstDur(g,gs){return g.chamber==='GRN'&&!CFG.chTrig?Math.floor((gs.burst||0)/(g.frame==='GRN'?5:10)):0}
 function gunDur(g,gs,w,chargeMult){return(capOf(g,w)+burstDur(g,gs))*(chargeMult||1)}
 // the round's resolution plan: Joint Venture merges/duds, Primer copies, Chain Reaction re-fires, Arc Bolt arcs
 function planRound(seq,g,live){const suppress=new Set(),dud=new Set(),jv={};
@@ -1164,22 +1173,61 @@ function sfxChargeStop(){const c=SFX.chg;SFX.chg=null;if(!c||!SFX.AC)return;cons
 function sfxImpact(pr){if(!sfxOK())return;const A=SFX.AC,now=A.currentTime,first=pr.pull!=null&&pr.pull!==SFX.lastPull;
  if(!first&&now-SFX.lastImp<.045)return;SFX.lastImp=now;const tb=first?tagBrands(pr.plan):[];if(first)SFX.lastPull=pr.pull;
  const out=sfxBus(tb),P=sfxP('impact',out);SREC.impact(pr.b,now+.01,P);tb.slice(0,5).forEach((b,k)=>sfxTag(b,now+.01+.25*(k+1),P))}
+/* ================= CHAMBER TRIGGERS (trial, branch chamber-triggers, 2026-11-25) =================
+   With chTrig on, the chamber is a triggerable action on X instead of a passive rule:
+   GLD Cycle: three chambers, each loaded with its own ammo brand (and its own tag slot). X turns the drum to the next
+   chamber, which switches your ammo. Buying ammo at a machine loads it into the chamber you're on.
+   RED Triple: X loads one more round into the next pull's blast, up to blastMax in total. The pull fires them as a fan,
+   each round charged to the card, then the blast resets. Still applies all three tags to every round.
+   BLU Deep: a second weapon slot (sidearm: its own frame, barrel and ammo, no tags). X turns it on or off; while on it
+   fires at the nearest enemy in sight within sideRange, charged to the card in the reader. A decline switches it off.
+   GRN Burst: X starts btDur s of bullet time (enemies, their shots and physics run at btScale), then btCd s cooldown.
+   The old passive rules (Cycle advancing each shot, Burst's +1 charge per 10 rounds) are off while chTrig is on. */
+const CH_DESC={GLD:'TRIGGER (X): turn the drum to the next chamber. Each of the three chambers holds its own ammo and tag.',RED:'TRIGGER (X): load one more round into the next pull, up to 5 in a fan. Every round is paid for. All three tags on every round.',BLU:'TRIGGER (X): sidearm on/off. A second gun that auto-fires at the nearest enemy in sight. +2 durability still applies.',GRN:'TRIGGER (X): 2 s of bullet time. Enemies, their shots and physics slow down; you don\'t. Then a cooldown.'};
+const SIDE_DEFAULT={frame:'GLD',barrel:'GLD',ammo:'BLU'};
+function chCfg(g){if(!g.cyc||g.cyc.length!==3)g.cyc=[g.ammo||'GLD','RED','BLU'];if(!g.side)g.side=Object.assign({},SIDE_DEFAULT);return g}
+function chInit(){const g=chCfg(G.gun),gs=G.gs;gs.init=true;gs.cyc=g.cyc.slice();gs.blast=0;gs.btCd=0;gs.sideOn=false;gs.sideCd=0;gs.sgs={cd:0,charge:0,cycle:0,burst:0,lastFire:-9,strip:0,fanCool:0};
+ const sg=cloneGun(GUN_DEFAULT);sg.frame=g.side.frame;sg.barrel=g.side.barrel;sg.ammo=g.side.ammo;gs.sgun=migrateGun(sg);
+ if(CFG.chTrig&&g.chamber==='GLD')G.p.ammo=gs.cyc[0]}
+function chamberTrigger(){const p=G.p,g=G.gun,gs=G.gs;if(!CFG.chTrig)return;
+ if(g.chamber==='GLD'){gs.cycle=((gs.cycle||0)+1)%3;p.ammo=gs.cyc[gs.cycle];float(p.x,p.y-26,'CHAMBER '+(gs.cycle+1)+' · '+p.ammo+' '+PARTS.ammo[p.ammo].name.toUpperCase(),BRAND[p.ammo].col);
+  if(sfxOK())SREC.chamber('GLD',SFX.AC.currentTime+.01,sfxP('chamber',sfxBus([])))}
+ else if(g.chamber==='RED'){const base=FRAME_CFG[g.frame].count+pk('bundle'),room=Math.max(0,CFG.blastMax-base);
+  if(gs.blast<room){gs.blast++;float(p.x,p.y-26,'BLAST '+(base+gs.blast)+'/'+Math.max(base,CFG.blastMax),BRAND.RED.col);if(sfxOK())SREC.chamber('RED',SFX.AC.currentTime+.01,sfxP('chamber',sfxBus([])))}
+  else float(p.x,p.y-26,'BLAST FULL','#e5332a')}
+ else if(g.chamber==='BLU'){gs.sideOn=!gs.sideOn;gs.sideCd=0;float(p.x,p.y-26,'SIDEARM '+(gs.sideOn?'ON':'OFF'),BRAND.BLU.col);if(sfxOK())SREC.chamber('BLU',SFX.AC.currentTime+.01,sfxP('chamber',sfxBus([])))}
+ else{if(gs.btCd>0){float(p.x,p.y-26,'BULLET TIME '+Math.ceil(gs.btCd)+'s','#777');return}G.bt=CFG.btDur;gs.btCd=CFG.btDur+CFG.btCd;float(p.x,p.y-26,'BULLET TIME',BRAND.GRN.col);
+  if(sfxOK())SREC.chamber('GRN',SFX.AC.currentTime+.01,sfxP('chamber',sfxBus([])))}}
+function updSidearm(dt){const gs=G.gs,p=G.p;if(!CFG.chTrig||G.gun.chamber!=='BLU'||!gs.sideOn||G.wallet)return;gs.sideCd-=dt;gs.sgs.cd-=dt;if(gs.sideCd>0)return;
+ let best=null,bd=CFG.sideRange;for(const e of G.en){if(e.dead||e.born>0||e.type==='drone')continue;const d=hyp(e.x-p.x,e.y-p.y);if(d<bd&&los(p.x,p.y,e.x,e.y)){bd=d;best=e}}
+ if(!best){gs.sideCd=.1;return}
+ const sv={gun:G.gun,gs:G.gs,ammo:p.ammo,ax:p.aimx,ay:p.aimy,rx:p.rx,ry:p.ry},sg=gs.sgun,sgs=gs.sgs,u=bd||1;
+ G.gun=sg;G.gs=sgs;p.ammo=sg.ammo;p.aimx=(best.x-p.x)/u;p.aimy=(best.y-p.y)/u;const n0=G.rc.length?G.rc[G.rc.length-1]:null;
+ try{sgs.cd=0;fireGun(sg.frame==='BLU'?5:1,1)}finally{G.gun=sv.gun;G.gs=sv.gs;p.ammo=sv.ammo;p.aimx=sv.ax;p.aimy=sv.ay;p.rx=sv.rx;p.ry=sv.ry}
+ const last=G.rc[G.rc.length-1];if(last&&last!==n0&&last.dec){gs.sideOn=false;float(p.x,p.y-40,'SIDEARM OFF · DECLINED','#e5332a')}
+ gs.sideCd=FRAME_CFG[sg.frame].rate*CFG.sideRate*(sg.frame==='BLU'?3:1)}
+function chLabel(){if(!CFG.chTrig||!G.gs.init)return null;const g=G.gun,gs=G.gs;
+ if(g.chamber==='GLD')return['X · CH '+((gs.cycle||0)+1)+' '+G.p.ammo,BRAND[G.p.ammo].col];
+ if(g.chamber==='RED'){const base=FRAME_CFG[g.frame].count+pk('bundle');return['X · BLAST '+(base+gs.blast)+'/'+Math.max(base,CFG.blastMax),BRAND.RED.col]}
+ if(g.chamber==='BLU')return['X · SIDEARM '+(gs.sideOn?'ON':'OFF'),gs.sideOn?BRAND.BLU.col:'#777'];
+ return[G.bt>0?'BULLET TIME':gs.btCd>0?'X · '+Math.ceil(gs.btCd)+'s':'X · BULLET TIME',G.bt>0||gs.btCd<=0?BRAND.GRN.col:'#777']}
 function fireGun(chargeMult,level){const p=G.p,g=G.gun,gs=G.gs,cfg=FRAME_CFG[g.frame],bar=PARTS.barrel[g.barrel],m=G.mk[p.ammo],card=G.cards[p.sel];
  if(m.liq<=0||m.floor>0){gs.cd=.5;float(p.x,p.y-26,p.ammo+' OUT OF STOCK','#e5332a');return}
- const R=buildRound(g,gs,p.ammo,chargeMult,true),M=R.mods,price=roundPrice(p.ammo)+R.tagCost,rounds=cfg.count+pk('bundle'),fd=frameDamage(chargeMult>1,level),a0=Math.atan2(p.aimy,p.aimx);
+ const R=buildRound(g,gs,p.ammo,chargeMult,true),M=R.mods,price=roundPrice(p.ammo)+R.tagCost,rounds=Math.min(Math.max(cfg.count+pk('bundle'),CFG.blastMax),cfg.count+pk('bundle')+(CFG.chTrig&&g.chamber==='RED'&&gs.blast||0)),fan=rounds>cfg.count+pk('bundle'),fd=frameDamage(chargeMult>1,level),a0=Math.atan2(p.aimy,p.aimx);
  let fired=0;const pull=++G.pullN;
  for(let i=0;i<rounds;i++){if(!charge(card,price)){if(!fired){gs.cd=.5;sfxDecline(g,card.b);float(p.x,p.y-26,'DECLINED','#e5332a');G.rc.push({t:G.t,dec:true,c:card.b});if(G.rc.length>6)G.rc.shift();return}break}
   fired++;G.st.rounds++;G.st.ammo$+=price;nudge(p.ammo,price/CFG.roundDiv);
   let roll=1;for(let v=0;v<M.volatile;v++)roll*=.6+G.rng()*1.4;
   const raw=bar.pellets*M.pellets,slug=M.slug&&raw>1,pel=slug?1:raw;
   for(let j=0;j<pel;j++){const spread=cfg.spread+(pel>1?.07+(M.pellets>1?.05:0):0)+(i>=cfg.count?.08:0);
-   spawnShot(p.x+p.aimx*16,p.y+p.aimy*16,a0+(G.rng()-.5)*2*spread,bar.speed*PXM*M.speed,null,R.dur,p.ammo,0,{dm:slug?1:1/raw,fd,beam:g.barrel==='BLU',cost:price/pel,pierce:pk('pierce')+M.pierce,pm:M.dmg*roll,plan:R,pull,slug,jacket:M.jacket})}}
+   spawnShot(p.x+p.aimx*16,p.y+p.aimy*16,a0+(fan?(i-(rounds-1)/2)*CFG.blastFan:0)+(G.rng()-.5)*2*spread,bar.speed*PXM*M.speed,null,R.dur,p.ammo,0,{dm:slug?1:1/raw,fd,beam:g.barrel==='BLU',cost:price/pel,pierce:pk('pierce')+M.pierce,pm:M.dmg*roll,plan:R,pull,slug,jacket:M.jacket})}}
  if(fired){sfxFire(g,p.ammo,card.b,R,g.frame==='BLU');G.rc.push({t:G.t,amt:price*fired,b:p.ammo,n:fired,c:card.b});if(G.rc.length>6)G.rc.shift();
   const kick=CFG.recoilBase*Math.pow(price*fired/6,CFG.recoilPrice)*Math.pow(1+CFG.recoilTag*R.widths,1.3)*Math.sqrt(chargeMult||1);
   p.rx=(p.rx||0)-p.aimx*kick;p.ry=(p.ry||0)-p.aimy*kick;if(kick>120)G.shake=Math.max(G.shake||0,Math.min(8,kick/60))}
+ if(fired&&gs.blast)gs.blast=0;
  if(R.seq.some(x=>x.fed))gs.strip=(gs.strip||0)+1;
  const fm=fanMode(g,gs);if(fm==='fan')gs.fanCool=2;else if(fm==='cool')gs.fanCool--;
- if(g.chamber==='GLD')gs.cycle++;if(g.chamber==='GRN')gs.burst++;
+ if(g.chamber==='GLD'&&!CFG.chTrig)gs.cycle++;if(g.chamber==='GRN')gs.burst++;
  gs.cd=cfg.rate/((p.buff>0?1.4:1)*(1+.1*pk('rapid')));gs.lastFire=G.t;G.fx.push({k:'muzzle',t:.05,b:g.barrel});pxBurst('muzzle',p.x+p.aimx*26,p.y+p.aimy*26,g.barrel,{a:Math.atan2(p.aimy,p.aimx)})}
 function updTrigger(dt,edge){const gs=G.gs,f=G.gun.frame;gs.cd-=dt;if(G.p.swapT>0){if(gs.charge>0)sfxChargeStop();gs.charge=0;return}
  if(gs.burst&&G.t-gs.lastFire>2)gs.burst=0;
@@ -1442,7 +1490,7 @@ function vendPrice(v){return G.mk[v.b].w*CFG[{ammo:'punchAmmoK',health:'punchHea
 function buyVend(v){const p=G.p;if(v.stock<=0){float(p.x,p.y-26,'SOLD OUT','#e5332a');return}
  const price=vendPrice(v);if(!charge(G.cards[p.sel],price)){float(p.x,p.y-26,'DECLINED','#e5332a');return}
  v.stock--;nudge(v.b,price/CFG.purchaseDiv);
- if(v.kind==='ammo'){p.ammo=v.b;float(p.x,p.y-26,'AMMO: '+v.b,BRAND[v.b].col)}
+ if(v.kind==='ammo'){p.ammo=v.b;if(CFG.chTrig&&G.gun.chamber==='GLD'&&G.gs.cyc)G.gs.cyc[(G.gs.cycle||0)%3]=v.b;float(p.x,p.y-26,'AMMO: '+v.b,BRAND[v.b].col)}
  else if(v.kind==='health'){p.hp=Math.min(p.max,p.hp+CFG.healItem);float(p.x,p.y-26,'+'+CFG.healItem+' HP','#2baa4a')}
  else{p.buff=CFG.buffDur;float(p.x,p.y-26,'OVERTIME: +40% FIRE RATE',BRAND[v.b].col)}}
 function bagUsed(){return G.p.bag.reduce((s,i)=>s+SIZE[i.s].slots,0)}
@@ -1711,7 +1759,8 @@ function onRoom(k){if(k<0)return;G.room=k;const D=G.dir,s=G.seg[k],r=ROOMS[k];
  if(r.id==='STREET')end(WORDER.every(b=>G.arenas[b].dead)?'win':'leave')}
 
 /* ================= MAIN STEP ================= */
-function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed;
+function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed;if(!G.gs.init)chInit();
+ const rdt=dt;if(G.bt>0)G.bt-=rdt;if(G.gs.btCd>0)G.gs.btCd-=rdt;const wdt=G.bt>0?dt*CFG.btScale:dt;
  // timers
  G.tickT-=dt;if(G.tickT<=0){G.tickT+=CFG.tickSec;marketTick()}
  G.aprT-=dt;if(G.aprT<=0){G.aprT+=CFG.aprSec;let f=0;const apr=Math.max(0,CFG.aprPct-pk('indulge'));for(const c of G.cards)f+=c.bal*apr/100;if(f>0){debit(f);G.st.apr$+=f;spent(f);float(p.x,p.y-40,'APR -'+$$(f),'#e5332a')}}
@@ -1729,7 +1778,7 @@ function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed
   if(P.has('wA'))w.game.a();if(G.wallet&&P.has('wAUp')&&w.game.aUp)w.game.aUp();
   if(G.wallet){w.flash-=dt;w.msgT-=dt;w.game.update(dt)}}
  else{if(P.has('dash'))dash();if(P.has('hop'))hop();if(P.has('zap'))zap();if(P.has('sprint'))p.sprint=!p.sprint;if(P.has('use'))use();if(P.has('punch')&&p.meleeCd<=0)punch()}
- updTrigger(dt,edge);
+ updTrigger(dt,edge);if(P.has('chtrig')&&!G.wallet)chamberTrigger();updSidearm(dt);
  P.clear();
  if(G.p.swapT>0)G.p.swapT-=dt;
  G.whT-=dt;if(G.whT<=0){G.whT=.5;for(const b of BR){const a=G.wh[b];a.push(G.mk[b].w);if(a.length>121)a.shift()}}
@@ -1759,8 +1808,8 @@ function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed
    spawnPack(ri,ES(CFG.packKill))}}
  // enemies
  const bufs=G.en.filter(e=>e.type==='buffer'&&!e.dead&&e.stun<=0&&e.born<=0);G.hes=G.en.filter(e=>!e.dead&&e.hesT>G.t);
- for(const e of G.en){if(e.dead)continue;statusTick(e,dt);if(e.dead)continue;e.buffed=e.type!=='buffer'&&bufs.some(b=>hyp(b.x-e.x,b.y-e.y)<CFG.auraRadius);updEnemy(e,dt);if(G.over)return}
- updPhysics(dt);if(G.over)return;
+ for(const e of G.en){if(e.dead)continue;statusTick(e,wdt);if(e.dead)continue;e.buffed=e.type!=='buffer'&&bufs.some(b=>hyp(b.x-e.x,b.y-e.y)<CFG.auraRadius);updEnemy(e,wdt);if(G.over)return}
+ updPhysics(wdt);if(G.over)return;
  for(let i=0;i<G.en.length;i++){const a=G.en[i];if(a.dead)continue;for(let j=i+1;j<G.en.length;j++){const b=G.en[j];if(b.dead)continue;const dx=b.x-a.x,dy=b.y-a.y,d=hyp(dx,dy)||.01,o=a.r+b.r-d;if(o>0){const ux=dx/d,uy=dy/d,wa=a.plow?0:b.plow?1:.5;a.x-=ux*o*wa;a.y-=uy*o*wa;b.x+=ux*o*(1-wa);b.y+=uy*o*(1-wa)}}
   const dx=a.x-p.x,dy=a.y-p.y,d=hyp(dx,dy)||.01,o=a.r+p.r-d;if(o>0&&a.st!=='charge'){a.x+=dx/d*o;a.y+=dy/d*o}collide(a)}
  // projectiles: every round has spawn, travel and hit phases
@@ -1769,7 +1818,7 @@ function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed
  if(G.capS.hits&&G.t-G.capS.t>CFG.statusCd){G.capS={hits:0,store:0,t:0};float(p.x,p.y-50,'CAPACITOR DRAINED',BRAND.BLU.col)}
  for(const q of G.pops)q.t-=dt;G.pops=G.pops.filter(q=>q.t>0);
  for(const f of G.frags){f.t-=dt;f.tick-=dt;if(f.tick<=0){f.tick+=.6;blast(f.x,f.y,1.5*PXM,f.dmg,f.b,false)}}G.frags=G.frags.filter(f=>f.t>0);if(G.over)return;
- for(const s of G.eshots){s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;if(inSolid(s.x,s.y))s.life=0;else if(p.air<=0&&hyp(s.x-p.x,s.y-p.y)<p.r+4){hurtPlayer(s.dmg);s.life=0;if(G.over)return}}
+ for(const s of G.eshots){s.x+=s.vx*wdt;s.y+=s.vy*wdt;s.life-=wdt;if(inSolid(s.x,s.y))s.life=0;else if(p.air<=0&&hyp(s.x-p.x,s.y-p.y)<p.r+4){hurtPlayer(s.dmg);s.life=0;if(G.over)return}}
  G.eshots=G.eshots.filter(s=>s.life>0);
  for(const t of G.thrown){t.x+=t.vx*dt;t.y+=t.vy*dt;t.life-=dt;if(inSolid(t.x,t.y)){t.life=0;continue}
   for(const e of G.en)if(!e.dead&&hyp(e.x-t.x,e.y-t.y)<e.r+SIZE[t.it.s].r){e.stun=2.5;knock(e,t.vx*.7,t.vy*.7);damageEnemy(e,10,{dx:t.vx,dy:t.vy});pxBurst('stars',e.x,e.y-e.r,'BLU');t.life=0;break}}
@@ -1808,7 +1857,7 @@ const keys=new Set();
 function resize(){const d=Math.min(2,window.devicePixelRatio||1);VW=innerWidth;VH=innerHeight;cv.width=VW*d;cv.height=VH*d;SC=clamp(Math.min(VW/1250,VH/720),.55,1.4);cx.setTransform(d*SC,0,0,d*SC,0,0)}
 addEventListener('resize',resize);resize();
 function toggleDir(){showDir=!showDir;el('dir').style.display=showDir?'block':'none';document.body.classList.toggle('dbg',showDir);const b=el('dbg');if(b){b.setAttribute('aria-pressed',showDir?'true':'false')}}
-const KM={Space:'dash',ShiftLeft:'sprint',ShiftRight:'sprint',KeyE:'use',KeyF:'punch',KeyR:'wallet',KeyQ:'cycle',KeyC:'hop',Tab:'zap',Digit1:'sel0',Digit2:'sel1',Digit3:'sel2',Digit4:'sel3'};
+const KM={Space:'dash',ShiftLeft:'sprint',ShiftRight:'sprint',KeyE:'use',KeyF:'punch',KeyR:'wallet',KeyQ:'cycle',KeyC:'hop',KeyX:'chtrig',Tab:'zap',Digit1:'sel0',Digit2:'sel1',Digit3:'sel2',Digit4:'sel3'};
 const draftOk=()=>performance.now()-(drawDraft.t0||0)>350;
 {const b=el('dbg');if(b)b.onclick=e=>{toggleDir();b.blur()}}
 addEventListener('keydown',e=>{if(BN.open){if(e.code==='Escape'){e.preventDefault();closeBench()}return}if(e.target.tagName==='INPUT')return;if(['Space','Tab'].includes(e.code))e.preventDefault();if(e.repeat)return;keys.add(e.code);
@@ -1954,11 +2003,13 @@ function render(){const p=G.p,vw=VW/SC,vh=VH/SC;
  if(lift>0){cx.fillStyle='rgba(13,13,13,.25)';cx.beginPath();cx.ellipse(p.x,p.y+4,p.r,p.r*.6,0,0,7);cx.fill();cx.save();cx.translate(0,-lift)}
  if(!(p.inv>0&&Math.floor(G.t*16)%2)){cx.strokeStyle='#0d0d0d';cx.lineWidth=7;cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(p.x+p.aimx*24,p.y+p.aimy*24);cx.stroke();cx.strokeStyle=BRAND[p.ammo].col;cx.lineWidth=3;cx.stroke();
   drawEd(p);
+  {const lb=chLabel();if(lb){cx.font='700 10px "Space Mono",monospace';cx.textAlign='center';cx.fillStyle='#0d0d0d';cx.fillText(lb[0],p.x+1,p.y+p.r+15);cx.fillStyle=lb[1];cx.fillText(lb[0],p.x,p.y+p.r+14)}}
   if(p.sprint&&p.moving){cx.strokeStyle=BRAND.GLD.col;cx.lineWidth=3;cx.beginPath();cx.arc(p.x,p.y,p.r+5,0,7);cx.stroke()}
   if(p.hold)merchShape(p.hold,p.x+p.aimx*22,p.y+p.aimy*22)}
  if(lift>0)cx.restore();
  cx.font='700 13px "Space Mono",monospace';cx.textAlign='center';for(const f of G.fl){cx.globalAlpha=clamp(f.t*2,0,1);if(f.dmg){pxDmg(f);continue}cx.fillStyle='#fff';cx.fillText(f.txt,f.x+1,f.y+1);cx.fillStyle=f.col;cx.fillText(f.txt,f.x,f.y)}cx.globalAlpha=1;cx.textAlign='left';
  cx.restore();
+ if(G.bt>0){cx.fillStyle='rgba(74,255,107,.10)';cx.fillRect(0,0,vw,vh);cx.strokeStyle=BRAND.GRN.col;cx.lineWidth=6;cx.strokeRect(3,3,vw-6,vh-6)}
  if(G.fx.some(f=>f.k==='hit')){cx.fillStyle='rgba(229,51,42,.25)';cx.fillRect(0,0,vw,vh)}
  if(G.wallet)drawWallet();
  drawFace();drawProgress(vw);cardVis(); /* gun view (drawGunHud) removed from the HUD */
@@ -2230,8 +2281,10 @@ function tuneHTML(){let h='<details><summary>Tune values ('+CFG_DEF.filter(r=>r.
 function bindTune(){scr.querySelectorAll('input[data-k]').forEach(i=>i.addEventListener('change',()=>{const v=parseFloat(i.value);if(isFinite(v)){CFG[i.dataset.k]=v;try{localStorage.setItem('indebted_cfg3',JSON.stringify(CFG))}catch(e){}}}));
  const r=el('rst');if(r)r.onclick=()=>{cfgReset();try{localStorage.removeItem('indebted_cfg3')}catch(e){}showStart()}}
 function gunHTML(){const g=opts.gun,wOf=b=>G&&G.mk[b]?G.mk[b].w:BRAND[b].base;let h='';
- for(const type of['frame','chamber','barrel','ammo']){const cur=PARTS[type][g[type]];
+ chCfg(g);for(const type of['frame','chamber','barrel','ammo']){const cur=Object.assign({},PARTS[type][g[type]]);if(type==='chamber'&&CFG.chTrig)cur.desc=CH_DESC[g.chamber];
   h+=`<div class="gp"><b>${type.toUpperCase()}</b>${BR.map(b=>`<button data-gp="${type}" data-b="${b}" class="${g[type]===b?'on':''}" style="border-left-color:${BRAND[b].col};box-shadow:inset 3px 0 0 ${BRAND[b].acc},3px 3px 0 var(--ink)">${PARTS[type][b].name}</button>`).join('')}</div><p class="gd">${cur.desc}</p>`;
+  if(type==='chamber'&&CFG.chTrig&&g.chamber==='GLD')h+=[0,1,2].map(i=>`<div class="gp"><b>CH ${i+1} AMMO</b>${BR.map(b=>`<button data-cyc="${i}" data-b="${b}" class="${g.cyc[i]===b?'on':''}" style="border-left-color:${BRAND[b].col};box-shadow:inset 3px 0 0 ${BRAND[b].acc},3px 3px 0 var(--ink)">${PARTS.ammo[b].name}</button>`).join('')}</div>`).join('')+'<p class="gd">The run starts on chamber 1. Buying ammo at a machine loads the chamber you are on.</p>';
+  if(type==='chamber'&&CFG.chTrig&&g.chamber==='BLU')h+=['frame','barrel','ammo'].map(t=>`<div class="gp"><b>SIDEARM ${t.toUpperCase()}</b>${BR.map(b=>`<button data-side="${t}" data-b="${b}" class="${g.side[t]===b?'on':''}" style="border-left-color:${BRAND[b].col};box-shadow:inset 3px 0 0 ${BRAND[b].acc},3px 3px 0 var(--ink)">${PARTS[t][b].name}</button>`).join('')}</div>`).join('')+'<p class="gd">The sidearm has no tag slots. It charges the card in the reader like your main gun.</p>';
   }
  const cfg=FRAME_CFG[g.frame],bar=PARTS.barrel[g.barrel],ch=PARTS.chamber[g.chamber],cap=capOf(g,wOf(g.ammo)),price=wOf(g.ammo)*CFG.pricePerWorth;
  const RR=previewRound(g),n=RR.widths,names={};RR.seq.forEach(x=>names[x.tag]=1);
@@ -2265,6 +2318,8 @@ function tagTip(t,anchor){const tip=el('tagtip');if(!t||!TAGS[t]||!anchor){tip.s
  tip.innerHTML=`<div class="row" style="align-items:center"><b class="hd">${t}</b><span class="chip" style="background:${BRAND[b].col};box-shadow:2px 2px 0 ${BRAND[b].acc}">${b}</span></div><div style="margin:4px 0">${T.desc}</div><div style="opacity:.7">Costs 1 durability each time it resolves, in slot order. Phase: ${T.phase}${W_(t)>1?' · takes '+W_(t)+' slots':''}.</div>`;
  tip.style.display='block';tip.style.width='240px';const r=anchor.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;let x=r.right+10,y=r.top-4;if(x+w>innerWidth-8)x=r.left-w-10;if(x<8)x=8;if(y+h>innerHeight-8)y=innerHeight-h-8;tip.style.left=x+'px';tip.style.top=Math.max(8,y)+'px'}
 function bindGun(again){bindDurTip(scr);scr.querySelectorAll('[data-gp]').forEach(b=>b.onclick=()=>{opts.gun[b.dataset.gp]=b.dataset.b;fitSlots(opts.gun);saveGun();again()});
+ scr.querySelectorAll('[data-cyc]').forEach(b=>b.onclick=()=>{chCfg(opts.gun).cyc[+b.dataset.cyc]=b.dataset.b;saveGun();again()});
+ scr.querySelectorAll('[data-side]').forEach(b=>b.onclick=()=>{chCfg(opts.gun).side[b.dataset.side]=b.dataset.b;saveGun();again()});
  {const ob=el('openBench');if(ob)ob.onclick=()=>openBench(again)}
  scr.querySelectorAll('.tstrip [data-tt]').forEach(x=>{x.onmouseenter=()=>tagTip(x.dataset.tt,x);x.onmouseleave=()=>tagTip(null)});
  scr.querySelectorAll('.tsel').forEach(box=>{const btn=box.querySelector('.tbtn'),list=box.querySelector('.tlist'),opts_=[...list.querySelectorAll('.topt')];

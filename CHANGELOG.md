@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-25 (branch `chamber-triggers`, trial on top of `floor-mosaics`)
+- **Chambers are now triggerable actions on X** (`chTrig`, 0 = the old passive chambers).
+  - **GLD Cycle:** three chambers, each loaded with its own ammo brand and its own tag slot. X turns the drum to the next chamber and switches your ammo. You pick the three ammo brands under Loadout (default GLD / RED / BLU). Buying ammo at a machine loads it into the chamber you're on. The drum no longer advances on each shot.
+  - **RED Triple:** X loads one more round into the next pull, up to `blastMax` (5) in total. The pull fires them as a fan (`blastFan`), every round charged to the card, then the blast resets. All three tags still go on every round.
+  - **BLU Deep:** a second weapon slot. The sidearm has its own frame, barrel and ammo (no tags), set under Loadout (default GLD Pistol / GLD Fast / BLU Stun). X turns it on or off. While on, it fires at the nearest enemy in sight within `sideRange`, charged to the card in the reader, at the frame's rate x `sideRate`. A declined card switches it off. +2 durability still applies.
+  - **GRN Burst:** X gives `btDur` (2) s of bullet time. Enemies, enemy shots and physics run at `btScale` (0.3), while you, your rounds and the market run at full speed. Then there's a `btCd` (10) s cooldown. The old +1 charge per 10 rounds is off.
+- A label under Ed shows the chamber's state (chamber + ammo, blast count, sidearm on/off, bullet time ready/cooldown); the screen tints green during bullet time. Each trigger plays that chamber's Round Foundry sound.
+
 ## 2026-11-25 (branch `floor-mosaics`)
 - **Gun audio from the Round Foundry.** Brand Wings now plays the Foundry's synthesized weapon sound on every pull, each layer voiced by the brand of the part that makes it: card terminal (the card in the reader), frame, chamber, barrel, ammo in flight (ammo brand) and receipt printer (chamber brand). Impacts play the ammo brand's hit; loaded tags colour the sound (GLD shine, RED drive, BLU pitch jitter, GRN bloom echo) and ring out after the first hit of each pull, 0.25 s apart. A declined card plays the decline buzz and a dry frame. The BLU Charge frame's whine plays while you hold the charge and cuts off if you release early.
 - Foundry offsets before the trigger are clamped to 0 (the game can't play ahead of the shot). Impacts are throttled to one per 45 ms so Full-Auto and Scatter pellets don't pile up. Audio uses `Math.random`, so seeded runs are unchanged; it's off in headless runs.
