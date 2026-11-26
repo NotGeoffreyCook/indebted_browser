@@ -409,7 +409,7 @@ const CFG_DEF=[
 ['sfxVol','Gun audio volume',.5,'I'],
 ['sfxReceipt','Receipt printer layer (0 / 1)',1,'I'],
 ['Chamber triggers (trial)'],
-['chTrig','Chambers are triggerable actions on LMB (0 = old passive chambers)',1,'I'],
+['chTrig','Chambers are triggerable actions on RMB (0 = old passive chambers)',1,'I'],
 ['blastMax','RED Triple: most rounds in one blast',5,'I'],
 ['blastFan','RED Triple: angle between blast rounds (rad)',.12,'I'],
 ['sideRange','BLU sidearm: auto-target range (px)',650,'I'],
@@ -686,7 +686,7 @@ function statusTick(e,dt){if(e.burn){e.burn.t-=dt;if(e.burn.t<=0){const b=e.burn
 /* WALLET console: palettes, titles and the four games from the 3D slice. */
 const WSH={GLD:['#201923','#896070','#e6d09e','#fff9e0'],RED:['#270f0d','#741408','#f74f45','#ffe8e8'],BLU:['#081829','#193657','#377ac4','#a1c7f4'],GRN:['#18251b','#1d5527','#59b568','#94ffa6']};
 const WTITLE={GLD:'ASCENSION RUN',RED:'SHIFT CROSSING',GRN:'FULFILLMENT',BLU:'SIGNAL DEFENSE'};
-const WHELP={GLD:'LMB JUMP',RED:'LMB HOP',GRN:'LMB ON THE BEAT',BLU:'LMB FIRE'};
+const WHELP={GLD:'RMB JUMP',RED:'RMB HOP',GRN:'RMB ON THE BEAT',BLU:'RMB FIRE'};
 
 /* ================= WORLD ================= */
 /* Hub and wings (2026-11-24). The Entrance is the same start as the vertical slice; its north door opens into the HUB.
@@ -1174,16 +1174,16 @@ function sfxImpact(pr){if(!sfxOK())return;const A=SFX.AC,now=A.currentTime,first
  if(!first&&now-SFX.lastImp<.045)return;SFX.lastImp=now;const tb=first?tagBrands(pr.plan):[];if(first)SFX.lastPull=pr.pull;
  const out=sfxBus(tb),P=sfxP('impact',out);SREC.impact(pr.b,now+.01,P);tb.slice(0,5).forEach((b,k)=>sfxTag(b,now+.01+.25*(k+1),P))}
 /* ================= CHAMBER TRIGGERS (trial, branch chamber-triggers, 2026-11-25) =================
-   With chTrig on, the chamber is a triggerable action on LMB (RMB fires) instead of a passive rule:
-   GLD Cycle: three chambers, each loaded with its own ammo brand (and its own tag slot). LMB turns the drum to the next
+   With chTrig on, the chamber is a triggerable action on RMB (LMB fires) instead of a passive rule:
+   GLD Cycle: three chambers, each loaded with its own ammo brand (and its own tag slot). RMB turns the drum to the next
    chamber, which switches your ammo. Buying ammo at a machine loads it into the chamber you're on.
-   RED Triple: LMB loads one more round into the next pull's blast, up to blastMax in total. The pull fires them as a fan,
+   RED Triple: RMB loads one more round into the next pull's blast, up to blastMax in total. The pull fires them as a fan,
    each round charged to the card, then the blast resets. Still applies all three tags to every round.
-   BLU Deep: a second weapon slot (sidearm: its own frame, barrel and ammo, no tags). LMB turns it on or off; while on it
+   BLU Deep: a second weapon slot (sidearm: its own frame, barrel and ammo, no tags). RMB turns it on or off; while on it
    fires at the nearest enemy in sight within sideRange, charged to the card in the reader. A decline switches it off.
-   GRN Burst: LMB starts btDur s of bullet time (enemies, their shots and physics run at btScale), then btCd s cooldown.
+   GRN Burst: RMB starts btDur s of bullet time (enemies, their shots and physics run at btScale), then btCd s cooldown.
    The old passive rules (Cycle advancing each shot, Burst's +1 charge per 10 rounds) are off while chTrig is on. */
-const CH_DESC={GLD:'TRIGGER (LMB): turn the drum to the next chamber. Each of the three chambers holds its own ammo and tag.',RED:'TRIGGER (LMB): load one more round into the next pull, up to 5 in a fan. Every round is paid for. All three tags on every round.',BLU:'TRIGGER (LMB): sidearm on/off. A second gun that auto-fires at the nearest enemy in sight. +2 durability still applies.',GRN:'TRIGGER (LMB): 2 s of bullet time. Enemies, their shots and physics slow down; you don\'t. Then a cooldown.'};
+const CH_DESC={GLD:'TRIGGER (RMB): turn the drum to the next chamber. Each of the three chambers holds its own ammo and tag.',RED:'TRIGGER (RMB): load one more round into the next pull, up to 5 in a fan. Every round is paid for. All three tags on every round.',BLU:'TRIGGER (RMB): sidearm on/off. A second gun that auto-fires at the nearest enemy in sight. +2 durability still applies.',GRN:'TRIGGER (RMB): 2 s of bullet time. Enemies, their shots and physics slow down; you don\'t. Then a cooldown.'};
 const SIDE_DEFAULT={frame:'GLD',barrel:'GLD',ammo:'BLU'};
 function chCfg(g){if(!g.cyc||g.cyc.length!==3)g.cyc=[g.ammo||'GLD','RED','BLU'];if(!g.side)g.side=Object.assign({},SIDE_DEFAULT);return g}
 function chInit(){const g=chCfg(G.gun),gs=G.gs;gs.init=true;gs.cyc=g.cyc.slice();gs.blast=0;gs.btCd=0;gs.sideOn=false;gs.sideCd=0;gs.sgs={cd:0,charge:0,cycle:0,burst:0,lastFire:-9,strip:0,fanCool:0};
@@ -1207,10 +1207,10 @@ function updSidearm(dt){const gs=G.gs,p=G.p;if(!CFG.chTrig||G.gun.chamber!=='BLU
  const last=G.rc[G.rc.length-1];if(last&&last!==n0&&last.dec){gs.sideOn=false;float(p.x,p.y-40,'SIDEARM OFF · DECLINED','#e5332a')}
  gs.sideCd=FRAME_CFG[sg.frame].rate*CFG.sideRate*(sg.frame==='BLU'?3:1)}
 function chLabel(){if(!CFG.chTrig||!G.gs.init)return null;const g=G.gun,gs=G.gs;
- if(g.chamber==='GLD')return['LMB · CH '+((gs.cycle||0)+1)+' '+G.p.ammo,BRAND[G.p.ammo].col];
- if(g.chamber==='RED'){const base=FRAME_CFG[g.frame].count+pk('bundle');return['LMB · BLAST '+(base+gs.blast)+'/'+Math.max(base,CFG.blastMax),BRAND.RED.col]}
- if(g.chamber==='BLU')return['LMB · SIDEARM '+(gs.sideOn?'ON':'OFF'),gs.sideOn?BRAND.BLU.col:'#777'];
- return[G.bt>0?'BULLET TIME':gs.btCd>0?'LMB · '+Math.ceil(gs.btCd)+'s':'LMB · BULLET TIME',G.bt>0||gs.btCd<=0?BRAND.GRN.col:'#777']}
+ if(g.chamber==='GLD')return['RMB · CH '+((gs.cycle||0)+1)+' '+G.p.ammo,BRAND[G.p.ammo].col];
+ if(g.chamber==='RED'){const base=FRAME_CFG[g.frame].count+pk('bundle');return['RMB · BLAST '+(base+gs.blast)+'/'+Math.max(base,CFG.blastMax),BRAND.RED.col]}
+ if(g.chamber==='BLU')return['RMB · SIDEARM '+(gs.sideOn?'ON':'OFF'),gs.sideOn?BRAND.BLU.col:'#777'];
+ return[G.bt>0?'BULLET TIME':gs.btCd>0?'RMB · '+Math.ceil(gs.btCd)+'s':'RMB · BULLET TIME',G.bt>0||gs.btCd<=0?BRAND.GRN.col:'#777']}
 function fireGun(chargeMult,level){const p=G.p,g=G.gun,gs=G.gs,cfg=FRAME_CFG[g.frame],bar=PARTS.barrel[g.barrel],m=G.mk[p.ammo],card=G.cards[p.sel];
  if(m.liq<=0||m.floor>0){gs.cd=.5;float(p.x,p.y-26,p.ammo+' OUT OF STOCK','#e5332a');return}
  const R=buildRound(g,gs,p.ammo,chargeMult,true),M=R.mods,price=roundPrice(p.ammo)+R.tagCost,rounds=Math.min(Math.max(cfg.count+pk('bundle'),CFG.blastMax),cfg.count+pk('bundle')+(CFG.chTrig&&g.chamber==='RED'&&gs.blast||0)),fan=rounds>cfg.count+pk('bundle'),fd=frameDamage(chargeMult>1,level),a0=Math.atan2(p.aimy,p.aimx);
@@ -1774,7 +1774,7 @@ function step(dt){if(!G||G.over||G.draft)return;G.t+=dt;const p=G.p,P=IN.pressed
  if(want>=0&&want!==p.sel){if(G.wallet)float(p.x,p.y-26,'CARD IS IN THE WALLET','#0d0d0d');else{p.swapFrom=p.sel;p.sel=want;p.swapT=CFG.swapTime}}
  const edge=P.has('fire1');
  if(P.has('wallet'))toggleWallet();
- if(G.wallet){const w=G.wallet; // LMB is the WALLET's one key (the chamber trigger is off while it's up). RMB still fires. Card abilities are paused while the card is in it.
+ if(G.wallet){const w=G.wallet; // RMB is the WALLET's one key (the chamber trigger is off while it's up). LMB still fires. Card abilities are paused while the card is in it.
   if(P.has('wA'))w.game.a();if(G.wallet&&P.has('wAUp')&&w.game.aUp)w.game.aUp();
   if(G.wallet){w.flash-=dt;w.msgT-=dt;w.game.update(dt)}}
  else{if(P.has('dash'))dash();if(P.has('hop'))hop();if(P.has('zap'))zap();if(P.has('sprint'))p.sprint=!p.sprint;if(P.has('use'))use();if(P.has('punch')&&p.meleeCd<=0)punch()}
@@ -1868,8 +1868,8 @@ addEventListener('keydown',e=>{if(BN.open){if(e.code==='Escape'){e.preventDefaul
 addEventListener('keyup',e=>keys.delete(e.code));
 addEventListener('blur',()=>{keys.clear();IN.fire=false});
 cv.addEventListener('mousemove',e=>{msx=e.clientX;msy=e.clientY});
-cv.addEventListener('mousedown',e=>{msx=e.clientX;msy=e.clientY;if(paused||G.draft)return;if(e.button===2){IN.fire=true;IN.pressed.add('fire1')}else if(e.button===0)IN.pressed.add(G.wallet?'wA':'chtrig')}); // RMB fires, LMB is the chamber trigger (the WALLET game key while the wallet is up)
-addEventListener('mouseup',e=>{if(e.button===2)IN.fire=false;if(e.button===0&&G&&G.wallet&&!paused)IN.pressed.add('wAUp')});
+cv.addEventListener('mousedown',e=>{msx=e.clientX;msy=e.clientY;if(paused||G.draft)return;if(e.button===0){IN.fire=true;IN.pressed.add('fire1')}else if(e.button===2)IN.pressed.add(G.wallet?'wA':'chtrig')}); // LMB fires, RMB is the chamber trigger (the WALLET game key while the wallet is up)
+addEventListener('mouseup',e=>{if(e.button===0)IN.fire=false;if(e.button===2&&G&&G.wallet&&!paused)IN.pressed.add('wAUp')});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 
 function frame(ts){requestAnimationFrame(frame);const now=ts/1000,dt=Math.min(1/30,now-(frame.l||now));frame.l=now;
@@ -2549,7 +2549,7 @@ function showStart(){paused=true;
  <li><b>Feel.</b> Heavy hits add hitstop and screen shake. All of it is tunable under Physicality.</li></ul>
  <b class="hd">Earlier: matched to the 3D Gameplay Slice</b><ul>
  <li><b>Gun parts.</b> Frame, chamber, barrel and ammo are interchangeable across the four brands, with the eight tags in their slots. Build the gun under Loadout below.</li>
- <li><b>WALLET.</b> <kbd>R</kbd> jams the selected card into the handheld and starts that brand's game: RED Shift Crossing, GLD Ascension Run, GRN Fulfillment, BLU Signal Defense. <kbd>LMB</kbd> is its one button (the chamber trigger is off while it's up), <kbd>RMB</kbd> still fires, and repayments now come out of BANK cash.</li>
+ <li><b>WALLET.</b> <kbd>R</kbd> jams the selected card into the handheld and starts that brand's game: RED Shift Crossing, GLD Ascension Run, GRN Fulfillment, BLU Signal Defense. <kbd>RMB</kbd> is its one button (the chamber trigger is off while it's up), <kbd>LMB</kbd> still fires, and repayments now come out of BANK cash.</li>
  <li><b>GRN card.</b> A fourth card, so the GRN game is reachable. Its jump is a short hop on <kbd>C</kbd> that clears shelves.</li></ul></details></div><details><summary>Enemy placeholders</summary><table><tr><th>Unit</th><th>Shape</th><th>Behaviour</th><th>HP</th><th>Cost</th><th>Pays</th></tr>
  <tr><td>Rusher</td><td>Triangle</td><td>Runs straight at you, melee 7</td><td>${CFG.hp_rusher}</td><td>${CFG.cost_rusher}</td><td>$${CFG.pay_rusher}</td></tr>
  <tr><td>Ranged</td><td>Diamond</td><td>Holds 240 to 420 px, strafes, fires 10-damage shots</td><td>${CFG.hp_ranged}</td><td>${CFG.cost_ranged}</td><td>$${CFG.pay_ranged}</td></tr>
@@ -2607,7 +2607,7 @@ function showStart(){paused=true;
  ${mpX('heal','Heal provider',`${chip(opts.prov)} · ${hs}`,healBody)}
  ${mpX('web','Brand relationships',`6 pairs${nHid?' · '+nHid+' undisclosed':''}`,relBody)}
  ${mpX('price','Prices and events','at baseline Worth',priceBody)}
- ${mpX('ctrl','Controls','WASD · RMB · LMB · R · P',`<p style="margin:0;line-height:1.75"><kbd>WASD</kbd> move · <kbd>MOUSE</kbd> aim · <kbd>RMB</kbd> fire: click for Pistol and Pump, hold for Full-Auto, hold and release for Charge. Every round bills the selected card<br><kbd>LMB</kbd> chamber trigger (GLD next chamber · RED add a round · BLU sidearm on/off · GRN bullet time)<br><kbd>F</kbd> punch: hit enemies, smash merchandise, buy from vending machines, throw a held item<br><kbd>E</kbd> grab item, again to pocket it · pay the gate<br><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd>/<kbd>Q</kbd> select paying card (ammo, machines, abilities and draft fees all bill it)<br><kbd>R</kbd> open or exit the WALLET · <kbd>RMB</kbd> plays it, hold for a higher jump in the GLD game · <kbd>LMB</kbd> still fires<br><kbd>SPACE</kbd> RED dash · <kbd>SHIFT</kbd> GLD sprint toggle · <kbd>C</kbd> GRN hop · <kbd>TAB</kbd> BLU zap<br>In a draft: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> take · <kbd>R</kbd> reroll<br><kbd>P</kbd> pause and tune · <kbd>T</kbd> debug: AI Director panel (off by default)</p>`)}
+ ${mpX('ctrl','Controls','WASD · LMB · RMB · R · P',`<p style="margin:0;line-height:1.75"><kbd>WASD</kbd> move · <kbd>MOUSE</kbd> aim · <kbd>LMB</kbd> fire: click for Pistol and Pump, hold for Full-Auto, hold and release for Charge. Every round bills the selected card<br><kbd>RMB</kbd> chamber trigger (GLD next chamber · RED add a round · BLU sidearm on/off · GRN bullet time)<br><kbd>F</kbd> punch: hit enemies, smash merchandise, buy from vending machines, throw a held item<br><kbd>E</kbd> grab item, again to pocket it · pay the gate<br><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd>/<kbd>Q</kbd> select paying card (ammo, machines, abilities and draft fees all bill it)<br><kbd>R</kbd> open or exit the WALLET · <kbd>RMB</kbd> plays it, hold for a higher jump in the GLD game · <kbd>LMB</kbd> still fires<br><kbd>SPACE</kbd> RED dash · <kbd>SHIFT</kbd> GLD sprint toggle · <kbd>C</kbd> GRN hop · <kbd>TAB</kbd> BLU zap<br>In a draft: <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> take · <kbd>R</kbd> reroll<br><kbd>P</kbd> pause and tune · <kbd>T</kbd> debug: AI Director panel (off by default)</p>`)}
  ${mpX('notes','Build notes','changelog, enemies, perks, assumptions',notesBody)}
  ${tuneHTML().replace('<details>','<details class="mpx" data-mp="tune"'+(MPO.has('tune')?' open':'')+'>').replace(/<summary>Tune values \((\d+)\)<\/summary>/,'<summary><span class="mt">Tune values</span><span class="mv">$1 values</span></summary><div class="mb">').replace(/<\/details>$/,'</div></details>')}
  </div></div>`;

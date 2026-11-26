@@ -1,12 +1,12 @@
 # Changelog
 
 ## 2026-11-25 (branch `chamber-triggers`, trial on top of `floor-mosaics`)
-- **Controls:** **LMB is the chamber trigger** and **RMB fires** (click, hold for Full-Auto, hold and release for Charge). **F** stays melee; RMB no longer punches. With the WALLET up (R), LMB is the mini game's button and the chamber trigger is off; RMB still fires.
-- **Chambers are now triggerable actions on LMB** (`chTrig`, 0 = the old passive chambers).
-  - **GLD Cycle:** three chambers, each loaded with its own ammo brand and its own tag slot. LMB turns the drum to the next chamber and switches your ammo. You pick the three ammo brands under Loadout (default GLD / RED / BLU). Buying ammo at a machine loads it into the chamber you're on. The drum no longer advances on each shot.
-  - **RED Triple:** LMB loads one more round into the next pull, up to `blastMax` (5) in total. The pull fires them as a fan (`blastFan`), every round charged to the card, then the blast resets. All three tags still go on every round.
-  - **BLU Deep:** a second weapon slot. The sidearm has its own frame, barrel and ammo (no tags), set under Loadout (default GLD Pistol / GLD Fast / BLU Stun). LMB turns it on or off. While on, it fires at the nearest enemy in sight within `sideRange`, charged to the card in the reader, at the frame's rate x `sideRate`. A declined card switches it off. +2 durability still applies.
-  - **GRN Burst:** LMB gives `btDur` (2) s of bullet time. Enemies, enemy shots and physics run at `btScale` (0.3), while you, your rounds and the market run at full speed. Then there's a `btCd` (10) s cooldown. The old +1 charge per 10 rounds is off.
+- **Controls:** **RMB is the chamber trigger**; **LMB still fires**. **F** stays melee; RMB no longer punches. With the WALLET up (R), RMB is the mini game's button as before and the chamber trigger is off; LMB still fires.
+- **Chambers are now triggerable actions on RMB** (`chTrig`, 0 = the old passive chambers).
+  - **GLD Cycle:** three chambers, each loaded with its own ammo brand and its own tag slot. RMB turns the drum to the next chamber and switches your ammo. You pick the three ammo brands under Loadout (default GLD / RED / BLU). Buying ammo at a machine loads it into the chamber you're on. The drum no longer advances on each shot.
+  - **RED Triple:** RMB loads one more round into the next pull, up to `blastMax` (5) in total. The pull fires them as a fan (`blastFan`), every round charged to the card, then the blast resets. All three tags still go on every round.
+  - **BLU Deep:** a second weapon slot. The sidearm has its own frame, barrel and ammo (no tags), set under Loadout (default GLD Pistol / GLD Fast / BLU Stun). RMB turns it on or off. While on, it fires at the nearest enemy in sight within `sideRange`, charged to the card in the reader, at the frame's rate x `sideRate`. A declined card switches it off. +2 durability still applies.
+  - **GRN Burst:** RMB gives `btDur` (2) s of bullet time. Enemies, enemy shots and physics run at `btScale` (0.3), while you, your rounds and the market run at full speed. Then there's a `btCd` (10) s cooldown. The old +1 charge per 10 rounds is off.
 - A label under Ed shows the chamber's state (chamber + ammo, blast count, sidearm on/off, bullet time ready/cooldown); the screen tints green during bullet time. Each trigger plays that chamber's Round Foundry sound.
 
 ## 2026-11-25 (branch `floor-mosaics`)
