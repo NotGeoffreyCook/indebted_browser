@@ -404,6 +404,10 @@ const CFG_DEF=[
 ['bloodHit','Blood speckles per hit (most)',5,'I'],
 ['bloodDeath','Death splotch radius (x enemy radius)',2.2,'I'],
 ['mosDetail','Floor detail: 0 = flat tones, 1 = quiet (ads only in the mosaics, low contrast), 2 = busy (every tile printed)',1,'I'],
+['Gun audio (Round Foundry)'],
+['sfxOn','Gun audio on (0 / 1)',1,'I'],
+['sfxVol','Gun audio volume',.5,'I'],
+['sfxReceipt','Receipt printer layer (0 / 1)',1,'I'],
 ['Debug'],
 ];
 const CFG={};
@@ -1070,26 +1074,116 @@ function frameDamage(full,level){const f=G.gun.frame;return f==='GLD'?34:f==='BL
 function shotDmg(s){return(s.fd==null?CFG.maxDamage*G.mk[s.b].w:s.fd)*s.dm*s.pm*(1+.12*pk('gilded'))}
 function spawnShot(x,y,a,spd,tags,dur,b,depth,o){if(G.shots.length>=MAX_SHOTS)return;
  G.shots.push(Object.assign({x,y,x0:x,y0:y,dx:Math.cos(a),dy:Math.sin(a),spd,tags,dur,b,depth,age:0,range:0,ign:[],dm:1,fd:null,beam:false,cost:0,pierce:0,pm:1},o))}
+/* ================= GUN AUDIO (ported from the Round Foundry, 2026-11-25) =================
+   Every pull plays the gun's stack in firing order, each layer voiced by the brand of the part that makes it:
+   card terminal (card brand), frame, chamber, barrel, ammo in flight (ammo brand), receipt printer (chamber brand).
+   Impact (ammo brand) plays when a round lands; loaded tags colour the bus (GLD shine, RED drive, BLU pitch jitter,
+   GRN bloom echo) and ring out after the first impact of each pull, 0.25 s apart, in slot order.
+   Negative Foundry offsets are clamped to 0 here because the game can't play before the trigger; the BLU Charge
+   frame's whine plays while you charge instead, and is cut if you release early.
+   Visual-only rules don't change: audio uses Math.random, so seeded runs play out the same. Off in HEADLESS. */
+const SFX={AC:null,master:null,noise:null,J:0,lastImp:0,lastPull:-1,chg:null};
+const SFX_LV={card:.5,frame:.7,chamber:.6,barrel:.9,ammo:.5,impact:.7,receipt:.4};
+const SFX_OFF={card:{GLD:0,RED:0,BLU:0,GRN:0},frame:{GLD:0,RED:0,BLU:0,GRN:0},chamber:{GLD:40,RED:330,BLU:0,GRN:15},barrel:{GLD:0,RED:0,BLU:0,GRN:0},ammo:{GLD:10,RED:10,BLU:10,GRN:10},receipt:{GLD:120,RED:120,BLU:120,GRN:120}};
+function sfxOK(){if(HEADLESS||!CFG.sfxOn)return false;const A=SFX;
+ if(!A.AC){const C=window.AudioContext||window.webkitAudioContext;if(!C)return false;A.AC=new C();A.master=A.AC.createGain();const comp=A.AC.createDynamicsCompressor();comp.threshold.value=-10;comp.ratio.value=4;A.master.connect(comp);comp.connect(A.AC.destination);
+  A.noise=A.AC.createBuffer(1,A.AC.sampleRate*2,A.AC.sampleRate);const d=A.noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+ if(A.AC.state!=='running')A.AC.resume();A.master.gain.value=CFG.sfxVol;return true}
+const SX={
+ g(t,pk,a,d,dest){const n=SFX.AC.createGain();n.gain.setValueAtTime(.0001,t);n.gain.exponentialRampToValueAtTime(Math.max(pk,.0002),t+a);n.gain.exponentialRampToValueAtTime(.0001,t+a+Math.max(d,.003));n.connect(dest);return n},
+ gain(v,dest){const n=SFX.AC.createGain();n.gain.value=v;n.connect(dest);return n},
+ osc(type,f0,f1,t,dur,dest,gl){const o=SFX.AC.createOscillator();o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(f1,t+(gl||dur));o.detune.value=(Math.random()*2-1)*SFX.J;o.connect(dest);o.start(t);o.stop(t+dur+.05);return o},
+ nz(t,dur,dest){const s=SFX.AC.createBufferSource();s.buffer=SFX.noise;s.connect(dest);s.start(t,Math.random());s.stop(t+dur+.02);return s},
+ filt(type,f,q,dest){const b=SFX.AC.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;b.connect(dest);return b},
+ fm(o,t,dur,rate,depth){const l=SFX.AC.createOscillator();l.frequency.value=rate;const lg=SFX.AC.createGain();lg.gain.value=depth;l.connect(lg);lg.connect(o.frequency);l.start(t);l.stop(t+dur)},
+ dop(o,f,t,F){o.frequency.setValueAtTime(f*1.08,t);o.frequency.linearRampToValueAtTime(f,t+F*.6);o.frequency.linearRampToValueAtTime(f*.82,t+F)},
+ curve(k){const n=1024,c=new Float32Array(n);for(let i=0;i<n;i++){const x=i*2/n-1;c[i]=(1+k)*x/(1+k*Math.abs(x))}return c}};
+const SREC={
+ card(b,t,P,F,dec){const{osc,g,filt,fm}=SX;
+  if(dec){[0,.11].forEach(k=>osc('square',220*P.p,0,t+k,.08,g(t+k,.35,.003,.08*P.d,filt('lowpass',1800,.7,P.o))));return}
+  const sp={GLD:['sine',1318,1760],RED:['square',880,1175],BLU:['sine',1046,1568],GRN:['triangle',988,1318]}[b];
+  [0,.07].forEach((k,i)=>{const o=osc(sp[0],sp[1+i]*P.p,0,t+k,.09*P.d+.02,g(t+k,b==='RED'?.16:.35,.003,.08*P.d,P.o));if(b==='BLU')fm(o,t+k,.15,35,70)})},
+ frame(b,t,P){const{osc,g,filt,fm,nz,gain}=SX;
+  if(b==='GLD'){[0,.04].forEach(k=>nz(t+k,.03,filt('bandpass',3600*P.p,4,g(t+k,.7,.001,.018*P.d,P.o))));const h=t+.07;
+   osc('sine',1900*P.p,1750*P.p,h,.3*P.d,g(h,.3,.002,.22*P.d,P.o));osc('sine',2870*P.p,0,h,.2*P.d,g(h,.12,.002,.14*P.d,P.o));nz(h,.02,filt('highpass',2000,.7,g(h,.6,.001,.015,P.o)));return}
+  if(b==='RED'){const b1=filt('bandpass',500*P.p,3,g(t,.9,.006,.09*P.d,P.o));b1.frequency.exponentialRampToValueAtTime(1700*P.p,t+.09);nz(t,.12,b1);const t2=t+.16*P.d;
+   nz(t2,.06,filt('bandpass',1300*P.p,5,g(t2,1,.002,.05*P.d,P.o)));osc('square',150*P.p,85*P.p,t2,.08,g(t2,.25,.002,.06*P.d,filt('lowpass',900,.7,P.o)));return}
+  if(b==='GRN'){osc('sine',170*P.p,60*P.p,t,.1,g(t,.8,.002,.07*P.d,P.o));[.02,.055].forEach(k=>nz(t+k,.02,filt('highpass',3800*P.p,1,g(t+k,.45,.001,.012*P.d,P.o))));return}
+  // BLU torque-bow charge whine; returns its envelope so an early release can cut it
+  const len=P.len||.45*P.d,gg=SFX.AC.createGain();gg.gain.setValueAtTime(.0001,t);gg.gain.exponentialRampToValueAtTime(.3,t+len);gg.gain.exponentialRampToValueAtTime(.0001,t+len+.04);
+  const lp=filt('lowpass',500,4,P.o);lp.frequency.exponentialRampToValueAtTime(5000,t+len);gg.connect(lp);
+  fm(osc('sawtooth',160*P.p,1500*P.p,t,len+.05,gg,len),t,len+.05,24,30);osc('square',80*P.p,600*P.p,t,len+.05,gain(.5,gg),len);return gg},
+ chamber(b,t,P){const{osc,g,filt,nz}=SX;
+  if(b==='GLD'){[0,.028,.056].forEach(k=>{const tt=t+k*P.d;nz(tt,.015,filt('bandpass',5200*P.p,7,g(tt,.8,.001,.01,P.o)));osc('sine',3300*P.p,0,tt,.03,g(tt,.1,.001,.02,P.o))});return}
+  if(b==='RED'){osc('square',95*P.p,55*P.p,t,.15*P.d,g(t,.5,.002,.12*P.d,filt('lowpass',700,.7,P.o)));nz(t,.08,filt('lowpass',1000*P.p,.7,g(t,.6,.001,.06*P.d,P.o)));return}
+  if(b==='GRN'){let k=0;for(let i=0;i<5;i++){const tt=t+k;nz(tt,.012,filt('bandpass',2400*P.p*(.85+Math.random()*.3),3,g(tt,.35,.001,.008,P.o)));k+=(.016+Math.random()*.014)*P.d}return}
+  const len=.18*P.d,am=SFX.AC.createGain();am.gain.value=.5;am.connect(g(t,.35,.01,len,filt('lowpass',1200,1,P.o)));
+  osc('sawtooth',120*P.p,0,t,len+.02,am);osc('sawtooth',181*P.p,0,t,len+.02,am);const lg=SFX.AC.createGain();lg.gain.value=.5;lg.connect(am.gain);osc('square',42,0,t,len+.02,lg)},
+ barrel(b,t,P){const{osc,g,filt,nz}=SX;const sc={GLD:[.8,.9],RED:[1,1],BLU:[.4,.6],GRN:[.7,.5]}[b];
+  osc('sine',160*P.p,42*P.p,t,.28*P.d,g(t,sc[0],.002,.24*P.d,P.o),.12);nz(t,.15*P.d,filt('lowpass',6500*P.p,.7,g(t,sc[1],.001,.11*P.d,P.o)));
+  if(b==='GLD'){[1,2.76,5.4].forEach((m,i)=>osc('sine',880*P.p*m,0,t+.005,.9*P.d,g(t+.005,.16/(i+1),.002,.75*P.d,P.o)));return}
+  if(b==='RED'){osc('sine',72*P.p,34*P.p,t,.7*P.d,g(t,.8,.004,.6*P.d,P.o));nz(t,.5*P.d,filt('lowpass',1100*P.p,.7,g(t,.7,.003,.4*P.d,P.o)));return}
+  if(b==='BLU'){osc('square',2600*P.p,90*P.p,t,.14,g(t,.4,.001,.12*P.d,P.o),.1);nz(t,.07,filt('highpass',3200*P.p,.7,g(t,.5,.001,.05*P.d,P.o)));return}
+  nz(t,.1,filt('bandpass',900*P.p,2,g(t,1,.001,.07*P.d,P.o)));osc('triangle',320*P.p,120*P.p,t,.14,g(t,.5,.002,.1*P.d,P.o))},
+ ammo(b,t,P,F){const{osc,filt,nz,gain,fm,dop}=SX;
+  const sw=pk=>{const n=SFX.AC.createGain();n.gain.setValueAtTime(.0001,t);n.gain.exponentialRampToValueAtTime(pk,t+F*.6);n.gain.exponentialRampToValueAtTime(.0001,t+F+.04*P.d);n.connect(P.o);return n};
+  if(b==='GLD'){const e=sw(.2);[2400,2413,3600].forEach((f,i)=>{const o=osc('sine',f*P.p,0,t,F+.1,i===2?gain(.4,e):e);dop(o,f*P.p,t,F);fm(o,t,F+.1,7,18)})}
+  else if(b==='RED'){const e=sw(.6),lp=filt('lowpass',900*P.p,1,e);lp.frequency.linearRampToValueAtTime(450*P.p,t+F);nz(t,F+.1,lp);dop(osc('sawtooth',75*P.p,0,t,F+.1,filt('lowpass',400,.7,e)),75*P.p,t,F)}
+  else if(b==='BLU'){const e=sw(.18),o=osc('square',600*P.p,0,t,F+.1,filt('bandpass',1500*P.p,1.5,e));for(let k=0;k<F;k+=.025)o.frequency.setValueAtTime(600*P.p*(.6+Math.random()),t+k)}
+  else{const e=sw(.3),o=osc('triangle',420*P.p,0,t,F+.1,e);dop(o,420*P.p,t,F);fm(o,t,F+.1,9,70);const o2=osc('triangle',630*P.p,0,t,F+.1,gain(.5,e));dop(o2,630*P.p,t,F);fm(o2,t,F+.1,6.5,50)}},
+ impact(b,t,P){const{osc,g,filt,nz}=SX;
+  if(b==='GLD'){osc('sine',2300*P.p,0,t,.2,g(t,.35,.001,.15*P.d,P.o));nz(t,.04,filt('highpass',2500,.7,g(t,.4,.001,.03*P.d,P.o)))}
+  else if(b==='RED'){osc('sine',130*P.p,48*P.p,t,.18,g(t,.9,.002,.14*P.d,P.o));nz(t,.1,filt('lowpass',1400*P.p,.7,g(t,.8,.001,.08*P.d,P.o)))}
+  else if(b==='BLU'){nz(t,.05,filt('highpass',4000*P.p,.7,g(t,.6,.001,.035*P.d,P.o)));osc('square',1800*P.p,400*P.p,t,.06,g(t,.25,.001,.05*P.d,P.o),.05)}
+  else{const bp=filt('bandpass',1800*P.p,2,g(t,.8,.002,.12*P.d,P.o));bp.frequency.exponentialRampToValueAtTime(300*P.p,t+.12);nz(t,.14,bp);osc('triangle',220*P.p,90*P.p,t,.12,g(t,.4,.002,.1*P.d,P.o))}},
+ receipt(b,t,P){const{g,filt,nz}=SX;const sp={GLD:[3200,.011,0],RED:[1700,.017,0],BLU:[2600,.013,1],GRN:[1500,.013,0]}[b],len=.35*P.d;
+  const bp=filt('bandpass',sp[0]*P.p,2,b==='GRN'?filt('lowpass',1800,.7,P.o):P.o);
+  let k=0;while(k<len){const tt=t+k;nz(tt,.008,g(tt,b==='RED'?.5:.3,.001,.005,bp));k+=sp[2]?sp[1]*(.4+Math.random()*1.6):sp[1]}
+  const te=t+len+.04,hp=filt('bandpass',2200,1,g(te,.35,.01,.06,P.o));hp.frequency.exponentialRampToValueAtTime(5000,te+.07);nz(te,.09,hp)}};
+function sfxTag(b,t,P){const{osc,g,filt,nz}=SX;
+ if(b==='GLD')[1320,1980,2640].forEach((f,i)=>osc('sine',f*P.p,0,t,.6*P.d,g(t,.22/(i+1),.002,.5*P.d,P.o)));
+ else if(b==='RED'){nz(t,.2,filt('lowpass',2200*P.p,.7,g(t,.8,.002,.16*P.d,P.o)));osc('sine',95*P.p,38*P.p,t,.25,g(t,.6,.002,.2*P.d,P.o))}
+ else if(b==='BLU'){const o=osc('square',300*P.p,2400*P.p,t,.12,g(t,.25,.001,.1*P.d,filt('bandpass',1800,1,P.o)),.08);for(let k=0;k<.1;k+=.015)o.detune.setValueAtTime((Math.random()*2-1)*600,t+k);nz(t,.04,filt('highpass',5000,.7,g(t,.3,.001,.03,P.o)))}
+ else{const bp=filt('bandpass',400*P.p,4,g(t,.5,.01,.25*P.d,P.o));bp.frequency.exponentialRampToValueAtTime(1600*P.p,t+.2);osc('triangle',200*P.p,600*P.p,t,.3,bp,.18);nz(t,.2,bp)}}
+function sfxBus(tb){const A=SFX.AC,c={GLD:0,RED:0,BLU:0,GRN:0};(tb||[]).forEach(b=>c[b]++);SFX.J=c.BLU*60;
+ const inp=A.createGain();let node=inp;const kill=[];
+ if(c.RED){const sh=A.createWaveShaper();sh.curve=SX.curve(c.RED*12);sh.oversample='2x';node.connect(sh);const mk=A.createGain();mk.gain.value=1/(1+c.RED*.25);sh.connect(mk);node=mk;kill.push(sh)}
+ const hs=A.createBiquadFilter();hs.type='highshelf';hs.frequency.value=3500;hs.gain.value=c.GLD*3;node.connect(hs);hs.connect(SFX.master);kill.push(hs);
+ if(c.GRN){const dl=A.createDelay(1);dl.delayTime.value=.11;const fb=A.createGain();fb.gain.value=Math.min(.3+.08*c.GRN,.7);const lp=SX.filt('lowpass',2200,.7,fb);hs.connect(dl);dl.connect(lp);fb.connect(dl);lp.connect(SX.gain(.15*c.GRN,SFX.master));kill.push(dl,fb)}
+ setTimeout(()=>kill.forEach(n=>{try{n.disconnect()}catch(e){}}),4000);return inp}
+function sfxP(id,out,extra){const lv=SFX.AC.createGain();lv.gain.value=SFX_LV[id];const lp=SX.filt('lowpass',300*2**(.75*6),.5,out);lv.connect(lp);return Object.assign({p:1,d:1,o:lv},extra)}
+const tagBrands=R=>(R&&R.seq||[]).map(x=>TAGS[x.tag]&&TAGS[x.tag].brand).filter(Boolean);
+// one pull: card, frame, chamber, barrel, ammo in flight, receipt
+function sfxFire(g,ammo,cardB,R,skipFrame){if(!sfxOK())return;const t0=SFX.AC.currentTime+.02,out=sfxBus(tagBrands(R)),F=Math.min(.6,Math.max(.08,12/PARTS.barrel[g.barrel].speed));
+ const L=[['card',cardB],['frame',g.frame],['chamber',g.chamber],['barrel',g.barrel],['ammo',ammo],['receipt',g.chamber]];
+ for(const[id,b]of L){if(id==='frame'&&skipFrame)continue;if(id==='receipt'&&CFG.sfxReceipt<=0)continue;SREC[id](b,t0+SFX_OFF[id][b]/1000,sfxP(id,out),F)}}
+function sfxDecline(g,cardB){if(!sfxOK())return;const t=SFX.AC.currentTime+.02,out=sfxBus([]);SREC.card(cardB,t,sfxP('card',out),0,true);if(g.frame!=='BLU')SREC.frame(g.frame,t,sfxP('frame',out))}
+function sfxChargeStart(){if(!sfxOK())return;sfxChargeStop();SFX.chg=SREC.frame('BLU',SFX.AC.currentTime+.01,sfxP('frame',sfxBus([]),{len:1}))}
+function sfxChargeStop(){const c=SFX.chg;SFX.chg=null;if(!c||!SFX.AC)return;const t=SFX.AC.currentTime;try{c.gain.cancelScheduledValues(t);c.gain.setValueAtTime(Math.max(c.gain.value,.0002),t);c.gain.exponentialRampToValueAtTime(.0001,t+.05)}catch(e){}}
+// a round lands: impact layer (throttled for Full-Auto and pellets), tags ring after the first hit of each pull
+function sfxImpact(pr){if(!sfxOK())return;const A=SFX.AC,now=A.currentTime,first=pr.pull!=null&&pr.pull!==SFX.lastPull;
+ if(!first&&now-SFX.lastImp<.045)return;SFX.lastImp=now;const tb=first?tagBrands(pr.plan):[];if(first)SFX.lastPull=pr.pull;
+ const out=sfxBus(tb),P=sfxP('impact',out);SREC.impact(pr.b,now+.01,P);tb.slice(0,5).forEach((b,k)=>sfxTag(b,now+.01+.25*(k+1),P))}
 function fireGun(chargeMult,level){const p=G.p,g=G.gun,gs=G.gs,cfg=FRAME_CFG[g.frame],bar=PARTS.barrel[g.barrel],m=G.mk[p.ammo],card=G.cards[p.sel];
  if(m.liq<=0||m.floor>0){gs.cd=.5;float(p.x,p.y-26,p.ammo+' OUT OF STOCK','#e5332a');return}
  const R=buildRound(g,gs,p.ammo,chargeMult,true),M=R.mods,price=roundPrice(p.ammo)+R.tagCost,rounds=cfg.count+pk('bundle'),fd=frameDamage(chargeMult>1,level),a0=Math.atan2(p.aimy,p.aimx);
  let fired=0;const pull=++G.pullN;
- for(let i=0;i<rounds;i++){if(!charge(card,price)){if(!fired){gs.cd=.5;float(p.x,p.y-26,'DECLINED','#e5332a');G.rc.push({t:G.t,dec:true,c:card.b});if(G.rc.length>6)G.rc.shift();return}break}
+ for(let i=0;i<rounds;i++){if(!charge(card,price)){if(!fired){gs.cd=.5;sfxDecline(g,card.b);float(p.x,p.y-26,'DECLINED','#e5332a');G.rc.push({t:G.t,dec:true,c:card.b});if(G.rc.length>6)G.rc.shift();return}break}
   fired++;G.st.rounds++;G.st.ammo$+=price;nudge(p.ammo,price/CFG.roundDiv);
   let roll=1;for(let v=0;v<M.volatile;v++)roll*=.6+G.rng()*1.4;
   const raw=bar.pellets*M.pellets,slug=M.slug&&raw>1,pel=slug?1:raw;
   for(let j=0;j<pel;j++){const spread=cfg.spread+(pel>1?.07+(M.pellets>1?.05:0):0)+(i>=cfg.count?.08:0);
    spawnShot(p.x+p.aimx*16,p.y+p.aimy*16,a0+(G.rng()-.5)*2*spread,bar.speed*PXM*M.speed,null,R.dur,p.ammo,0,{dm:slug?1:1/raw,fd,beam:g.barrel==='BLU',cost:price/pel,pierce:pk('pierce')+M.pierce,pm:M.dmg*roll,plan:R,pull,slug,jacket:M.jacket})}}
- if(fired){G.rc.push({t:G.t,amt:price*fired,b:p.ammo,n:fired,c:card.b});if(G.rc.length>6)G.rc.shift();
+ if(fired){sfxFire(g,p.ammo,card.b,R,g.frame==='BLU');G.rc.push({t:G.t,amt:price*fired,b:p.ammo,n:fired,c:card.b});if(G.rc.length>6)G.rc.shift();
   const kick=CFG.recoilBase*Math.pow(price*fired/6,CFG.recoilPrice)*Math.pow(1+CFG.recoilTag*R.widths,1.3)*Math.sqrt(chargeMult||1);
   p.rx=(p.rx||0)-p.aimx*kick;p.ry=(p.ry||0)-p.aimy*kick;if(kick>120)G.shake=Math.max(G.shake||0,Math.min(8,kick/60))}
  if(R.seq.some(x=>x.fed))gs.strip=(gs.strip||0)+1;
  const fm=fanMode(g,gs);if(fm==='fan')gs.fanCool=2;else if(fm==='cool')gs.fanCool--;
  if(g.chamber==='GLD')gs.cycle++;if(g.chamber==='GRN')gs.burst++;
  gs.cd=cfg.rate/((p.buff>0?1.4:1)*(1+.1*pk('rapid')));gs.lastFire=G.t;G.fx.push({k:'muzzle',t:.05,b:g.barrel});pxBurst('muzzle',p.x+p.aimx*26,p.y+p.aimy*26,g.barrel,{a:Math.atan2(p.aimy,p.aimx)})}
-function updTrigger(dt,edge){const gs=G.gs,f=G.gun.frame;gs.cd-=dt;if(G.p.swapT>0){gs.charge=0;return}
+function updTrigger(dt,edge){const gs=G.gs,f=G.gun.frame;gs.cd-=dt;if(G.p.swapT>0){if(gs.charge>0)sfxChargeStop();gs.charge=0;return}
  if(gs.burst&&G.t-gs.lastFire>2)gs.burst=0;
- if(f==='BLU'){if(IN.fire&&gs.cd<=0)gs.charge=Math.min(1,gs.charge+dt);else if(!IN.fire&&gs.charge>0){const c=gs.charge;gs.charge=0;fireGun(c>=1?5:1,c)}}
+ if(f==='BLU'){if(IN.fire&&gs.cd<=0){if(gs.charge<=0)sfxChargeStart();gs.charge=Math.min(1,gs.charge+dt)}else if(!IN.fire&&gs.charge>0){const c=gs.charge;gs.charge=0;sfxChargeStop();fireGun(c>=1?5:1,c)}}
  else if(f==='GRN'){if(IN.fire&&gs.cd<=0)fireGun(1,0)}
  else if(edge&&gs.cd<=0)fireGun(1,0)}
 function solidAt(x,y,ign){for(const r of G.solids)if(x>r.x&&x<r.x+r.w&&y>r.y&&y<r.y+r.h&&!ign.includes(r))return r;return null}
@@ -1297,7 +1391,7 @@ function reactSpd(e){let k=1;if(e.adrT>G.t)k*=1+CFG.adrMove*e.adr;if(e.slBack>G.
  return k}
 function hitEnemy(e,pr){const s=stance(pr.b,e.b);let d=shotDmg(pr)*stanceMul(s);
  if(pk('variance')&&G.rng()<.12*pk('variance')){d*=3;pxBurst('flash',e.x,e.y,'BLU')}
- G.st.hits++;physHit(e,pr);pxBurst('hit',e.x-(pr.dx||0)*e.r,e.y-(pr.dy||0)*e.r,pr.b,{a:Math.atan2(-(pr.dy||0),-(pr.dx||0)),n:pr.dm<.5?3:6});damageEnemy(e,d,{b:pr.b,cost:pr.cost,s,dx:pr.dx,dy:pr.dy});react(e,'hit',pr);
+ G.st.hits++;sfxImpact(pr);physHit(e,pr);pxBurst('hit',e.x-(pr.dx||0)*e.r,e.y-(pr.dy||0)*e.r,pr.b,{a:Math.atan2(-(pr.dy||0),-(pr.dx||0)),n:pr.dm<.5?3:6});damageEnemy(e,d,{b:pr.b,cost:pr.cost,s,dx:pr.dx,dy:pr.dy});react(e,'hit',pr);
  const n=pk('arc');if(n){const near=G.en.filter(o=>o!==e&&!o.dead&&o.born<=0&&hyp(o.x-e.x,o.y-e.y)<130).sort((a,b)=>hyp(a.x-e.x,a.y-e.y)-hyp(b.x-e.x,b.y-e.y)).slice(0,n);
   for(const o of near){G.fx.push({k:'arc',x:e.x,y:e.y,x2:o.x,y2:o.y,t:.12});damageEnemy(o,d*.35,{b:pr.b,s:stance(pr.b,o.b)})}}}
 function damageEnemy(e,d,src){if(e.dead)return;src=src||{};if(e.radUntil>G.t)d*=1.1;if(e.stunUntil>G.t)d*=1.25;e.dmgTaken=(e.dmgTaken||0)+d;if(e.p0){if(e.plates>0){d*=1-CFG.plateArmor;e.ph-=d;if(e.ph<=0){let dx=src.dx,dy=src.dy;if(dx==null){const a=G.rng()*7;dx=Math.cos(a);dy=Math.sin(a)}popPlate(e,dx,dy)}}else d*=CFG.coreMult}e.hp-=d;bleed(e,src,d);e.flash=.08;if(e.type!=='fodder'&&d>=.5){const bb=src.b||G.p.ammo;if(e.fl&&e.fl.b===bb&&e.fl.t>.85&&G.fl.includes(e.fl)){e.fl.v+=d;e.fl.txt=String(Math.round(e.fl.v));e.fl.x=e.x;e.fl.t=1}else{e.fl={x:e.x+(Math.random()-.5)*16,y:e.y-e.r-22,v:d,txt:String(Math.round(d)),col:BRAND[bb].col,b:bb,t:1,dmg:true};G.fl.push(e.fl)}}if(e.hp<=0)kill(e,src||{})}
